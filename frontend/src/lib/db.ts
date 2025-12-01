@@ -68,6 +68,7 @@ export interface ProjectPhoto {
   alt: string;
   caption?: string;
   dataAiHint?: string;
+  fileType?: 'image' | 'video' | 'document';
 }
 
 export interface TimelineTask {
@@ -534,6 +535,21 @@ export async function deleteUser(userId: string, adminUserId?: string): Promise<
   if (!res.ok || !json.success) return { success: false, message: json.message || 'المستخدم غير موجود.' };
   await logAction('USER_DELETE_SUCCESS_BY_ADMIN', 'INFO', `User ID ${userId} deleted by admin ${adminUserId || ''}.`);
   return { success: true, message: 'تم حذف المستخدم بنجاح.' };
+}
+
+export async function deleteUserSelf(userId: string): Promise<{ success: boolean, message?: string }> {
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  const body = { userId };
+
+  const res = await fetch(`${API_BASE_URL}/users/${userId}/self`, {
+    method: 'DELETE',
+    headers,
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) return { success: false, message: json.message || 'فشل حذف الحساب.' };
+  await logAction('USER_DELETE_SELF_SUCCESS', 'INFO', `User ID ${userId} deleted their own account.`, userId);
+  return { success: true, message: 'تم حذف الحساب بنجاح.' };
 }
 
 export async function restoreUser(userId: string, adminUserId?: string): Promise<{ success: boolean, message?: string }> {

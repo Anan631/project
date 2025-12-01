@@ -421,31 +421,31 @@ export default function EditProjectDialog({ isOpen, onClose, onProjectUpdated, p
             </motion.div>
           </div>
 
-          {/* Footer */}
-          <DialogFooter className="pt-6 pb-2 border-t border-gray-100 gap-3">
+          {/* Footer - Enhanced Cancel Button */}
+          <DialogFooter className="pt-6 pb-4 border-t border-gray-100 gap-3 flex-col sm:flex-row">
             <Button 
               type="button" 
               variant="outline" 
               onClick={onClose}
-              className="h-12 px-6 border-2 border-gray-300 text-gray-700 hover:bg-red-600 hover:text-white hover:border-red-600 font-semibold transition-all duration-200 flex items-center gap-2"
+              className="h-12 px-8 border-2 border-gray-300 text-gray-700 hover:bg-red-600 hover:text-white hover:border-red-600 font-semibold transition-all duration-200 flex items-center gap-3 flex-1 sm:flex-none"
             >
-              <X className="h-4 w-4" />
-              <span>إلغاء</span>
+              <X className="h-5 w-5" />
+              <span className="text-base">إلغاء</span>
             </Button>
             <Button 
               type="submit" 
               disabled={isLoading}
-              className="h-12 px-8 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+              className="h-12 px-8 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 flex-1 sm:flex-none disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>جاري الحفظ...</span>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span className="text-base">جاري الحفظ...</span>
                 </>
               ) : (
                 <>
-                  <Save className="h-4 w-4" />
-                  <span>حفظ التغييرات</span>
+                  <Save className="h-5 w-5" />
+                  <span className="text-base">حفظ التغييرات</span>
                 </>
               )}
             </Button>

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserCircle, KeyRound, Save, Trash2, AlertTriangle, Check, Mail, Phone, Shield } from 'lucide-react';
+import { Loader2, UserCircle, KeyRound, Save, Trash2, AlertTriangle, Check, Mail, Phone, Shield, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { updateProfileAction, changePasswordAction, getUserProfile, deleteUserAccountAction } from './actions';
 import type { UserDocument, ChangePasswordResult } from '@/lib/db';
@@ -54,6 +54,11 @@ export function ProfilePageContent() {
   const [currentUser, setCurrentUser] = useState<UserProfileData | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteStep, setDeleteStep] = useState<'confirm' | 'loading' | 'success'>('confirm');
+  
+  // إضافة حالات لعرض/إخفاء كلمات المرور
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register: registerProfile,
@@ -79,9 +84,10 @@ export function ProfilePageContent() {
     const fetchUserData = async () => {
       const storedId = localStorage.getItem('userId');
       if (storedId) {
-        const userProfile = await getUserProfile(storedId);
-        if (userProfile) {
-          userProfile.id = userProfile._id || storedId;
+        const userProfileResult = await getUserProfile(storedId);
+        if (userProfileResult && userProfileResult.success && userProfileResult.user) {
+          const userProfile = userProfileResult.user;
+          userProfile.id = userProfile._id || userProfile.id || storedId;
           setCurrentUser(userProfile);
           resetProfile({
             name: userProfile.name,
@@ -186,7 +192,7 @@ export function ProfilePageContent() {
     const userId = currentUser._id || currentUser.id;
     console.log("جاري حذف حساب المستخدم بالمعرف:", userId);
     setDeleteStep('loading');
-    const result = await deleteUserAccountAction(userId);
+    const result = await deleteUserAccountAction({ userId });
     if (result.success) {
       setDeleteStep('success');
       setTimeout(() => {
@@ -385,11 +391,22 @@ export function ProfilePageContent() {
                   <div className="relative">
                     <Input 
                       id="currentPassword" 
-                      type="password" 
+                      type={showCurrentPassword ? "text" : "password"} 
                       {...registerPassword("currentPassword")} 
-                      className="bg-gray-50/80 border-gray-300 pl-10 focus:bg-white transition-colors"
+                      className="bg-gray-50/80 border-gray-300 pl-10 pr-10 focus:bg-white transition-colors"
                     />
-                    <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <KeyRound className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <button
+                      type="button"
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    >
+                      {showCurrentPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                   {passwordErrors.currentPassword && (
                     <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
@@ -403,12 +420,25 @@ export function ProfilePageContent() {
                   <Label htmlFor="newPassword" className="text-sm font-medium text-gray-700 mb-2 block">
                     كلمة المرور الجديدة
                   </Label>
-                  <Input 
-                    id="newPassword" 
-                    type="password" 
-                    {...registerPassword("newPassword")} 
-                    className="bg-gray-50/80 border-gray-300 focus:bg-white transition-colors"
-                  />
+                  <div className="relative">
+                    <Input 
+                      id="newPassword" 
+                      type={showNewPassword ? "text" : "password"} 
+                      {...registerPassword("newPassword")} 
+                      className="bg-gray-50/80 border-gray-300 pr-10 focus:bg-white transition-colors"
+                    />
+                    <button
+                      type="button"
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                    >
+                      {showNewPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                   {passwordErrors.newPassword && (
                     <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
                       <AlertTriangle className="h-3 w-3" />
@@ -421,12 +451,25 @@ export function ProfilePageContent() {
                   <Label htmlFor="confirmNewPassword" className="text-sm font-medium text-gray-700 mb-2 block">
                     تأكيد كلمة المرور الجديدة
                   </Label>
-                  <Input 
-                    id="confirmNewPassword" 
-                    type="password" 
-                    {...registerPassword("confirmNewPassword")} 
-                    className="bg-gray-50/80 border-gray-300 focus:bg-white transition-colors"
-                  />
+                  <div className="relative">
+                    <Input 
+                      id="confirmNewPassword" 
+                      type={showConfirmPassword ? "text" : "password"} 
+                      {...registerPassword("confirmNewPassword")} 
+                      className="bg-gray-50/80 border-gray-300 pr-10 focus:bg-white transition-colors"
+                    />
+                    <button
+                      type="button"
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                   {passwordErrors.confirmNewPassword && (
                     <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
                       <AlertTriangle className="h-3 w-3" />

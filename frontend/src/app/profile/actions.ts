@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from 'zod';
-import { updateUserProfile, changeUserPassword, deleteUserAccount } from '@/lib/db';
+import { updateUserProfile, changeUserPassword, deleteUserSelf, getUserById } from '@/lib/db';
 import type { UserDocument } from '@/lib/db';
 
 // Schema for updating profile
@@ -13,6 +13,22 @@ const updateProfileSchema = z.object({
 });
 
 type UpdateProfileFormValues = z.infer<typeof updateProfileSchema>;
+
+export async function getUserProfile(userId: string): Promise<Omit<UserDocument, 'password_hash'> | null> {
+  try {
+    const user = await getUserById(userId);
+    if (!user) {
+      return null;
+    }
+
+    // Remove password hash from returned object
+    const { password_hash, ...userProfile } = user;
+    return userProfile;
+  } catch (error) {
+    console.error(`[GetUserProfile] Error fetching user ${userId}:`, error);
+    return null;
+  }
+}
 
 export interface UpdateProfileResult {
   success: boolean;
@@ -115,7 +131,8 @@ export async function deleteUserAccountAction(
   }
 
   try {
-    const result = await deleteUserAccount(validation.data.userId);
+    // استخدام deleteUserSelf بدلاً من deleteUser
+    const result = await deleteUserSelf(validation.data.userId);
 
     if (!result.success) {
       return {

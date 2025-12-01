@@ -41,6 +41,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState, useMemo } from "react";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 const mainLinks = [
   { href: '/', label: 'الرئيسية للموقع', icon: Home },
@@ -115,6 +116,9 @@ export default function EngineerSidebar({ isOpen, onToggle }: EngineerSidebarPro
   const router = useRouter();
   const { toast } = useToast();
   const [engineerName, setEngineerName] = useState("المهندس");
+  
+  // الاستماع لتغييرات حالة الشريط الجانبي
+  // تم إزالة useEffect الخاص بالاستماع للأحداث المخصصة لأن الحالة ستدار بواسطة الخصائص
 
   useEffect(() => {
     const name = localStorage.getItem("userName");
@@ -226,7 +230,7 @@ export default function EngineerSidebar({ isOpen, onToggle }: EngineerSidebarPro
   return (
     <TooltipProvider delayDuration={0}>
       <aside className={cn(
-        "bg-card text-card-foreground flex flex-col shadow-lg border-l transition-all duration-300 ease-in-out",
+        "bg-card text-card-foreground flex flex-col shadow-lg border-l z-50 transition-all duration-300 ease-in-out",
         isOpen ? "w-72" : "w-20"
       )}>
         <div className="p-4 flex items-center border-b h-[70px] flex-shrink-0">
