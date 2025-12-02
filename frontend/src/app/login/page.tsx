@@ -143,8 +143,8 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   {...register("email")}
-                  className="mt-2 pr-10 text-lg py-3"
                   placeholder="engineer@example.com"
+                  className="text-lg py-3"
                 />
                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
               </div>
@@ -170,7 +170,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 left-0 px-3 text-slate-500"
+                    className="absolute inset-y-0 left-0 px-3"
                   >
                     {showPassword ? <EyeOff /> : <Eye />}
                   </button>
@@ -181,8 +181,8 @@ export default function LoginPage() {
                 )}
               </div>
 
-              <Button className="w-full bg-app-red py-3 text-lg" disabled={isLoading}>
-                {isLoading ? <Loader2 className="animate-spin" /> : <LogIn className="ml-2" />}
+              <Button type="submit" className="w-full bg-app-red text-white py-3 text-lg" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin" /> : <LogIn />}
                 {isLoading ? "جاري التحقق..." : "تسجيل الدخول"}
               </Button>
 
@@ -192,14 +192,14 @@ export default function LoginPage() {
             <div className="text-center text-sm text-slate-600 mt-8 space-y-2">
               <p>
                 ليس لديك حساب؟{" "}
-                <Link href="/signup" className="font-semibold text-green-700 hover:underline">
+                <Link href="/signup" className="text-green-700 font-semibold">
                   إنشاء حساب مهندس
                 </Link>
               </p>
 
               <p>
                 هل أنت مالك مشروع؟{" "}
-                <Link href="/owner-login" className="font-semibold text-blue-600 hover:underline">
+                <Link href="/owner-login" className="text-blue-600 font-semibold">
                   تسجيل الدخول كمالك
                 </Link>
               </p>

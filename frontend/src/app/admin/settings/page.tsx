@@ -8,8 +8,26 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Settings as SettingsIcon, Loader2, Mail, ShieldAlert, Globe, Upload, Bell } from 'lucide-react';
+import { 
+  Save, 
+  Settings as SettingsIcon, 
+  Loader2, 
+  Mail, 
+  ShieldAlert, 
+  Globe, 
+  Upload, 
+  Bell,
+  RefreshCw,
+  Eye,
+  EyeOff,
+  Server,
+  Shield,
+  Key,
+  Lock,
+  Database
+} from 'lucide-react';
 import { getSystemSettings, updateSystemSettings, type SystemSettingsDocument } from '@/lib/db';
 
 export default function AdminSettingsPage() {
@@ -18,6 +36,7 @@ export default function AdminSettingsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [activeTab, setActiveTab] = useState('general');
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -28,14 +47,14 @@ export default function AdminSettingsPage() {
           setSettings(fetchedSettings);
         } else {
           toast({
-            title: "خطأ",
+            title: "⚠️ خطأ في التحميل",
             description: "فشل تحميل إعدادات النظام.",
             variant: "destructive"
           });
         }
       } catch (error) {
         toast({
-          title: "خطأ فادح",
+          title: "❌ خطأ فادح",
           description: "حدث خطأ أثناء تحميل الإعدادات.",
           variant: "destructive"
         });
@@ -54,7 +73,7 @@ export default function AdminSettingsPage() {
     event.preventDefault();
     if (!settings) {
       toast({
-        title: "خطأ",
+        title: "❌ خطأ",
         description: "لا توجد إعدادات لحفظها.",
         variant: "destructive"
       });
@@ -62,17 +81,20 @@ export default function AdminSettingsPage() {
     }
     setIsLoading(true);
 
+    // محاكاة عملية الحفظ
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
     const result = await updateSystemSettings(settings);
 
     if (result.success) {
       toast({
-        title: "تم حفظ الإعدادات",
+        title: "✅ تم الحفظ بنجاح",
         description: result.message || "تم تحديث إعدادات النظام بنجاح.",
         variant: "default",
       });
     } else {
       toast({
-        title: "خطأ في الحفظ",
+        title: "❌ خطأ في الحفظ",
         description: result.message || "فشل تحديث إعدادات النظام.",
         variant: "destructive",
       });
@@ -80,309 +102,565 @@ export default function AdminSettingsPage() {
     setIsLoading(false);
   };
 
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+  const handleResetSection = (section: string) => {
+    if (!settings) return;
+    
+    const defaultSettings: Partial<SystemSettingsDocument> = {
+      maintenanceMode: false,
+      twoFactorAuth: false,
+      emailNotificationsEnabled: true,
+      fileScanning: false,
+      loginAttemptsLimit: 5,
+      passwordResetExpiry: 24,
+      maxUploadSizeMB: 10,
+      notificationFrequency: 'instant'
+    };
+
+    setSettings(prev => prev ? { ...prev, ...defaultSettings } : null);
+    
+    toast({
+      title: "🔄 تم الإعادة",
+      description: `تم إعادة تعيين إعدادات ${section} إلى القيم الافتراضية`,
+      variant: "default",
+    });
+  };
+
   if (isFetching) {
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh] gap-4">
-        <Loader2 className="h-12 w-12 animate-spin text-app-gold" />
-        <p className="text-lg font-medium text-gray-600">جاري تحميل الإعدادات...</p>
-        <p className="text-sm text-gray-500">قد تستغرق العملية بضع ثوانٍ</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/30 flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin"></div>
+            <SettingsIcon className="absolute inset-0 m-auto h-8 w-8 text-sky-600 animate-pulse" />
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-2xl font-bold text-slate-700">جاري تحميل الإعدادات</h3>
+            <p className="text-slate-500">يتم الآن تحميل إعدادات النظام...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!settings) {
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh] gap-4">
-        <ShieldAlert className="h-12 w-12 text-red-500" />
-        <p className="text-lg font-medium text-red-500">فشل تحميل الإعدادات</p>
-        <Button
-          variant="outline"
-          onClick={() => window.location.reload()}
-          className="mt-4"
-        >
-          المحاولة مرة أخرى
-        </Button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/30 flex items-center justify-center">
+        <Card className="w-full max-w-md border-0 shadow-2xl bg-white/95 backdrop-blur-sm">
+          <CardContent className="pt-6 text-center space-y-6">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+              <ShieldAlert className="h-10 w-10 text-red-600" />
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-2xl font-bold text-red-600">فشل تحميل الإعدادات</h3>
+              <p className="text-slate-600">تعذر تحميل إعدادات النظام. يرجى المحاولة مرة أخرى.</p>
+            </div>
+            <div className="flex gap-3 justify-center">
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                className="border-slate-300"
+              >
+                <RefreshCw className="h-4 w-4 ml-2" />
+                إعادة المحاولة
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Card className="bg-white/95 shadow-xl w-full max-w-5xl mx-auto border-0">
-        <CardHeader className="text-center border-b pb-6">
-          <div className="inline-flex items-center justify-center p-4 bg-gradient-to-r from-app-red/10 to-app-gold/10 rounded-full">
-            <SettingsIcon className="h-12 w-12 text-app-gold" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/30 py-8 px-4">
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white rounded-2xl shadow-lg border border-slate-100">
+                <SettingsIcon className="h-8 w-8 text-sky-600" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-sky-600 to-emerald-600 bg-clip-text text-transparent">
+                  إعدادات النظام
+                </h1>
+                <p className="text-slate-600 text-lg mt-1">تهيئة وإدارة إعدادات النظام الأساسية والمتقدمة</p>
+              </div>
+            </div>
           </div>
-          <CardTitle className="text-3xl font-bold text-app-red mt-4">إعدادات النظام</CardTitle>
-          <CardDescription className="text-gray-600 max-w-2xl mx-auto">
-            قم بتكوين الإعدادات الأساسية والمتقدمة للنظام لضمان تجربة مستخدم مثالية
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="pt-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
-            <TabsList className="grid w-full grid-cols-4 gap-2 mb-6 bg-gray-100 p-2 rounded-lg">
-              <TabsTrigger
-                value="general"
-                className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
-                <Globe className="w-4 h-4 ml-2" />
-                عام
-              </TabsTrigger>
-              <TabsTrigger
-                value="security"
-                className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
-                <ShieldAlert className="w-4 h-4 ml-2" />
-                الأمان
-              </TabsTrigger>
-              <TabsTrigger
-                value="notifications"
-                className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
-                <Bell className="w-4 h-4 ml-2" />
-                الإشعارات
-              </TabsTrigger>
-              <TabsTrigger
-                value="files"
-                className="data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
-                <Upload className="w-4 h-4 ml-2" />
-                الملفات
-              </TabsTrigger>
-            </TabsList>
-
-            <form onSubmit={handleSaveSettings}>
-              <TabsContent value="general" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="siteName" className="block mb-2 font-medium text-gray-700 items-center gap-2">
-                      <Globe className="w-4 h-4" />
-                      اسم الموقع
-                    </Label>
-                    <Input
-                      id="siteName"
-                      value={settings.siteName}
-                      onChange={(e) => handleChange('siteName', e.target.value)}
-                      className="bg-white focus:ring-2 focus:ring-app-gold/50 border-gray-300"
-                    />
-                    <p className="mt-1 text-sm text-gray-500">الاسم الذي سيظهر في أعلى الموقع</p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="defaultLanguage" className="block mb-2 font-medium text-gray-700 items-center gap-2">
-                      <Globe className="w-4 h-4" />
-                      اللغة الافتراضية
-                    </Label>
-                    <Select
-                      value={settings.defaultLanguage}
-                      onValueChange={(value) => handleChange('defaultLanguage', value)}
-                    >
-                      <SelectTrigger className="w-full bg-white focus:ring-2 focus:ring-app-gold/50 border-gray-300 text-right">
-                        <SelectValue placeholder="اختر لغة..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ar" className="flex justify-end">العربية</SelectItem>
-                        <SelectItem value="en" className="flex justify-end">English</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="mt-1 text-sm text-gray-500">اللغة التي سيتم عرض الموقع بها افتراضيًا</p>
+          
+          <div className="flex items-center gap-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-lg border border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-sm text-slate-500">حالة النظام</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-slate-700">يعمل بشكل طبيعي</span>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div>
-                        <Label htmlFor="maintenanceMode" className="font-medium text-gray-700 flex items-center gap-2">
-                            <ShieldAlert className="w-4 h-4" />
-                            وضع الصيانة
-                        </Label>
-                        <p className="text-sm text-gray-500 mt-1">
-                            عند التفعيل، لن يتمكن المستخدمون من الوصول للموقع
-                        </p>
-                    </div>
-                    <Checkbox
-                        id="maintenanceMode"
-                        checked={settings.maintenanceMode}
-                        onCheckedChange={(checked) => handleChange('maintenanceMode', !!checked)}
-                    />
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-400 rounded-xl flex items-center justify-center">
+                  <Server className="h-6 w-6 text-white" />
                 </div>
-              </TabsContent>
+              </div>
+            </div>
+          </div>
+        </div>
 
-              <TabsContent value="security" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="loginAttemptsLimit" className="block mb-2 font-medium text-gray-700">
-                      حد محاولات تسجيل الدخول
-                    </Label>
-                    <Input
-                      id="loginAttemptsLimit"
-                      type="number"
-                      value={settings.loginAttemptsLimit || 5}
-                      onChange={(e) => handleChange('loginAttemptsLimit', parseInt(e.target.value, 10))}
-                      className="bg-white focus:ring-2 focus:ring-app-gold/50 border-gray-300"
-                    />
-                    <p className="mt-1 text-sm text-gray-500">عدد المحاولات المسموحة قبل القفل المؤقت</p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="passwordResetExpiry" className="block mb-2 font-medium text-gray-700">
-                      صلاحية رابط إعادة تعيين كلمة المرور (ساعة)
-                    </Label>
-                    <Input
-                      id="passwordResetExpiry"
-                      type="number"
-                      value={settings.passwordResetExpiry || 24}
-                      onChange={(e) => handleChange('passwordResetExpiry', parseInt(e.target.value, 10))}
-                      className="bg-white focus:ring-2 focus:ring-app-gold/50 border-gray-300"
-                    />
-                    <p className="mt-1 text-sm text-gray-500">المدة الزمنية لصلاحية رابط إعادة التعيين</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div>
-                        <Label htmlFor="twoFactorAuth" className="font-medium text-gray-700">
-                            المصادقة الثنائية للمشرفين
-                        </Label>
-                        <p className="text-sm text-gray-500 mt-1">
-                            تتطلب تأكيد الهوية عبر تطبيق المصادقة
-                        </p>
-                    </div>
-                    <Checkbox
-                        id="twoFactorAuth"
-                        checked={settings.twoFactorAuth || false}
-                        onCheckedChange={(checked) => handleChange('twoFactorAuth', !!checked)}
-                    />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="notifications" className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div>
-                        <Label htmlFor="emailNotificationsEnabled" className="font-medium text-gray-700 flex items-center gap-2">
-                            <Mail className="w-4 h-4" />
-                            تفعيل إشعارات البريد الإلكتروني
-                        </Label>
-                        <p className="text-sm text-gray-500 mt-1">
-                            إرسال إشعارات عبر البريد للمستخدمين عند حدوث أنشطة مهمة
-                        </p>
-                    </div>
-                    <Checkbox
-                        id="emailNotificationsEnabled"
-                        checked={settings.emailNotificationsEnabled}
-                        onCheckedChange={(checked) => handleChange('emailNotificationsEnabled', !!checked)}
-                    />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="notificationEmail" className="block mb-2 font-medium text-gray-700">
-                      بريد الإشعارات
-                    </Label>
-                    <Input
-                      id="notificationEmail"
-                      type="email"
-                      value={settings.notificationEmail || ''}
-                      onChange={(e) => handleChange('notificationEmail', e.target.value)}
-                      className="bg-white focus:ring-2 focus:ring-app-gold/50 border-gray-300"
-                    />
-                    <p className="mt-1 text-sm text-gray-500">البريد الإلكتروني الذي سيتم إرسال الإشعارات منه</p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="notificationFrequency" className="block mb-2 font-medium text-gray-700">
-                      تكرار الإشعارات
-                    </Label>
-                    <Select
-                      value={settings.notificationFrequency || 'instant'}
-                      onValueChange={(value) => handleChange('notificationFrequency', value)}
-                    >
-                      <SelectTrigger className="w-full bg-white focus:ring-2 focus:ring-app-gold/50 border-gray-300 text-right">
-                        <SelectValue placeholder="اختر التكرار..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="instant" className="flex justify-end">فوري</SelectItem>
-                        <SelectItem value="daily" className="flex justify-end">يومي</SelectItem>
-                        <SelectItem value="weekly" className="flex justify-end">أسبوعي</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="mt-1 text-sm text-gray-500">معدل إرسال الإشعارات المجمعة</p>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="files" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="maxUploadSizeMB" className="block mb-2 font-medium text-gray-700 flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      الحد الأقصى لحجم الملف (MB)
-                    </Label>
-                    <Input
-                      id="maxUploadSizeMB"
-                      type="number"
-                      value={settings.maxUploadSizeMB}
-                      onChange={(e) => handleChange('maxUploadSizeMB', parseInt(e.target.value, 10))}
-                      className="bg-white focus:ring-2 focus:ring-app-gold/50 border-gray-300"
-                    />
-                    <p className="mt-1 text-sm text-gray-500">الحجم الأقصى المسموح به لرفع الملفات</p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="allowedFileTypes" className="block mb-2 font-medium text-gray-700">
-                      أنواع الملفات المسموحة
-                    </Label>
-                    <Input
-                      id="allowedFileTypes"
-                      value={settings.allowedFileTypes?.join(', ') || ''}
-                      onChange={(e) => handleChange('allowedFileTypes', e.target.value.split(',').map(s => s.trim()))}
-                      className="bg-white focus:ring-2 focus:ring-app-gold/50 border-gray-300"
-                      placeholder="pdf, docx, jpg, png"
-                    />
-                    <p className="mt-1 text-sm text-gray-500">أدخل أنواع الملفات مفصولة بفاصلة</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div>
-                        <Label htmlFor="fileScanning" className="font-medium text-gray-700">
-                            فحص الملفات المضغوطة
-                        </Label>
-                        <p className="text-sm text-gray-500 mt-1">
-                            فحص محتويات الملفات المضغوطة (ZIP, RAR) قبل الرفع
-                        </p>
-                    </div>
-                    <Checkbox
-                        id="fileScanning"
-                        checked={settings.fileScanning || false}
-                        onCheckedChange={(checked) => handleChange('fileScanning', !!checked)}
-                    />
-                </div>
-              </TabsContent>
-
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <Button
-                  type="submit"
-                  className="w-full md:w-auto bg-gradient-to-r from-app-red to-app-gold hover:from-red-700 hover:to-amber-600 text-white font-bold py-3 px-8 text-lg shadow-lg transition-all duration-300"
-                  disabled={isLoading}
+        {/* Main Settings Card */}
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-3xl overflow-hidden">
+          <CardHeader className="pb-4 bg-gradient-to-r from-slate-50 to-blue-50/50 border-b border-slate-200">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div>
+                <CardTitle className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <div className="w-2 h-8 bg-gradient-to-b from-sky-500 to-emerald-400 rounded-full"></div>
+                  لوحة التحكم بالإعدادات
+                </CardTitle>
+                <CardDescription className="text-slate-600 mt-1">
+                  قم بإدارة وتخصيص إعدادات النظام حسب متطلباتك
+                </CardDescription>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Button 
+                  onClick={handleRefresh}
+                  variant="outline" 
+                  className="border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-sky-600 transition-all duration-300 rounded-xl"
                 >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="ms-2 h-5 w-5 animate-spin" />
-                      جاري الحفظ...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="ms-2 h-5 w-5" />
-                      حفظ الإعدادات
-                    </>
-                  )}
+                  <RefreshCw className="h-4 w-4 ml-2" />
+                  تحديث
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-amber-600 rounded-xl"
+                >
+                  {showAdvanced ? <EyeOff className="h-4 w-4 ml-2" /> : <Eye className="h-4 w-4 ml-2" />}
+                  {showAdvanced ? 'إخفاء المتقدم' : 'عرض المتقدم'}
                 </Button>
               </div>
-            </form>
-          </Tabs>
-        </CardContent>
-      </Card>
+            </div>
+          </CardHeader>
+
+          <CardContent className="pt-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
+              <TabsList className="grid w-full grid-cols-4 gap-2 mb-8 bg-slate-100 p-2 rounded-2xl">
+                <TabsTrigger
+                  value="general"
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-sky-600 rounded-xl transition-all duration-300"
+                >
+                  <Globe className="w-4 h-4 ml-2" />
+                  الإعدادات العامة
+                </TabsTrigger>
+                <TabsTrigger
+                  value="security"
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-sky-600 rounded-xl transition-all duration-300"
+                >
+                  <Shield className="w-4 h-4 ml-2" />
+                  الأمان
+                </TabsTrigger>
+                <TabsTrigger
+                  value="notifications"
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-sky-600 rounded-xl transition-all duration-300"
+                >
+                  <Bell className="w-4 h-4 ml-2" />
+                  الإشعارات
+                </TabsTrigger>
+                <TabsTrigger
+                  value="files"
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-sky-600 rounded-xl transition-all duration-300"
+                >
+                  <Database className="w-4 h-4 ml-2" />
+                  الملفات والتخزين
+                </TabsTrigger>
+              </TabsList>
+
+              <form onSubmit={handleSaveSettings}>
+                {/* General Settings */}
+                <TabsContent value="general" className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="siteName" className="block mb-3 font-semibold text-slate-700 flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-sky-600" />
+                          اسم الموقع
+                        </Label>
+                        <Input
+                          id="siteName"
+                          value={settings.siteName}
+                          onChange={(e) => handleChange('siteName', e.target.value)}
+                          className="bg-white border-slate-300 focus:border-sky-400 h-12 rounded-xl text-lg"
+                          placeholder="أدخل اسم الموقع..."
+                        />
+                        <p className="mt-2 text-sm text-slate-500">الاسم الذي سيظهر في أعلى الموقع وشريط العنوان</p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="defaultLanguage" className="block mb-3 font-semibold text-slate-700 flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-sky-600" />
+                          اللغة الافتراضية
+                        </Label>
+                        <Select
+                          value={settings.defaultLanguage}
+                          onValueChange={(value) => handleChange('defaultLanguage', value)}
+                        >
+                          <SelectTrigger className="w-full bg-white border-slate-300 focus:border-sky-400 h-12 rounded-xl text-right">
+                            <SelectValue placeholder="اختر لغة..." />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="ar" className="flex justify-end text-lg">🇸🇦 العربية</SelectItem>
+                            <SelectItem value="en" className="flex justify-end text-lg">🇺🇸 English</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="mt-2 text-sm text-slate-500">اللغة التي سيتم عرض الموقع بها افتراضيًا</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-2xl border border-slate-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <Label htmlFor="maintenanceMode" className="font-semibold text-slate-700 flex items-center gap-2 mb-2">
+                              <ShieldAlert className="w-5 h-5 text-amber-600" />
+                              وضع الصيانة
+                            </Label>
+                            <p className="text-sm text-slate-600">
+                              عند التفعيل، سيتم إغلاق الموقع أمام الزوار وعرض صفحة الصيانة
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="maintenanceMode"
+                              checked={settings.maintenanceMode}
+                              onCheckedChange={(checked) => handleChange('maintenanceMode', !!checked)}
+                              className={`h-6 w-6 ${settings.maintenanceMode ? 'bg-amber-500 border-amber-500' : ''}`}
+                            />
+                          </div>
+                        </div>
+                        {settings.maintenanceMode && (
+                          <Badge variant="destructive" className="mt-3 flex items-center gap-1 w-fit">
+                            <ShieldAlert className="h-3 w-3" />
+                            الموقع في وضع الصيانة
+                          </Badge>
+                        )}
+                      </div>
+
+                      {showAdvanced && (
+                        <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200">
+                          <Label className="font-semibold text-amber-700 flex items-center gap-2 mb-3">
+                            <Key className="w-4 h-4" />
+                            الإعدادات المتقدمة
+                          </Label>
+                          <div className="space-y-3">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleResetSection('العامة')}
+                              className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 rounded-xl"
+                            >
+                              <RefreshCw className="h-4 w-4 ml-2" />
+                              إعادة التعيين للإعدادات العامة
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Security Settings */}
+                <TabsContent value="security" className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="loginAttemptsLimit" className="block mb-3 font-semibold text-slate-700 flex items-center gap-2">
+                          <Lock className="w-4 h-4 text-sky-600" />
+                          حد محاولات تسجيل الدخول
+                        </Label>
+                        <Input
+                          id="loginAttemptsLimit"
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={settings.loginAttemptsLimit || 5}
+                          onChange={(e) => handleChange('loginAttemptsLimit', parseInt(e.target.value, 10))}
+                          className="bg-white border-slate-300 focus:border-sky-400 h-12 rounded-xl text-lg"
+                        />
+                        <p className="mt-2 text-sm text-slate-500">عدد المحاولات المسموحة قبل القفل المؤقت للحساب</p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="passwordResetExpiry" className="block mb-3 font-semibold text-slate-700 flex items-center gap-2">
+                          <Lock className="w-4 h-4 text-sky-600" />
+                          صلاحية رابط إعادة التعيين (ساعة)
+                        </Label>
+                        <Input
+                          id="passwordResetExpiry"
+                          type="number"
+                          min="1"
+                          max="72"
+                          value={settings.passwordResetExpiry || 24}
+                          onChange={(e) => handleChange('passwordResetExpiry', parseInt(e.target.value, 10))}
+                          className="bg-white border-slate-300 focus:border-sky-400 h-12 rounded-xl text-lg"
+                        />
+                        <p className="mt-2 text-sm text-slate-500">المدة الزمنية لصلاحية رابط إعادة تعيين كلمة المرور</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-2xl border border-slate-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <Label htmlFor="twoFactorAuth" className="font-semibold text-slate-700 flex items-center gap-2 mb-2">
+                              <Shield className="w-5 h-5 text-green-600" />
+                              المصادقة الثنائية
+                            </Label>
+                            <p className="text-sm text-slate-600">
+                              تتطلب تأكيد الهوية عبر تطبيق المصادقة لجميع المستخدمين
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="twoFactorAuth"
+                              checked={settings.twoFactorAuth || false}
+                              onCheckedChange={(checked) => handleChange('twoFactorAuth', !!checked)}
+                              className={`h-6 w-6 ${settings.twoFactorAuth ? 'bg-green-500 border-green-500' : ''}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {showAdvanced && (
+                        <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200">
+                          <Label className="font-semibold text-amber-700 flex items-center gap-2 mb-3">
+                            <Key className="w-4 h-4" />
+                            أدوات الأمان المتقدمة
+                          </Label>
+                          <div className="space-y-3">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleResetSection('الأمان')}
+                              className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 rounded-xl"
+                            >
+                              <RefreshCw className="h-4 w-4 ml-2" />
+                              إعادة تعيين إعدادات الأمان
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Notifications Settings */}
+                <TabsContent value="notifications" className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-2xl border border-slate-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <Label htmlFor="emailNotificationsEnabled" className="font-semibold text-slate-700 flex items-center gap-2 mb-2">
+                              <Mail className="w-5 h-5 text-sky-600" />
+                              تفعيل إشعارات البريد الإلكتروني
+                            </Label>
+                            <p className="text-sm text-slate-600">
+                              إرسال إشعارات عبر البريد للمستخدمين عند حدوث أنشطة مهمة
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="emailNotificationsEnabled"
+                              checked={settings.emailNotificationsEnabled}
+                              onCheckedChange={(checked) => handleChange('emailNotificationsEnabled', !!checked)}
+                              className={`h-6 w-6 ${settings.emailNotificationsEnabled ? 'bg-sky-500 border-sky-500' : ''}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="notificationEmail" className="block mb-3 font-semibold text-slate-700 flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-sky-600" />
+                          بريد الإشعارات
+                        </Label>
+                        <Input
+                          id="notificationEmail"
+                          type="email"
+                          value={settings.notificationEmail || ''}
+                          onChange={(e) => handleChange('notificationEmail', e.target.value)}
+                          className="bg-white border-slate-300 focus:border-sky-400 h-12 rounded-xl text-lg"
+                          placeholder="admin@example.com"
+                        />
+                        <p className="mt-2 text-sm text-slate-500">البريد الإلكتروني الذي سيتم إرسال الإشعارات منه</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="notificationFrequency" className="block mb-3 font-semibold text-slate-700 flex items-center gap-2">
+                          <Bell className="w-4 h-4 text-sky-600" />
+                          تكرار الإشعارات
+                        </Label>
+                        <Select
+                          value={settings.notificationFrequency || 'instant'}
+                          onValueChange={(value) => handleChange('notificationFrequency', value)}
+                        >
+                          <SelectTrigger className="w-full bg-white border-slate-300 focus:border-sky-400 h-12 rounded-xl text-right">
+                            <SelectValue placeholder="اختر التكرار..." />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="instant" className="flex justify-end text-lg">🔔 فوري</SelectItem>
+                            <SelectItem value="daily" className="flex justify-end text-lg">📅 يومي</SelectItem>
+                            <SelectItem value="weekly" className="flex justify-end text-lg">🗓️ أسبوعي</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="mt-2 text-sm text-slate-500">معدل إرسال الإشعارات المجمعة للمستخدمين</p>
+                      </div>
+
+                      {showAdvanced && (
+                        <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200">
+                          <Label className="font-semibold text-amber-700 flex items-center gap-2 mb-3">
+                            <Key className="w-4 h-4" />
+                            الإعدادات المتقدمة
+                          </Label>
+                          <div className="space-y-3">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleResetSection('الإشعارات')}
+                              className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 rounded-xl"
+                            >
+                              <RefreshCw className="h-4 w-4 ml-2" />
+                              إعادة تعيين إعدادات الإشعارات
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Files Settings */}
+                <TabsContent value="files" className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="maxUploadSizeMB" className="block mb-3 font-semibold text-slate-700 flex items-center gap-2">
+                          <Upload className="w-4 h-4 text-sky-600" />
+                          الحد الأقصى لحجم الملف (MB)
+                        </Label>
+                        <Input
+                          id="maxUploadSizeMB"
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={settings.maxUploadSizeMB}
+                          onChange={(e) => handleChange('maxUploadSizeMB', parseInt(e.target.value, 10))}
+                          className="bg-white border-slate-300 focus:border-sky-400 h-12 rounded-xl text-lg"
+                        />
+                        <p className="mt-2 text-sm text-slate-500">الحجم الأقصى المسموح به لرفع الملفات بالميجابايت</p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="allowedFileTypes" className="block mb-3 font-semibold text-slate-700 flex items-center gap-2">
+                          <Database className="w-4 h-4 text-sky-600" />
+                          أنواع الملفات المسموحة
+                        </Label>
+                        <Input
+                          id="allowedFileTypes"
+                          value={settings.allowedFileTypes?.join(', ') || ''}
+                          onChange={(e) => handleChange('allowedFileTypes', e.target.value.split(',').map(s => s.trim()))}
+                          className="bg-white border-slate-300 focus:border-sky-400 h-12 rounded-xl text-lg"
+                          placeholder="pdf, docx, jpg, png, mp4"
+                        />
+                        <p className="mt-2 text-sm text-slate-500">أدخل أنواع الملفات مفصولة بفاصلة (pdf, docx, jpg, etc.)</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-2xl border border-slate-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <Label htmlFor="fileScanning" className="font-semibold text-slate-700 flex items-center gap-2 mb-2">
+                              <Shield className="w-5 h-5 text-green-600" />
+                              فحص الملفات المضغوطة
+                            </Label>
+                            <p className="text-sm text-slate-600">
+                              فحص محتويات الملفات المضغوطة (ZIP, RAR) قبل الرفع للتأكد من الأمان
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="fileScanning"
+                              checked={settings.fileScanning || false}
+                              onCheckedChange={(checked) => handleChange('fileScanning', !!checked)}
+                              className={`h-6 w-6 ${settings.fileScanning ? 'bg-green-500 border-green-500' : ''}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {showAdvanced && (
+                        <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200">
+                          <Label className="font-semibold text-amber-700 flex items-center gap-2 mb-3">
+                            <Key className="w-4 h-4" />
+                            أدوات الملفات المتقدمة
+                          </Label>
+                          <div className="space-y-3">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleResetSection('الملفات')}
+                              className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 rounded-xl"
+                            >
+                              <RefreshCw className="h-4 w-4 ml-2" />
+                              إعادة تعيين إعدادات الملفات
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Save Button */}
+                <div className="mt-8 pt-6 border-t border-slate-200">
+                  <div className="flex flex-col lg:flex-row gap-4 justify-between items-center">
+                    <div className="flex items-center gap-2 text-slate-500 text-sm">
+                      <div className={`w-2 h-2 rounded-full ${isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`}></div>
+                      {isLoading ? 'جاري حفظ التغييرات...' : 'جميع التغييرات جاهزة للحفظ'}
+                    </div>
+                    
+                    <Button
+                      type="submit"
+                      className="w-full lg:w-auto bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-700 hover:to-emerald-700 text-white font-bold py-3 px-8 text-lg rounded-xl shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="ms-2 h-5 w-5 animate-spin" />
+                          جاري حفظ الإعدادات...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="ms-2 h-5 w-5" />
+                          حفظ جميع الإعدادات
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

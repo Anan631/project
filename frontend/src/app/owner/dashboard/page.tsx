@@ -7,13 +7,13 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Briefcase, FileText, Camera, Clock, MessageSquare,
-  BarChart2, CheckCircle, PlayCircle, Loader2, Eye, Calculator, ArrowLeft, BarChartHorizontal, SlidersHorizontal, BookOpen
+  BarChart2, CheckCircle, PlayCircle, Loader2, Eye, Calculator,
+  ArrowLeft, BarChartHorizontal, SlidersHorizontal, BookOpen, Hand
 } from 'lucide-react';
 import { getProjects, type Project } from '@/lib/db';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { motion } from 'framer-motion';
 
 export default function OwnerDashboardPage() {
   const { toast } = useToast();
@@ -46,7 +46,7 @@ export default function OwnerDashboardPage() {
           setProjects(result.projects);
         } else {
           toast({
-            title: "خطأ",
+            title: "خطأ في التحميل",
             description: result.message || "فشل تحميل المشاريع.",
             variant: "destructive"
           });
@@ -67,7 +67,7 @@ export default function OwnerDashboardPage() {
     if (userId) {
       fetchOwnerProjects();
     }
-  }, [userId]);
+  }, [userId, toast]);
 
   const totalProjects = projects.length;
   const activeProjects = projects.filter(p => p.status === 'قيد التنفيذ').length;
@@ -90,8 +90,8 @@ export default function OwnerDashboardPage() {
       label: 'المشاريع قيد التنفيذ',
       value: activeProjects,
       icon: PlayCircle,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-100'
+      color: 'text-amber-600',
+      bgColor: 'bg-amber-100'
     },
     {
       label: 'المشاريع المكتملة',
@@ -163,214 +163,235 @@ export default function OwnerDashboardPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'قيد التنفيذ':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-amber-100 text-amber-800 border border-amber-200';
       case 'مكتمل':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
       case 'معلق':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border border-gray-200';
       default:
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 border border-blue-200';
     }
   };
 
   return (
-    <div className="space-y-8 text-right">
-      {/* Welcome Banner */}
-      <Card className="bg-white/95 dark:bg-card shadow-2xl border border-gray-300 dark:border-gray-700 rounded-3xl">
-        <CardHeader>
-          <CardTitle className="text-4xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight flex items-center gap-3">
-            مرحباً بك، {ownerName || 'أيها المالك'}!
-            <motion.span
-              className="inline-block text-green-600 dark:text-green-400"
-              animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              aria-hidden="true"
-            >
-              👋
-            </motion.span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-xl leading-relaxed text-gray-700 dark:text-gray-300 max-w-4xl mx-auto select-text">
-            هذه هي لوحة التحكم الخاصة بك حيث يمكنك متابعة مشاريعك، عرض التقارير التفصيلية،
-            وإدارة جميع جوانب مشاريع البناء الخاصة بك.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="shadow-sm">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div className="text-right">
-                  <Skeleton className="h-4 w-[120px]" />
-                  <Skeleton className="h-8 w-[50px] mt-1" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/30 py-8 px-4">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Welcome Banner */}
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-3xl">
+          <CardContent className="p-8">
+            <div className="text-center space-y-4">
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-5">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-sky-600 to-emerald-600 bg-clip-text text-transparent">
+                  مرحباً بك، {ownerName || 'أيها المالك'}!
+                </h1>
+                <div className="relative animate-bounce">
+                  <div className="absolute inset-0 bg-sky-400 rounded-full blur-xl opacity-50 animate-pulse"></div>
+                  <Hand className="relative h-12 w-12 stroke-sky-600 fill-none transform rotate-12 drop-shadow-lg" />
                 </div>
-                <Skeleton className="h-14 w-14 rounded-full" />
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          overviewStats.map(stat => {
-            const Icon = stat.icon;
-            return (
-              <Card key={stat.label} className="shadow-sm hover:shadow-md transition-shadow bg-white">
+              </div>
+              <p className="text-xl text-slate-600 leading-relaxed max-w-3xl mx-auto">
+                هذه هي لوحة التحكم الخاصة بك حيث يمكنك متابعة مشاريعك، عرض التقارير التفصيلية،
+                وإدارة جميع جوانب مشاريع البناء الخاصة بك.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl">
                 <CardContent className="p-6 flex items-center justify-between">
                   <div className="text-right">
-                    <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
-                    <p className="text-3xl font-bold text-gray-800 mt-1">{stat.value}</p>
+                    <Skeleton className="h-4 w-[120px]" />
+                    <Skeleton className="h-8 w-[50px] mt-1" />
                   </div>
-                  <div className={`p-3 rounded-full ${stat.bgColor}`}>
-                    <Icon className={`h-7 w-7 ${stat.color}`} />
-                  </div>
+                  <Skeleton className="h-14 w-14 rounded-2xl" />
                 </CardContent>
               </Card>
-            );
-          })
-        )}
-      </div>
-
-      {/* Recent Projects */}
-      <Card className="shadow-lg">
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Briefcase className="h-6 w-6 text-app-gold" />
-              <CardTitle className="text-xl font-semibold text-gray-800">أحدث المشاريع</CardTitle>
-            </div>
-            <Link
-              href="/owner/projects"
-              className="flex items-center gap-2 text-sm font-semibold text-app-red hover:text-red-700 hover:underline transition-colors"
-            >
-              <span>عرض جميع المشاريع</span>
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right min-w-[200px]">اسم المشروع</TableHead>
-                  <TableHead className="text-right">الحالة</TableHead>
-                  <TableHead className="text-right">تاريخ البدء</TableHead>
-                  <TableHead className="text-right w-[200px]">نسبة الإنجاز</TableHead>
-                  <TableHead className="text-center">الإجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-full" /></TableCell>
-                      <TableCell><Skeleton className="h-8 w-[100px] mx-auto" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : recentProjects.length > 0 ? (
-                  recentProjects.map((project) => (
-                    <TableRow key={project.id} className="hover:bg-gray-50">
-                      <TableCell className="font-medium">
-                        <Link
-                          href={`/owner/projects/${project.id}`}
-                          className="hover:text-app-red transition-colors"
-                        >
-                          {project.name}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(project.status)}`}>
-                          {project.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {project.startDate ? new Date(project.startDate).toLocaleDateString('en-CA') : 'غير محدد'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Progress
-                            value={project.overallProgress || 0}
-                            className="w-full h-2"
-                            indicatorColor={
-                              (project.overallProgress || 0) >= 80 ? 'bg-green-500' :
-                                (project.overallProgress || 0) >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                            }
-                          />
-                          <span className="text-sm font-medium w-10">
-                            {project.overallProgress || 0}%
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="sm"
-                          className="font-semibold border-app-red text-app-red hover:bg-app-red hover:text-white transition-colors duration-200"
-                        >
-                          <Link href={`/owner/projects/${project.id}`}>
-                            <Eye className="h-4 w-4 ml-1" />
-                            تفاصيل
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-gray-500 py-8">
-                      لا توجد مشاريع لعرضها حالياً.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Access Tools */}
-      <Card className="shadow-lg">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <SlidersHorizontal className="h-6 w-6 text-app-red" />
-            <CardTitle className="text-xl font-semibold text-gray-800">الأدوات والتقارير</CardTitle>
-          </div>
-          <CardDescription className="text-right">
-            وصول سريع إلى جميع الأدوات والتقارير التي تحتاجها لإدارة مشاريعك
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {quickAccessLinks.map((category) => {
-              const Icon = category.icon;
+            ))
+          ) : (
+            overviewStats.map(stat => {
+              const Icon = stat.icon;
               return (
-                <Card
-                  key={category.title}
-                  className="card-hover-effect flex flex-col h-full text-right p-6 shadow-lg rounded-lg border border-gray-200/80"
-                >
-                  <div className="flex items-center justify-start gap-3 mb-4">
-                    <h3 className="text-xl font-bold text-gray-800">{category.title}</h3>
-                    <Icon className={cn("h-8 w-8", category.iconColorClass)} />
-                  </div>
-                  <p className="text-gray-600 text-sm mb-5 flex-grow">{category.description}</p>
-                  <Button asChild variant="outline" className={cn("mt-auto w-full flex justify-between items-center font-semibold", category.buttonClass)}>
-                    <Link href={category.href}>
-                      <span>الانتقال إلى القسم</span>
-                      <ArrowLeft className="h-4 w-4" />
-                    </Link>
-                  </Button>
+                <Card key={stat.label} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl hover:shadow-xl transition-all duration-300">
+                  <CardContent className="p-6 flex items-center justify-between">
+                    <div className="text-right">
+                      <p className="text-sm text-slate-600 font-medium">{stat.label}</p>
+                      <p className="text-3xl font-bold text-slate-800 mt-1">{stat.value}</p>
+                    </div>
+                    <div className={`p-3 rounded-2xl ${stat.bgColor}`}>
+                      <Icon className={`h-7 w-7 ${stat.color}`} />
+                    </div>
+                  </CardContent>
                 </Card>
               );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+            })
+          )}
+        </div>
+
+        {/* Recent Projects */}
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-3xl">
+          <CardHeader className="pb-4 border-b border-slate-200">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Briefcase className="h-6 w-6 text-sky-600" />
+                <CardTitle className="text-2xl font-bold text-slate-800">أحدث المشاريع</CardTitle>
+              </div>
+              <Button
+                asChild
+                variant="outline"
+                className="border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl"
+              >
+                <Link href="/owner/projects" className="flex items-center gap-2">
+                  <span>عرض جميع المشاريع</span>
+                  <ArrowLeft className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/80">
+                    <TableHead className="text-right font-semibold text-slate-700 text-lg py-4">
+                      اسم المشروع
+                    </TableHead>
+                    <TableHead className="text-right font-semibold text-slate-700 text-lg py-4">
+                      الحالة
+                    </TableHead>
+                    <TableHead className="text-right font-semibold text-slate-700 text-lg py-4">
+                      تاريخ البدء
+                    </TableHead>
+                    <TableHead className="text-right font-semibold text-slate-700 text-lg py-4">
+                      نسبة الإنجاز
+                    </TableHead>
+                    <TableHead className="text-center font-semibold text-slate-700 text-lg py-4">
+                      الإجراءات
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-[80px] rounded-full" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-full" /></TableCell>
+                        <TableCell><Skeleton className="h-8 w-[100px] mx-auto rounded-xl" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : recentProjects.length > 0 ? (
+                    recentProjects.map((project) => (
+                      <TableRow key={project.id} className="hover:bg-slate-50/50 transition-colors">
+                        <TableCell className="font-medium py-4">
+                          <Link
+                            href={`/owner/projects/${project.id}`}
+                            className="hover:text-sky-600 transition-colors font-semibold"
+                          >
+                            {project.name}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
+                            {project.status}
+                          </span>
+                        </TableCell>
+                        <TableCell className="py-4 text-slate-600">
+                          {project.startDate ? new Date(project.startDate).toLocaleDateString('en-CA') : 'غير محدد'}
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="flex items-center gap-3">
+                            <Progress
+                              value={project.overallProgress || 0}
+                              className="w-full h-2.5 rounded-full"
+                              indicatorColor={
+                                (project.overallProgress || 0) >= 80 ? 'bg-emerald-500' :
+                                  (project.overallProgress || 0) >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                              }
+                            />
+                            <span className="text-sm font-medium w-10 text-slate-700">
+                              {project.overallProgress || 0}%
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-4">
+                          <Button
+                            asChild
+                            size="sm"
+                            className="bg-sky-600 hover:bg-sky-700 text-white rounded-xl transition-colors duration-200"
+                          >
+                            <Link href={`/owner/projects/${project.id}`} className="flex items-center gap-1">
+                              <Eye className="h-4 w-4" />
+                              تفاصيل
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-slate-500 py-12">
+                        <div className="flex flex-col items-center justify-center space-y-3">
+                          <Briefcase className="h-12 w-12 text-slate-300" />
+                          <p className="text-lg">لا توجد مشاريع لعرضها حالياً.</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Access Tools */}
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-3xl">
+          <CardHeader className="pb-4 border-b border-slate-200">
+            <div className="flex items-center gap-3">
+              <SlidersHorizontal className="h-6 w-6 text-sky-600" />
+              <CardTitle className="text-2xl font-bold text-slate-800">الأدوات والتقارير</CardTitle>
+            </div>
+            <CardDescription className="text-right text-slate-600">
+              وصول سريع إلى جميع الأدوات والتقارير التي تحتاجها لإدارة مشاريعك
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {quickAccessLinks.map((category) => {
+                const Icon = category.icon;
+                return (
+                  <Card
+                    key={category.title}
+                    className="bg-white border border-slate-200/80 shadow-lg rounded-2xl hover:shadow-xl transition-all duration-300 hover:scale-105"
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-start gap-3 mb-4">
+                        <Icon className={cn("h-8 w-8", category.iconColorClass)} />
+                        <h3 className="text-xl font-bold text-slate-800">{category.title}</h3>
+                      </div>
+                      <p className="text-slate-600 text-sm mb-5 leading-relaxed">{category.description}</p>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className={cn("w-full flex justify-between items-center font-semibold rounded-xl", category.buttonClass)}
+                      >
+                        <Link href={category.href}>
+                          <span>الانتقال إلى القسم</span>
+                          <ArrowLeft className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

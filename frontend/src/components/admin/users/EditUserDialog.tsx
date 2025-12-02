@@ -27,7 +27,7 @@ import {
 import {
   adminUpdateUserAction,
   type AdminUpdateUserFormValues,
-} from '@/app/admin/users/actions';
+} from '@/app/admin/actions';
 import type { UserDocument, AdminUserUpdateResult } from '@/lib/db';
 import { cn } from '@/lib/utils';
 

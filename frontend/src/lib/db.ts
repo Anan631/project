@@ -68,6 +68,7 @@ export interface ProjectPhoto {
   alt: string;
   caption?: string;
   dataAiHint?: string;
+  fileType?: 'image' | 'video' | 'document';
 }
 
 export interface TimelineTask {
@@ -128,33 +129,36 @@ export interface SystemSettingsDocument {
 
 // ---- DATABASE I/O HELPERS ----
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+// استخدام متغير البيئة للمرونة في تغيير المنفذ
+// Use environment variable for flexibility in changing the port
+// To use a different port, create .env.local with: NEXT_PUBLIC_API_URL=http://localhost:YOUR_PORT/api
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 // Removed readDb/writeDb helpers and file-backed cache
 
 // ---- HELPER FUNCTIONS ----
 
 function toSafeDateString(d: any, defaultVal: string = ''): string {
-    if (!d) return defaultVal;
-    try {
-        const date = new Date(d);
-        return isNaN(date.getTime()) ? defaultVal : date.toISOString();
-    } catch {
-        return defaultVal;
-    }
+  if (!d) return defaultVal;
+  try {
+    const date = new Date(d);
+    return isNaN(date.getTime()) ? defaultVal : date.toISOString();
+  } catch {
+    return defaultVal;
+  }
 }
 
 function toDateOnlyString(d: any): string {
-    if (!d) return '';
-    try {
-        const date = new Date(d);
-        if (isNaN(date.getTime())) return '';
-        const tzOffset = date.getTimezoneOffset() * 60000;
-        const localDate = new Date(date.getTime() - tzOffset);
-        return localDate.toISOString().split('T')[0];
-    } catch {
-        return '';
-    }
+  if (!d) return '';
+  try {
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return '';
+    const tzOffset = date.getTimezoneOffset() * 60000;
+    const localDate = new Date(date.getTime() - tzOffset);
+    return localDate.toISOString().split('T')[0];
+  } catch {
+    return '';
+  }
 }
 
 // ---- DATABASE FUNCTIONS ----
@@ -314,6 +318,46 @@ export async function findUserById(userId: string): Promise<Omit<UserDocument, '
   }
 }
 
+// دالة getUserById لجلب بيانات المستخدم مع رسالة نجاح/فشل
+export async function getUserById(userId: string): Promise<{ success: boolean; user?: Omit<UserDocument, 'password_hash'>; message?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/users/${userId}`, { cache: 'no-store' });
+    const json = await res.json();
+
+    if (!res.ok) {
+      return {
+        success: false,
+        message: json.message || `فشل جلب بيانات المستخدم: ${res.status}`
+      };
+    }
+
+    if (!json.success) {
+      return {
+        success: false,
+        message: json.message || 'فشل جلب بيانات المستخدم'
+      };
+    }
+
+    if (!json.user) {
+      return {
+        success: false,
+        message: 'المستخدم غير موجود'
+      };
+    }
+
+    return {
+      success: true,
+      user: json.user
+    };
+  } catch (error: any) {
+    console.error('Error fetching user:', error);
+    return {
+      success: false,
+      message: `حدث خطأ أثناء جلب بيانات المستخدم: ${error.message}`
+    };
+  }
+}
+
 export async function findUserByEmail(email: string): Promise<UserDocument | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/users/by/email?email=${encodeURIComponent(email)}`, { cache: 'no-store' });
@@ -345,7 +389,7 @@ export interface GetProjectsResult {
 export async function getProjects(userIdOrEmail: string, userRole?: string, userEmail?: string): Promise<GetProjectsResult> {
   try {
     const params = new URLSearchParams();
-    
+
     // If user is OWNER, use email to find linked projects
     if (userRole === 'OWNER' && userEmail) {
       params.set('userRole', 'OWNER');
@@ -357,7 +401,7 @@ export async function getProjects(userIdOrEmail: string, userRole?: string, user
         params.set('userRole', userRole);
       }
     }
-    
+
     const res = await fetch(`${API_BASE_URL}/projects?${params.toString()}`, { cache: 'no-store' });
     const json = await res.json();
     if (!res.ok || !json.success) return { success: false, message: 'فشل تحميل المشاريع.' };
@@ -415,7 +459,7 @@ export async function deleteProject(projectId: string, userId?: string, adminUse
   const body: any = {};
   if (userId) body.userId = userId;
   if (adminUserId) body.adminUserId = adminUserId;
-  
+
   const res = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
@@ -423,7 +467,7 @@ export async function deleteProject(projectId: string, userId?: string, adminUse
   });
   const json = await res.json();
   if (!res.ok || !json.success) return { success: false, message: json.message || 'المشروع غير موجود.' };
-  const logMessage = adminUserId 
+  const logMessage = adminUserId
     ? `Project ID ${projectId} deleted by admin ${adminUserId}.`
     : `Project ID ${projectId} hidden for user ${userId || ''}.`;
   await logAction('PROJECT_DELETE_SUCCESS', 'INFO', logMessage);
@@ -455,10 +499,10 @@ export async function getUsers(): Promise<{ success: boolean, users?: Omit<UserD
 }
 
 export interface AdminUserUpdateResult {
-    success: boolean;
-    user?: Omit<UserDocument, 'password_hash'>;
-    message?: string;
-    fieldErrors?: Record<string, string[]>;
+  success: boolean;
+  user?: Omit<UserDocument, 'password_hash'>;
+  message?: string;
+  fieldErrors?: Record<string, string[]>;
 }
 
 export async function updateUser(userId: string, updates: Partial<UserDocument>): Promise<AdminUserUpdateResult> {
@@ -476,12 +520,12 @@ export async function updateUser(userId: string, updates: Partial<UserDocument>)
 export async function deleteUser(userId: string, adminUserId?: string): Promise<{ success: boolean, message?: string }> {
   const headers: HeadersInit = { 'Content-Type': 'application/json' };
   const body: any = {};
-  
+
   // Send adminUserId in body for authentication
   if (adminUserId) {
     body.adminUserId = adminUserId;
   }
-  
+
   const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
     method: 'DELETE',
     headers,
@@ -493,12 +537,27 @@ export async function deleteUser(userId: string, adminUserId?: string): Promise<
   return { success: true, message: 'تم حذف المستخدم بنجاح.' };
 }
 
+export async function deleteUserSelf(userId: string): Promise<{ success: boolean, message?: string }> {
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  const body = { userId };
+
+  const res = await fetch(`${API_BASE_URL}/users/${userId}/self`, {
+    method: 'DELETE',
+    headers,
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) return { success: false, message: json.message || 'فشل حذف الحساب.' };
+  await logAction('USER_DELETE_SELF_SUCCESS', 'INFO', `User ID ${userId} deleted their own account.`, userId);
+  return { success: true, message: 'تم حذف الحساب بنجاح.' };
+}
+
 export async function restoreUser(userId: string, adminUserId?: string): Promise<{ success: boolean, message?: string }> {
   const body: any = {};
   if (adminUserId) {
     body.adminUserId = adminUserId;
   }
-  
+
   const res = await fetch(`${API_BASE_URL}/users/${userId}/restore`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

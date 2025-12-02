@@ -166,6 +166,51 @@ router.post('/:id/restore', requireAdmin, async (req, res) => {
   }
 });
 
+// Delete user account (self-deletion)
+router.delete('/:id/self', async (req, res) => {
+  try {
+    const userId = req.body.userId || req.query.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User ID required for self-deletion.' });
+    }
+
+    // Verify user exists and is active
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'المستخدم غير موجود.' });
+    }
+
+    if (user.status !== 'ACTIVE') {
+      return res.status(403).json({ success: false, message: 'لا يمكن حذف حساب غير نشط.' });
+    }
+
+    // Set deletion expiry date (one year from now)
+    const deletionExpiryDate = new Date();
+    deletionExpiryDate.setFullYear(deletionExpiryDate.getFullYear() + 1);
+
+    // Update user status to DELETED
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        status: 'DELETED',
+        updatedAt: new Date(),
+        deletionExpiryDate: deletionExpiryDate
+      },
+      { new: true, projection: { passwordHash: 0 } }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: 'المستخدم غير موجود.' });
+    }
+
+    return res.json({ success: true, message: 'تم حذف الحساب وسيتم الاحتفاظ بالبيانات لمدة عام.' });
+  } catch (err) {
+    console.error('Self-deletion error:', err);
+    return res.status(400).json({ success: false, message: 'فشل حذف المستخدم.' });
+  }
+});
+
 module.exports = router;
 
 

@@ -112,7 +112,9 @@ export default function OwnerSidebar({ isOpen, onToggle }: OwnerSidebarProps) {
       }
 
       try {
-          const result = await getProjects(userId);
+          const userEmail = typeof window !== 'undefined' ? localStorage.getItem('userEmail') : null;
+          const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
+          const result = await getProjects(userId, userRole || undefined, userEmail || undefined);
           if (result.success && result.projects) {
               const projects = result.projects;
               const totalProjects = projects.length;
