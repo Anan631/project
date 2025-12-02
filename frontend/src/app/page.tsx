@@ -6,17 +6,29 @@ import AuthCardsSection from "@/components/main-dashboard/AuthCardsSection";
 import UserTasksSection from "@/components/main-dashboard/UserTasksSection";
 import TestimonialsSection from "@/components/main-dashboard/TestimonialsSection";
 import WhyUsSection from "@/components/main-dashboard/WhyUsSection";
+import WelcomeMessage from "@/components/main-dashboard/WelcomeMessage";
+import AnimatedSeparator from "@/components/ui/AnimatedSeparator";
+import "@/styles/AnimatedSeparator.css";
 
 export default function HomePage() {
   return (
-    <AppLayout>
-      <HeroSection />
-      <AuthCardsSection />
-      <MainDashboardClient />
-      <UserTasksSection />
-      <WhyUsSection />
-      <FeaturesSection />
-      <TestimonialsSection />
-    </AppLayout>
+    <>
+      <WelcomeMessage />
+      <AppLayout>
+        <HeroSection />
+        <AnimatedSeparator />
+        <AuthCardsSection />
+        <AnimatedSeparator />
+        <MainDashboardClient />
+        <AnimatedSeparator />
+        <UserTasksSection />
+        <AnimatedSeparator />
+        <WhyUsSection />
+        <AnimatedSeparator />
+        <FeaturesSection />
+        <AnimatedSeparator />
+        <TestimonialsSection />
+      </AppLayout>
+    </>
   );
 }

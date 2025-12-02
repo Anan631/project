@@ -1,0 +1,18 @@
+.animated-separator {
+  height: 2px;
+  background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
+  background-size: 200% 100%;
+  animation: color-animation 5s linear infinite;
+}
+
+@keyframes color-animation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}

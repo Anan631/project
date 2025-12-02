@@ -1,56 +1,179 @@
-
 "use client";
 
-import FeatureCard from './FeatureCard';
-import { Zap, ShieldCheck, Smartphone } from 'lucide-react';
+import { Zap, ShieldCheck, Smartphone, Target, Sparkles, TrendingUp } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
 const features = [
   {
-    icon: <Zap className="h-8 w-8 text-red-500" />,
+    icon: <Zap className="h-12 w-12" />,
     title: "سرعة ودقة في الحساب",
     description: "نوفر لك أدوات حساب سريعة ودقيقة تمكنك من الحصول على النتائج في ثوان معدودة مع ضمان الدقة العالية.",
-    iconBgColor: "bg-red-100",
-    dataAiHint: "speed accuracy",
+    color: "from-red-500 to-orange-500",
+    bgColor: "from-red-500/10 to-orange-500/10",
+    accentColor: "text-red-600 dark:text-red-400",
+    delay: 0.1
   },
   {
-    icon: <ShieldCheck className="h-8 w-8 text-blue-500" />,
+    icon: <ShieldCheck className="h-12 w-12" />,
     title: "موثوقية عالية",
     description: "تم تطوير الحاسبات وفقًا للمعايير الهندسية المعتمدة عالميًا لضمان نتائج موثوقة يمكن الاعتماد عليها.",
-    iconBgColor: "bg-blue-100",
-    dataAiHint: "reliability security",
+    color: "from-blue-500 to-cyan-500",
+    bgColor: "from-blue-500/10 to-cyan-500/10",
+    accentColor: "text-blue-600 dark:text-blue-400",
+    delay: 0.2
   },
   {
-    icon: <Smartphone className="h-8 w-8 text-green-500" />,
+    icon: <Smartphone className="h-12 w-12" />,
     title: "سهولة الاستخدام",
     description: "واجهة سهلة الاستخدام ومتوافقة مع جميع الأجهزة تتيح لك إجراء الحسابات في أي وقت ومن أي مكان.",
-    iconBgColor: "bg-green-100",
-    dataAiHint: "ease use",
+    color: "from-emerald-500 to-green-500",
+    bgColor: "from-emerald-500/10 to-green-500/10",
+    accentColor: "text-emerald-600 dark:text-emerald-400",
+    delay: 0.3
   },
 ];
 
-
 const FeaturesSection = () => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2,
+        delayChildren: 0.3
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { y: 50, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15
+      }
+    }
+  };
+
   return (
-    <section 
-      className="py-16 md:py-20 bg-gray-50"
-    >
-      <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-800">
-          لماذا تختار موقعنا؟
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <FeatureCard
+    <section className="relative py-20 overflow-hidden bg-gradient-to-b from-white to-gray-50/30 dark:from-gray-900 dark:to-gray-950">
+      {/* خلفيات زخرفية خفيفة */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-1 bg-gradient-to-r from-transparent via-gray-300/30 dark:via-gray-700/30 to-transparent"></div>
+        <div className="absolute top-20 left-0 w-40 h-40 bg-gradient-to-br from-red-100/20 to-transparent rounded-full blur-3xl opacity-50 dark:opacity-20"></div>
+        <div className="absolute bottom-20 right-0 w-40 h-40 bg-gradient-to-br from-blue-100/20 to-transparent rounded-full blur-3xl opacity-50 dark:opacity-20"></div>
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10">
+        {/* العنوان الرئيسي */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16 max-w-3xl mx-auto"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800/50 dark:to-gray-900/50 rounded-full mb-6 border border-gray-200 dark:border-gray-700/50">
+            <Target className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">مميزات أساسية</span>
+          </div>
+          
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 dark:text-white">
+            لماذا تختار موقعنا؟
+          </h2>
+          
+          <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
+            نقدم حلولاً هندسية متكاملة تجمع بين الدقة التقنية والسهولة في الاستخدام
+          </p>
+        </motion.div>
+
+        {/* شبكة المميزات */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate={isVisible ? "visible" : "hidden"}
+          className="grid grid-cols-1 md:grid-cols-3 gap-8"
+        >
+          {features.map((item, index) => (
+            <motion.div
               key={index}
-              icon={feature.icon}
-              title={feature.title}
-              description={feature.description}
-              iconBgColor={feature.iconBgColor}
-              dataAiHint={feature.dataAiHint}
-              className="bg-white/95"
-            />
+              variants={cardVariants}
+              whileHover={{ y: -10, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="group relative"
+            >
+              <div className="relative h-full bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-800 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden">
+                {/* تأثير الخلفية المتحرك */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${item.bgColor} opacity-0 group-hover:opacity-100 transition-opacity duration-700`}></div>
+                
+                {/* تأثير الإضاءة عند التمرير */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-700"></div>
+
+                {/* الأيقونة */}
+                <div className="relative mb-8 flex justify-center">
+                  <div className="relative inline-flex items-center justify-center p-4 rounded-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-lg">
+                    <div className={`relative z-10 ${item.accentColor}`}>
+                      {item.icon}
+                    </div>
+                    {/* تأثير التوهج */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${item.color} rounded-2xl opacity-0 group-hover:opacity-20 blur-lg transition-opacity duration-500`}></div>
+                  </div>
+                  
+                  {/* مؤشر متحرك */}
+                  <div className="absolute -top-2 -right-2">
+                    <div className={`relative w-6 h-6 rounded-full bg-gradient-to-br ${item.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}>
+                      <div className="absolute inset-1 rounded-full bg-white dark:bg-gray-900"></div>
+                      <Sparkles className="absolute inset-0 w-full h-full p-1 text-white animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* المحتوى */}
+                <div className="relative">
+                  <h3 className={`text-2xl font-bold mb-4 ${item.accentColor}`}>
+                    {item.title}
+                  </h3>
+                  
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
+                    {item.description}
+                  </p>
+
+                  {/* مؤشر تفاعلي */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                      <TrendingUp className="h-4 w-4" />
+                      <span>قيمة مضافة</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 bg-current rounded-full opacity-60"></div>
+                      <div className="w-2 h-2 bg-current rounded-full opacity-80"></div>
+                      <div className="w-2 h-2 bg-current rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* تأثير الزوايا */}
+                <div className="absolute top-4 right-4 w-3 h-3 border-t border-r border-gray-300 dark:border-gray-700 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute top-4 left-4 w-3 h-3 border-t border-l border-gray-300 dark:border-gray-700 rounded-tl-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100"></div>
+                <div className="absolute bottom-4 right-4 w-3 h-3 border-b border-r border-gray-300 dark:border-gray-700 rounded-br-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-200"></div>
+                <div className="absolute bottom-4 left-4 w-3 h-3 border-b border-l border-gray-300 dark:border-gray-700 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-300"></div>
+              </div>
+              
+              {/* تأثير الظل المتحرك */}
+              <div className="absolute -bottom-4 left-4 right-4 h-4 bg-gray-200 dark:bg-gray-800 rounded-2xl blur-lg opacity-0 group-hover:opacity-50 transition-opacity duration-500"></div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
+        
       </div>
     </section>
   );

@@ -1,0 +1,41 @@
+
+.wavy-separator {
+    width: 100%;
+    height: 80px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(to top, #f0f2f5, transparent);
+}
+
+.wave {
+    position: absolute;
+    width: 200%;
+    height: 100%;
+    background-repeat: repeat-x;
+    background-position: 0 0;
+    transform: translateX(0);
+}
+
+.wave.one {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" preserveAspectRatio="none"><path d="M-100,50 C250,150 350, -50 600,50 C850,150 950,-50 1200,50 L1200,100 L-100,100 Z" fill="%233b82f6" opacity="0.3"></path></svg>');
+    animation: wave-animation 15s linear infinite;
+}
+
+.wave.two {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" preserveAspectRatio="none"><path d="M-100,50 C200,100 300,-50 550,50 C800,150 900,-50 1200,50 L1200,100 L-100,100 Z" fill="%238b5cf6" opacity="0.4"></path></svg>');
+    animation: wave-animation 20s linear infinite reverse;
+}
+
+.wave.three {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" preserveAspectRatio="none"><path d="M-100,60 C250,120 400,-20 650,60 C900,140 1000,0 1200,60 L1200,100 L-100,100 Z" fill="%23ec4899" opacity="0.5"></path></svg>');
+    animation: wave-animation 25s linear infinite;
+}
+
+@keyframes wave-animation {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
