@@ -19,7 +19,6 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogTrigger, DialogOverlay } from '@/components/ui/dialog';
 import { findProjectById, updateProject as dbUpdateProject, getCostReportsForProject, addCostReport, type Project, type ProjectComment, type ProjectPhoto, type TimelineTask, type CostReport } from '@/lib/db';
-import { apiClient, type ConcreteCalculationInput, type SteelCalculationInput } from '@/lib/api';
 import Link from 'next/link';
 import EditProjectDialog from '@/components/engineer/EditProjectDialog';
 import { Badge } from "@/components/ui/badge";
@@ -70,8 +69,6 @@ export default function EngineerProjectDetailPage() {
   const [fileType, setFileType] = useState('image');
   const [taskToEdit, setTaskToEdit] = useState<TimelineTask | null>(null);
   const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
-  const [concreteResults, setConcreteResults] = useState<any>(null);
-  const [steelResults, setSteelResults] = useState<any>(null);
   const [reportData, setReportData] = useState<any>(null);
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const [resultsType, setResultsType] = useState('');
@@ -571,130 +568,6 @@ export default function EngineerProjectDetailPage() {
     }
   };
 
-  // Real concrete calculation using API
-  const calculateConcreteQuantities = async () => {
-    setIsSimulating(true);
-    setSimulationProgress(0);
-    setSimulationStatus("جاري حساب كميات الباطون...");
-
-    try {
-      // Simulate progress
-      const interval = setInterval(() => {
-        setSimulationProgress(prev => {
-          const newProgress = prev + 10;
-          if (newProgress >= 100) {
-            clearInterval(interval);
-            return 100;
-          }
-          return newProgress;
-        });
-      }, 200);
-
-      // Prepare calculation input (you can make this dynamic based on project data)
-      const input: ConcreteCalculationInput = {
-        projectArea: 200, // مساحة افتراضية - يمكن جعلها ديناميكية
-        floors: 3,
-        foundationDepth: 1.5,
-        wallThickness: 0.2,
-        slabThickness: 0.15
-      };
-
-      const response = await apiClient.calculateConcrete(input);
-
-      clearInterval(interval);
-      setIsSimulating(false);
-      setSimulationStatus('');
-
-      if (response.success && response.data) {
-        setConcreteResults(response.data);
-        setResultsType('concrete');
-        setIsResultsModalOpen(true);
-
-        toast({
-          title: "نتائج حساب الباطون",
-          description: `إجمالي الحجم: ${response.data.totalVolume} م³`
-        });
-
-        return response.data;
-      } else {
-        toast({
-          title: "خطأ في الحساب",
-          description: response.message || "فشل حساب كميات الباطون",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      setIsSimulating(false);
-      setSimulationStatus('');
-      toast({
-        title: "خطأ في الاتصال",
-        description: "فشل الاتصال بخادم الحسابات",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Real steel calculation using API
-  const calculateSteelQuantities = async () => {
-    setIsSimulating(true);
-    setSimulationProgress(0);
-    setSimulationStatus("جاري حساب كميات الحديد...");
-
-    try {
-      // Simulate progress
-      const interval = setInterval(() => {
-        setSimulationProgress(prev => {
-          const newProgress = prev + 10;
-          if (newProgress >= 100) {
-            clearInterval(interval);
-            return 100;
-          }
-          return newProgress;
-        });
-      }, 200);
-
-      // Use concrete volume from previous calculation or default
-      const concreteVolume = concreteResults?.totalVolume || 100;
-
-      const input: SteelCalculationInput = {
-        concreteVolume,
-        steelRatio: 80 // نسبة افتراضية 80 كجم/م³
-      };
-
-      const response = await apiClient.calculateSteel(input);
-
-      clearInterval(interval);
-      setIsSimulating(false);
-      setSimulationStatus('');
-
-      if (response.success && response.data) {
-        setSteelResults(response.data);
-        setResultsType('steel');
-        setIsResultsModalOpen(true);
-
-        toast({
-          title: "نتائج حساب الحديد",
-          description: `إجمالي الوزن: ${response.data.totalWeight} كجم`
-        });
-
-        return response.data;
-      } else {
-        toast({
-          title: "خطأ في الحساب",
-          description: response.message || "فشل حساب كميات الحديد",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      setIsSimulating(false);
-      setSimulationStatus('');
-      toast({
-        title: "خطأ في الاتصال",
-        description: "فشل الاتصال بخادم الحسابات",
-        variant: "destructive"
-      });
-    }
-  };
 
   // Simulation for generating reports
   const simulateReportGeneration = async () => {
@@ -879,11 +752,23 @@ export default function EngineerProjectDetailPage() {
                 <Button variant="outline" className="w-full justify-start bg-blue-500/20 text-blue-100 border-blue-500/30 hover:bg-blue-500/30 h-14" onClick={() => simulateAction("فتح نموذج إدخال تفاصيل العناصر الإنشائية")}>
                   <ListChecks size={18} className="ms-2" /> إدخال تفاصيل العناصر
                 </Button>
-                <Button variant="outline" className="w-full justify-start bg-red-500/20 text-red-100 border-red-500/30 hover:bg-red-500/30 h-14" onClick={calculateConcreteQuantities}>
-                  <HardHat size={18} className="ms-2" /> حساب كميات الباطون
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start bg-red-500/20 text-red-100 border-red-500/30 hover:bg-red-500/30 h-14" 
+                  asChild
+                >
+                  <Link href={`/engineer/projects/${projectId}/concrete-calculations`}>
+                    <HardHat size={18} className="ms-2" /> حساب كميات الباطون
+                  </Link>
                 </Button>
-                <Button variant="outline" className="w-full justify-start bg-green-500/20 text-green-100 border-green-500/30 hover:bg-green-500/30 h-14" onClick={calculateSteelQuantities}>
-                  <BarChart3 size={18} className="ms-2" /> حساب كميات الحديد
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start bg-green-500/20 text-green-100 border-green-500/30 hover:bg-green-500/30 h-14" 
+                  asChild
+                >
+                  <Link href={`/engineer/projects/${projectId}/steel-calculations`}>
+                    <BarChart3 size={18} className="ms-2" /> حساب كميات الحديد
+                  </Link>
                 </Button>
                 <Button variant="outline" className="w-full justify-start bg-purple-500/20 text-purple-100 border-purple-500/30 hover:bg-purple-500/30 h-14" onClick={() => setIsUploadModalOpen(true)}>
                   <UploadCloud size={18} className="ms-2" /> رفع صور/فيديو للمشروع
@@ -1904,80 +1789,10 @@ export default function EngineerProjectDetailPage() {
           </div>
           <DialogHeader className="pt-8 pb-4 px-6">
             <DialogTitle className="text-xl font-bold text-gray-800 text-right">
-              {resultsType === 'concrete' ? 'نتائج حساب كميات الباطون' :
-                resultsType === 'steel' ? 'نتائج حساب كميات الحديد' :
-                  'تقرير المشروع'}
+              تقرير المشروع
             </DialogTitle>
           </DialogHeader>
           <div className="py-4 px-6 space-y-4 text-right">
-            {resultsType === 'concrete' && concreteResults && (
-              <div className="space-y-4">
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold">إجمالي حجم الباطون:</span>
-                    <span className="text-xl font-bold text-blue-700">{concreteResults.totalVolume} م³</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">حجم الأساسات:</p>
-                    <p className="font-semibold">{concreteResults.foundationVolume} م³</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">حجم الأعمدة:</p>
-                    <p className="font-semibold">{concreteResults.columnsVolume} م³</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">حكم الكمرات:</p>
-                    <p className="font-semibold">{concreteResults.beamsVolume} م³</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">حكم البلاطات:</p>
-                    <p className="font-semibold">{concreteResults.slabsVolume} م³</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">حكم السلالم:</p>
-                    <p className="font-semibold">{concreteResults.stairsVolume} م³</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {resultsType === 'steel' && steelResults && (
-              <div className="space-y-4">
-                <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold">إجمالي وزن الحديد:</span>
-                    <span className="text-xl font-bold text-green-700">{steelResults.totalWeight} كجم</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">وزن حديد الأعمدة:</p>
-                    <p className="font-semibold">{steelResults.columnsSteel} كجم</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">وزن حديد الكمرات:</p>
-                    <p className="font-semibold">{steelResults.beamsSteel} كجم</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">وزن حديد البلاطات:</p>
-                    <p className="font-semibold">{steelResults.slabsSteel} كجم</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">وزن حديد الرئيسي:</p>
-                    <p className="font-semibold">{steelResults.mainSteelWeight} كجم</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">وزن حديد الثانوي:</p>
-                    <p className="font-semibold">{steelResults.secondarySteelWeight} كجم</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {resultsType === 'report' && reportData && (
               <div className="space-y-4">
                 <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
