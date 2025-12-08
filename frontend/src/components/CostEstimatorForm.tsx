@@ -1,17 +1,19 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Printer, PlusCircle, Trash2, Calculator, HardHat, User, Save, Loader2, Blocks, Ruler, FileText, ShoppingBasket, FileSignature, Briefcase } from 'lucide-react';
+import { Printer, PlusCircle, Trash2, Calculator, HardHat, User, Save, Loader2, Blocks, Ruler, FileText, ShoppingBasket, FileSignature, Briefcase, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { UserDocument, Project } from '@/lib/db';
 import { getUsers, addCostReport, getProjects } from '@/lib/db';
 import { cn } from '@/lib/utils';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface MaterialItem {
   id: string;
@@ -212,6 +214,115 @@ export default function CostEstimatorForm() {
     return items.reduce((sum, item) => sum + item.totalCost_ILS, 0);
   };
 
+  // Generate PDF report that can be saved and sent to owner
+  const generateReportPDF = (reportTitle: string, engName: string, ownerName: string): string => {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    // Add Arabic font support - using built-in font with RTL support workaround
+    doc.setFont('helvetica');
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    let yPos = 20;
+
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(79, 70, 229); // Indigo color
+    const headerText = `تقرير تكلفة البناء: ${reportTitle}`;
+    doc.text(headerText, pageWidth - margin, yPos, { align: 'right' });
+
+    yPos += 15;
+    doc.setFontSize(12);
+    doc.setTextColor(71, 85, 105); // Gray color
+
+    doc.text(`المهندس المسؤول: ${engName}`, pageWidth - margin, yPos, { align: 'right' });
+    yPos += 8;
+    doc.text(`المالك/العميل: ${ownerName}`, pageWidth - margin, yPos, { align: 'right' });
+    yPos += 8;
+    doc.text(`تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}`, pageWidth - margin, yPos, { align: 'right' });
+    yPos += 8;
+    doc.text(`العملة: شيكل (₪)`, pageWidth - margin, yPos, { align: 'right' });
+
+    yPos += 15;
+
+    // Draw line
+    doc.setDrawColor(79, 70, 229);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+
+    yPos += 10;
+
+    // Table data
+    const tableData = items.map((item, index) => [
+      `${item.totalCost_ILS.toFixed(2)} ₪`,
+      `${item.pricePerUnit_ILS.toFixed(2)} ₪`,
+      `${item.quantity} ${item.unit}`,
+      item.name,
+      (index + 1).toString()
+    ]);
+
+    // Add table using autoTable
+    autoTable(doc, {
+      startY: yPos,
+      head: [['المجموع', 'سعر الوحدة', 'الكمية', 'المادة', '#']],
+      body: tableData,
+      styles: {
+        font: 'helvetica',
+        fontSize: 10,
+        cellPadding: 5,
+        halign: 'center',
+        valign: 'middle'
+      },
+      headStyles: {
+        fillColor: [248, 250, 252],
+        textColor: [30, 41, 59],
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      columnStyles: {
+        0: { halign: 'left', fontStyle: 'bold' },
+        3: { halign: 'right' },
+        4: { halign: 'center', cellWidth: 15 }
+      },
+      margin: { left: margin, right: margin },
+      tableWidth: 'auto',
+      didDrawPage: () => {
+        // Footer on each page
+        doc.setFontSize(8);
+        doc.setTextColor(156, 163, 175);
+        doc.text(
+          `تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات`,
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        );
+      }
+    });
+
+    // Get final Y position after table
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+
+
+    // Total row
+    doc.setFillColor(241, 245, 249);
+    doc.rect(margin, finalY, pageWidth - (margin * 2), 15, 'F');
+
+    doc.setFontSize(14);
+    doc.setTextColor(79, 70, 229);
+    doc.setFont('helvetica', 'bold');
+    doc.text('المجموع الكلي:', pageWidth - margin - 5, finalY + 10, { align: 'right' });
+
+    doc.setTextColor(30, 41, 59);
+    doc.text(`${calculateOverallTotal_ILS().toFixed(2)} ₪`, margin + 40, finalY + 10, { align: 'left' });
+
+    // Return as base64
+    return doc.output('datauristring');
+  };
+
   const handleSaveAndPrintReport = async () => {
     if (!selectedProjectId) {
       toast({ title: "بيانات ناقصة", description: "يرجى اختيار مشروع لربط التقرير به.", variant: "destructive" });
@@ -225,6 +336,11 @@ export default function CostEstimatorForm() {
       toast({ title: "بيانات ناقصة", description: "يرجى اختيار مالك لربط التقرير به.", variant: "destructive" });
       return;
     }
+    if (items.length === 0) {
+      toast({ title: "بيانات ناقصة", description: "يرجى إضافة مواد للتقرير.", variant: "destructive" });
+      return;
+    }
+
     setIsSaving(true);
     const selectedOwner = owners.find(o => o.id === selectedOwnerId);
     if (!selectedOwner) {
@@ -232,86 +348,287 @@ export default function CostEstimatorForm() {
       setIsSaving(false);
       return;
     }
+
+    // Save report data (without PDF to avoid size issues)
+
+    // Determine effective Engineer Name (fallback to project engineer if missing)
+    let effectiveEngineerName = engineerName;
+    if (!effectiveEngineerName) {
+      const proj = projects.find(p => p.id.toString() === selectedProjectId);
+      if (proj && proj.engineer) {
+        effectiveEngineerName = proj.engineer;
+      }
+    }
+
     const reportData = {
-      projectId: parseInt(selectedProjectId, 10),
+      projectId: selectedProjectId, // Send as string (ObjectId), do not parse to int
       reportName,
       engineerId,
-      engineerName,
+      engineerName: effectiveEngineerName,
       ownerId: selectedOwnerId,
       ownerName: selectedOwner.name,
       items: items,
       totalCost_ILS: calculateOverallTotal_ILS(),
     };
-    const result = await addCostReport(reportData);
-    setIsSaving(false);
-    if (result) {
-      toast({ title: "تم الحفظ بنجاح", description: "تم حفظ التقرير وربطه بالمالك.", variant: "default" });
-      printReport(reportName, engineerName, selectedOwner.name);
-    } else {
-      toast({ title: "فشل الحفظ", description: "حدث خطأ أثناء حفظ التقرير.", variant: "destructive" });
+
+    console.log('Saving report data:', reportData);
+
+    try {
+      // Direct client-side fetch to bypass server action issues
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${API_URL}/reports`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reportData),
+      });
+
+      const json = await response.json();
+      console.log('API response:', response.status, json);
+
+      setIsSaving(false);
+
+      if (response.ok && json.success) {
+        toast({
+          title: "تم الحفظ بنجاح",
+          description: "تم حفظ التقرير وإرساله للمالك. يمكن للمالك تنزيله من حسابه.",
+          variant: "default"
+        });
+        // Show print preview for engineer
+        printReport(reportName, effectiveEngineerName, selectedOwner.name);
+      } else {
+        console.error('Save failed:', json.message || json.error);
+        toast({ title: "فشل الحفظ", description: json.message || "حدث خطأ أثناء حفظ التقرير.", variant: "destructive" });
+      }
+    } catch (error) {
+      setIsSaving(false);
+      console.error('Save error:', error);
+      toast({ title: "فشل الحفظ", description: "حدث خطأ في الاتصال بالخادم.", variant: "destructive" });
     }
   };
+
+
+
+
 
   const printReport = (reportTitle: string, engName: string, ownerName: string) => {
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       const tableRows = items.map(item => `
         <tr>
-          <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${item.name}</td>
-          <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${item.quantity} ${item.unit}</td>
-          <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${item.pricePerUnit_ILS.toFixed(2)} ₪</td>
-          <td style="padding: 10px; border: 1px solid #ddd; text-align: left; font-weight: 500;">${item.totalCost_ILS.toFixed(2)} ₪</td>
+          <td>${item.name}</td>
+          <td>${item.quantity} ${item.unit}</td>
+          <td>${item.pricePerUnit_ILS.toFixed(2)} ₪</td>
+          <td style="font-weight: 700;">${item.totalCost_ILS.toFixed(2)} ₪</td>
         </tr>
       `).join('');
+
       const overallTotal = calculateOverallTotal_ILS().toFixed(2);
       const fullReportTitle = `تقرير تكلفة البناء: ${reportTitle}`;
-      printWindow.document.write(`
+      const currentDate = new Date().toLocaleDateString('ar-EG-u-nu-latn');
+      const itemsCount = items.length;
+
+      const reportHtml = `
         <html>
           <head>
             <title>${fullReportTitle}</title>
-            <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
             <style>
-              body { font-family: 'Tajawal', sans-serif; direction: rtl; padding: 25px; font-size: 14px; }
-              table { width: 100%; border-collapse: collapse; margin-bottom: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-              th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: right; }
-              th { background-color: #f8fafc; font-weight: 700; color: #1e293b; }
-              .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #4f46e5; }
-              .header h1 { color: #4f46e5; font-size: 28px; }
-              .header p { margin: 4px 0; color: #475569; font-size: 16px; }
-              .total-row td { font-weight: bold; font-size: 16px; background-color: #f1f5f9; }
-              .total-row .total-label { color: #4f46e5; }
+              @media print {
+                body {
+                  -webkit-print-color-adjust: exact;
+                  color-adjust: exact;
+                }
+              }
+              body {
+                font-family: 'Tajawal', sans-serif;
+                direction: rtl;
+                background-color: #f3f4f6;
+                margin: 0;
+                padding: 20px;
+                color: #1f2937;
+              }
+              .container {
+                max-width: 1200px;
+                margin: auto;
+                background: linear-gradient(to bottom, #ffffff, #f9fafb);
+                padding: 40px 50px;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
+                border: 1px solid #e5e7eb;
+              }
+              .report-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding-bottom: 25px;
+                border-bottom: 4px solid #4f46e5;
+                margin-bottom: 30px;
+              }
+              .report-header .titles {
+                text-align: right;
+              }
+              .report-header h1 {
+                margin: 0;
+                color: #312e81;
+                font-size: 36px;
+                font-weight: 700;
+                letter-spacing: -1px;
+              }
+              .report-header p {
+                margin: 8px 0 0;
+                font-size: 18px;
+                color: #4b5563;
+              }
+              .report-meta {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-bottom: 40px;
+              }
+              .meta-item {
+                background-color: #f9fafb;
+                padding: 20px;
+                border-radius: 12px;
+                border: 1px solid #e5e7eb;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+              }
+              .meta-item .label {
+                font-size: 14px;
+                color: #6b7280;
+                font-weight: 400;
+              }
+              .meta-item .value {
+                font-size: 18px;
+                color: #312e81;
+                font-weight: 700;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 15px;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                margin-bottom: 30px;
+              }
+              th, td {
+                padding: 16px 20px;
+                text-align: right;
+                border-bottom: 1px solid #e5e7eb;
+              }
+              thead th {
+                background: linear-gradient(to bottom, #4f46e5, #4338ca);
+                font-weight: 700;
+                color: #ffffff;
+                font-size: 16px;
+              }
+              tbody tr {
+                transition: background-color 0.2s ease;
+              }
+              tbody tr:last-child {
+                border-bottom: 0;
+              }
+              tbody tr:nth-of-type(even) {
+                background-color: #f9fafb;
+              }
+              tbody tr:hover {
+                background-color: #f0f0ff;
+              }
+              .total-section {
+                background-color: #f9fafb;
+                padding: 25px;
+                border-radius: 12px;
+                border: 2px solid #4f46e5;
+                margin: 30px 0;
+              }
+              .total-section .total-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              }
+              .total-section .total-label {
+                font-size: 24px;
+                color: #4f46e5;
+                font-weight: 700;
+              }
+              .total-section .total-value {
+                font-size: 32px;
+                color: #312e81;
+                font-weight: 700;
+              }
+              .report-footer {
+                margin-top: 50px;
+                text-align: center;
+                font-size: 14px;
+                color: #9ca3af;
+                padding-top: 20px;
+                border-top: 1px solid #e5e7eb;
+              }
             </style>
           </head>
           <body>
-            <div class="header">
-              <h1>${fullReportTitle}</h1>
-              <p>المهندس المسؤول: ${engName}</p>
-              <p>المالك/العميل: ${ownerName}</p>
-              <p>تاريخ التقرير: ${new Date().toLocaleString('ar-EG')}</p>
-              <p>العملة: شيكل (₪)</p>
+            <div class="container">
+              <header class="report-header">
+                <div class="titles">
+                  <h1>${fullReportTitle}</h1>
+                  <p>تفصيل شامل لتكاليف المواد والعمالة</p>
+                </div>
+              </header>
+              
+              <section class="report-meta">
+                <div class="meta-item">
+                  <span class="label">المهندس المسؤول</span>
+                  <span class="value">${engName}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">المالك/العميل</span>
+                  <span class="value">${ownerName}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">تاريخ التقرير</span>
+                  <span class="value">${currentDate}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">عدد المواد</span>
+                  <span class="value">${itemsCount}</span>
+                </div>
+              </section>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>المادة</th>
+                    <th>الكمية</th>
+                    <th>سعر الوحدة</th>
+                    <th>المجموع</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tableRows}
+                </tbody>
+              </table>
+
+              <div class="total-section">
+                <div class="total-row">
+                  <span class="total-label">المجموع الكلي:</span>
+                  <span class="total-value">${overallTotal} ₪</span>
+                </div>
+              </div>
+
+              <footer class="report-footer">
+                <p>هذا التقرير تم إنشاؤه بواسطة نظام إدارة المشاريع.</p>
+                <p>&copy; ${new Date().getFullYear()} جميع الحقوق محفوظة.</p>
+              </footer>
             </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>المادة</th>
-                  <th>الكمية</th>
-                  <th>سعر الوحدة</th>
-                  <th>المجموع</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tableRows}
-              </tbody>
-              <tfoot>
-                <tr class="total-row">
-                  <td colspan="3" class="total-label">المجموع الكلي:</td>
-                  <td style="text-align: left;">${overallTotal} ₪</td>
-                </tr>
-              </tfoot>
-            </table>
           </body>
         </html>
-      `);
+      `;
+
+      printWindow.document.write(reportHtml);
       printWindow.document.close();
       printWindow.print();
     } else {

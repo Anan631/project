@@ -10,10 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
+import {
   CalendarDays, Image as ImageIcon, FileText, MessageSquare, Mail, Edit, Trash2, Send, X,
   HardHat, Percent, BarChart3, GanttChartSquare, Loader2 as LoaderIcon, MapPin, AlertTriangle, Check, Wallet,
-  ArrowRight, Building, Clock, User
+  ArrowRight, Building, Clock, User, Download
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
@@ -23,6 +23,7 @@ import { findProjectById, updateProject as dbUpdateProject, getCostReportsForPro
 import Link from 'next/link';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import ProjectChatDialog from "@/components/ProjectChatDialog";
 
 export default function OwnerProjectDetailPage() {
   const params = useParams();
@@ -42,6 +43,7 @@ export default function OwnerProjectDetailPage() {
   const [commentToDelete, setCommentToDelete] = useState<ProjectComment | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteStep, setDeleteStep] = useState<'confirm' | 'loading' | 'success'>('confirm');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
@@ -49,46 +51,47 @@ export default function OwnerProjectDetailPage() {
     setUserEmail(email);
   }, []);
 
-  const refreshProjectData = async () => { 
+  const refreshProjectData = async () => {
     if (!userEmail && !isClient) return;
-    
+
     const [currentProject, reports] = await Promise.all([
       findProjectById(projectId),
       getCostReportsForProject(projectId)
     ]);
-    
+    setIsLoading(false);
+
     if (currentProject && currentProject.linkedOwnerEmail !== userEmail) {
       setProject(null);
       toast({ title: "غير مصرح به", description: "ليس لديك صلاحية لعرض هذا المشروع.", variant: "destructive" });
       router.push('/owner/projects');
       return;
     }
-    setProject(currentProject ? {...currentProject} : null); 
+    setProject(currentProject ? { ...currentProject } : null);
     setCostReports(reports);
   };
-  
+
   useEffect(() => {
-    if(isClient && userEmail) {
+    if (isClient && userEmail) {
       refreshProjectData();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, userEmail, isClient]); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, userEmail, isClient]);
 
-  const handleCommentSubmit = async (e: FormEvent) => { 
+  const handleCommentSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || !project) return;
     setIsSubmittingComment(true);
-    
+
     const commentToAdd: ProjectComment = {
-      id: crypto.randomUUID(), 
-      user: "المالك", 
-      text: newComment, 
-      date: new Date().toISOString(), 
+      id: crypto.randomUUID(),
+      user: "المالك",
+      text: newComment,
+      date: new Date().toISOString(),
       avatar: "https://placehold.co/40x40.png?text=OW",
       dataAiHintAvatar: "owner avatar"
     };
-    
-    const updatedProjectResult = await dbUpdateProject(project.id.toString(), { 
+
+    const updatedProjectResult = await dbUpdateProject(project.id.toString(), {
       comments: [...(project.comments || []), commentToAdd]
     });
 
@@ -101,7 +104,7 @@ export default function OwnerProjectDetailPage() {
     }
     setIsSubmittingComment(false);
   };
-  
+
   const handleSendEngineerMessage = (e: FormEvent) => {
     e.preventDefault();
     if (!engineerMessage.trim() || !project || !project.engineer) {
@@ -141,18 +144,261 @@ export default function OwnerProjectDetailPage() {
 
     const updatedComments = project.comments.filter(c => c.id !== commentToDelete.id);
     const result = await dbUpdateProject(project.id.toString(), { comments: updatedComments });
-    
+
     if (result.success) {
-        setDeleteStep('success');
-        setTimeout(() => {
-            setIsDeleteDialogOpen(false);
-            refreshProjectData();
-        }, 2000);
+      setDeleteStep('success');
+      setTimeout(() => {
+        setIsDeleteDialogOpen(false);
+        refreshProjectData();
+      }, 2000);
     } else {
       toast({ title: "فشل حذف التعليق", variant: "destructive" });
       setIsDeleteDialogOpen(false);
     }
   };
+
+  const handleDownloadReport = (report: CostReport) => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const tableRows = report.items.map(item => `
+        <tr>
+          <td>${item.name}</td>
+          <td>${item.quantity} ${item.unit}</td>
+          <td>${item.pricePerUnit_ILS.toFixed(2)} ₪</td>
+          <td style="font-weight: 700;">${item.totalCost_ILS.toFixed(2)} ₪</td>
+        </tr>
+      `).join('');
+
+      const fullReportTitle = `تقرير تكلفة البناء: ${report.reportName}`;
+      const currentDate = new Date(report.createdAt).toLocaleDateString('ar-EG-u-nu-latn');
+      const itemsCount = report.items.length;
+
+      const reportHtml = `
+        <html>
+          <head>
+            <title>${fullReportTitle}</title>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+            <style>
+              @media print {
+                body {
+                  -webkit-print-color-adjust: exact;
+                  color-adjust: exact;
+                }
+              }
+              body {
+                font-family: 'Tajawal', sans-serif;
+                direction: rtl;
+                background-color: #f3f4f6;
+                margin: 0;
+                padding: 20px;
+                color: #1f2937;
+              }
+              .container {
+                max-width: 1200px;
+                margin: auto;
+                background: linear-gradient(to bottom, #ffffff, #f9fafb);
+                padding: 40px 50px;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
+                border: 1px solid #e5e7eb;
+              }
+              .report-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding-bottom: 25px;
+                border-bottom: 4px solid #4f46e5;
+                margin-bottom: 30px;
+              }
+              .report-header .titles {
+                text-align: right;
+              }
+              .report-header h1 {
+                margin: 0;
+                color: #312e81;
+                font-size: 36px;
+                font-weight: 700;
+                letter-spacing: -1px;
+              }
+              .report-header p {
+                margin: 8px 0 0;
+                font-size: 18px;
+                color: #4b5563;
+              }
+              .report-meta {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-bottom: 40px;
+              }
+              .meta-item {
+                background-color: #f9fafb;
+                padding: 20px;
+                border-radius: 12px;
+                border: 1px solid #e5e7eb;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+              }
+              .meta-item .label {
+                font-size: 14px;
+                color: #6b7280;
+                font-weight: 400;
+              }
+              .meta-item .value {
+                font-size: 18px;
+                color: #312e81;
+                font-weight: 700;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 15px;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                margin-bottom: 30px;
+              }
+              th, td {
+                padding: 16px 20px;
+                text-align: right;
+                border-bottom: 1px solid #e5e7eb;
+              }
+              thead th {
+                background: linear-gradient(to bottom, #4f46e5, #4338ca);
+                font-weight: 700;
+                color: #ffffff;
+                font-size: 16px;
+              }
+              tbody tr {
+                transition: background-color 0.2s ease;
+              }
+              tbody tr:last-child {
+                border-bottom: 0;
+              }
+              tbody tr:nth-of-type(even) {
+                background-color: #f9fafb;
+              }
+              tbody tr:hover {
+                background-color: #f0f0ff;
+              }
+              .total-section {
+                background-color: #f9fafb;
+                padding: 25px;
+                border-radius: 12px;
+                border: 2px solid #4f46e5;
+                margin: 30px 0;
+              }
+              .total-section .total-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              }
+              .total-section .total-label {
+                font-size: 24px;
+                color: #4f46e5;
+                font-weight: 700;
+              }
+              .total-section .total-value {
+                font-size: 32px;
+                color: #312e81;
+                font-weight: 700;
+              }
+              .report-footer {
+                margin-top: 50px;
+                text-align: center;
+                font-size: 14px;
+                color: #9ca3af;
+                padding-top: 20px;
+                border-top: 1px solid #e5e7eb;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <header class="report-header">
+                <div class="titles">
+                  <h1>${fullReportTitle}</h1>
+                  <p>تفصيل شامل لتكاليف المواد والعمالة</p>
+                </div>
+              </header>
+              
+              <section class="report-meta">
+                <div class="meta-item">
+                  <span class="label">المهندس المسؤول</span>
+                  <span class="value">${report.engineerName}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">المالك/العميل</span>
+                  <span class="value">${report.ownerName}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">تاريخ التقرير</span>
+                  <span class="value">${currentDate}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">عدد المواد</span>
+                  <span class="value">${itemsCount}</span>
+                </div>
+              </section>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>المادة</th>
+                    <th>الكمية</th>
+                    <th>سعر الوحدة</th>
+                    <th>المجموع</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tableRows}
+                </tbody>
+              </table>
+
+              <div class="total-section">
+                <div class="total-row">
+                  <span class="total-label">المجموع الكلي:</span>
+                  <span class="total-value">${report.totalCost_ILS.toFixed(2)} ₪</span>
+                </div>
+              </div>
+
+              <footer class="report-footer">
+                <p>هذا التقرير تم إنشاؤه بواسطة نظام إدارة المشاريع.</p>
+                <p>&copy; ${new Date().getFullYear()} جميع الحقوق محفوظة.</p>
+              </footer>
+            </div>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.write(reportHtml);
+      printWindow.document.close();
+      printWindow.print();
+
+      toast({
+        title: "تم فتح التقرير",
+        description: "تم فتح التقرير في نافذة جديدة. يمكنك طباعته أو حفظه كملف PDF."
+      });
+    } else {
+      toast({
+        title: "خطأ في الطباعة",
+        description: "لم يتمكن المتصفح من فتح نافذة الطباعة.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+        <LoaderIcon className="h-16 w-16 text-blue-600 animate-spin mb-4" />
+        <p className="text-xl font-semibold text-gray-600">جاري تحميل بيانات المشروع...</p>
+      </div>
+    );
+  }
 
   if (!project) {
     return (
@@ -202,16 +448,16 @@ export default function OwnerProjectDetailPage() {
             </div>
             <p className="text-gray-600 text-lg max-w-2xl">{project.description}</p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button 
+            <Button
               onClick={() => setIsContactEngineerModalOpen(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
             >
               <Mail className="ml-2 h-4 w-4" />
               مراسلة المهندس
             </Button>
-            <Button asChild variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50">
+            <Button asChild variant="outline" className="border-gray-300 text-gray-700 hover:bg-red-600 hover:text-white hover:font-bold active:bg-red-200 active:text-gray-800 transition-all duration-300">
               <Link href="/owner/projects">
                 <ArrowRight className="ml-2 h-4 w-4" />
                 جميع المشاريع
@@ -302,13 +548,13 @@ export default function OwnerProjectDetailPage() {
               <CardContent>
                 {project.photos && project.photos.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {project.photos.map((photo) => (
-                      <div key={photo.id} className="group relative rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
-                        <Image 
-                          src={photo.src} 
-                          alt={photo.alt} 
-                          width={600} 
-                          height={400} 
+                    {project.photos.map((photo, index) => (
+                      <div key={photo.id || index} className="group relative rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+                        <Image
+                          src={photo.src}
+                          alt={photo.alt}
+                          width={600}
+                          height={400}
                           className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                         {photo.caption && (
@@ -346,16 +592,16 @@ export default function OwnerProjectDetailPage() {
                       أضف تعليقاً أو استفساراً
                     </Label>
                     <Textarea
-                      id="newComment" 
-                      value={newComment} 
+                      id="newComment"
+                      value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="اكتب تعليقك أو استفسارك هنا..." 
-                      rows={4} 
+                      placeholder="اكتب تعليقك أو استفسارك هنا..."
+                      rows={4}
                       className="resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3"
                     disabled={isSubmittingComment || !newComment.trim()}
                   >
@@ -377,26 +623,26 @@ export default function OwnerProjectDetailPage() {
 
                 <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                   {project.comments && project.comments.length > 0 ? (
-                    project.comments.slice().reverse().map((comment) => (
-                      <div key={comment.id} className={cn(
+                    project.comments.slice().reverse().map((comment, index) => (
+                      <div key={comment.id || `comment-${index}`} className={cn(
                         "p-4 rounded-xl border transition-all duration-200",
-                        comment.user === "المالك" 
-                          ? "bg-blue-50/50 border-blue-200 shadow-sm" 
+                        comment.user === "المالك"
+                          ? "bg-blue-50/50 border-blue-200 shadow-sm"
                           : "bg-gray-50/50 border-gray-200"
                       )}>
                         <div className="flex items-start gap-4">
                           <div className="flex-shrink-0">
                             {comment.avatar ? (
-                              <Image 
-                                src={comment.avatar} 
-                                alt={comment.user} 
-                                width={48} 
-                                height={48} 
+                              <Image
+                                src={comment.avatar}
+                                alt={comment.user}
+                                width={48}
+                                height={48}
                                 className="rounded-full border-2 border-white shadow-sm"
                               />
                             ) : (
                               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-                                {comment.user.substring(0,1)}
+                                {comment.user.substring(0, 1)}
                               </div>
                             )}
                           </div>
@@ -407,28 +653,28 @@ export default function OwnerProjectDetailPage() {
                                   {comment.user}
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  {new Date(comment.date).toLocaleString('ar-EG', { 
-                                    day: '2-digit', 
-                                    month: '2-digit', 
-                                    year: 'numeric', 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
+                                  {new Date(comment.date).toLocaleString('ar-EG', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
                                   })}
                                 </p>
                               </div>
                               {comment.user === 'المالك' && (
                                 <div className="flex items-center gap-1">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
                                     className="h-8 w-8 text-blue-600 hover:bg-blue-100"
                                     onClick={() => setEditingComment({ id: comment.id, text: comment.text })}
                                   >
                                     <Edit className="h-4 w-4" />
                                   </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
                                     className="h-8 w-8 text-red-600 hover:bg-red-100"
                                     onClick={() => handleOpenDeleteDialog(comment)}
                                   >
@@ -437,7 +683,7 @@ export default function OwnerProjectDetailPage() {
                                 </div>
                               )}
                             </div>
-                            
+
                             {editingComment?.id === comment.id ? (
                               <div className="space-y-3">
                                 <Textarea
@@ -447,16 +693,16 @@ export default function OwnerProjectDetailPage() {
                                   rows={3}
                                 />
                                 <div className="flex gap-2 justify-end">
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
                                     onClick={() => setEditingComment(null)}
                                     className="border-gray-300 text-gray-700"
                                   >
                                     إلغاء
                                   </Button>
-                                  <Button 
-                                    size="sm" 
+                                  <Button
+                                    size="sm"
                                     onClick={handleUpdateComment}
                                     className="bg-blue-600 hover:bg-blue-700 text-white"
                                   >
@@ -528,113 +774,73 @@ export default function OwnerProjectDetailPage() {
                   </div>
                   تقارير التكاليف
                 </CardTitle>
+                <CardDescription className="text-sm text-gray-600">
+                  يمكنك تنزيل تقارير التكلفة المرسلة من المهندس
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {costReports.length > 0 ? (
                   <>
                     <div className="space-y-3">
-                      {costReports.map(report => (
-                        <div key={report.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
-                          <div className="space-y-1">
-                            <p className="font-medium text-sm text-gray-900">{report.reportName}</p>
-                            <p className="text-xs text-gray-500">{new Date(report.createdAt).toLocaleDateString('ar-EG')}</p>
+                      {costReports.map((report, index) => (
+                        <div key={report.id || `report-${index}`} className="flex justify-between items-start gap-3 p-4 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200">
+                          <div className="flex-1 space-y-2">
+                            <div className="space-y-1">
+                              <p className="font-semibold text-sm text-gray-900">{report.reportName}</p>
+                              <div className="text-xs text-gray-500 flex items-center gap-1">
+                                <CalendarDays className="h-3 w-3" />
+                                {new Date(report.createdAt).toLocaleDateString('ar-EG')}
+                              </div>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-xs text-gray-600">التكلفة الإجمالية:</span>
+                              <span className="font-bold text-lg text-green-700">{report.totalCost_ILS.toLocaleString()} ₪</span>
+                            </div>
                           </div>
-                          <p className="font-semibold text-green-700">{report.totalCost_ILS.toLocaleString()} ₪</p>
+                          <Button
+                            onClick={() => handleDownloadReport(report)}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-medium flex-shrink-0"
+                          >
+                            <Download className="ml-1 h-4 w-4" />
+                            تنزيل
+                          </Button>
                         </div>
                       ))}
                     </div>
                     <Separator />
-                    <div className="flex justify-between items-center pt-2">
+                    <div className="flex justify-between items-center pt-2 px-2">
                       <p className="font-bold text-gray-900">الإجمالي الكلي:</p>
-                      <p className="font-bold text-lg text-green-700">
+                      <p className="font-bold text-xl text-green-700">
                         {costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0).toLocaleString()} ₪
                       </p>
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-4">
-                    <Wallet className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                    <p className="text-gray-500 text-sm">لا توجد تقارير تكاليف محفوظة</p>
+                  <div className="text-center py-8">
+                    <div className="inline-flex p-4 bg-gray-100 rounded-full mb-3">
+                      <Wallet className="h-10 w-10 text-gray-400" />
+                    </div>
+                    <p className="text-gray-600 font-medium mb-1">لا توجد تقارير تكاليف</p>
+                    <p className="text-gray-500 text-sm">سيتم عرض التقارير هنا عند إضافتها من المهندس</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card className="border-0 shadow-lg bg-white">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900">إجراءات سريعة</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button asChild className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white font-semibold">
-                  <Link href={`/owner/projects/${projectId}/timeline`}>
-                    <GanttChartSquare className="ml-2 h-4 w-4" />
-                    الجدول الزمني
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="w-full justify-start border-gray-300 text-gray-700 hover:bg-gray-50">
-                  <Link href={`/owner/projects/${projectId}/reports`}>
-                    <BarChart3 className="ml-2 h-4 w-4" />
-                    تقارير الكميات
-                  </Link>
-                </Button>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
 
-      {/* Contact Engineer Modal */}
-      <Dialog open={isContactEngineerModalOpen} onOpenChange={setIsContactEngineerModalOpen}>
-        <DialogContent className="sm:max-w-md bg-white rounded-xl border-0 shadow-2xl">
-          <DialogHeader className="text-right space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Mail className="h-5 w-5 text-blue-600" />
-              </div>
-              <DialogTitle className="text-xl font-bold text-gray-900">مراسلة المهندس</DialogTitle>
-            </div>
-            <DialogDescription className="text-gray-600">
-              أرسل رسالة مباشرة إلى المهندس المسؤول عن المشروع
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleSendEngineerMessage} className="mt-4 space-y-5">
-            <div className="space-y-3">
-              <Label htmlFor="engineerMessage" className="text-sm font-medium text-gray-700">
-                نص الرسالة
-              </Label>
-              <Textarea
-                id="engineerMessage"
-                value={engineerMessage}
-                onChange={(e) => setEngineerMessage(e.target.value)}
-                placeholder="اكتب رسالتك هنا..."
-                rows={6}
-                className="resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            
-            <div className="flex gap-3 justify-end">
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={() => setIsContactEngineerModalOpen(false)}
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                إلغاء
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-                disabled={!engineerMessage.trim()}
-              >
-                <Send className="ml-2 h-4 w-4" />
-                إرسال الرسالة
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Chat Dialog */}
+      {project && (
+        <ProjectChatDialog
+          isOpen={isContactEngineerModalOpen}
+          onOpenChange={setIsContactEngineerModalOpen}
+          project={project}
+          currentUserRole="OWNER"
+          onMessageSent={refreshProjectData}
+        />
+      )}
 
       {/* Delete Comment Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -660,7 +866,7 @@ export default function OwnerProjectDetailPage() {
                 <AlertDialogCancel className="bg-gray-100 hover:bg-gray-200 text-gray-800 border-0 font-medium">
                   إلغاء
                 </AlertDialogCancel>
-                <Button 
+                <Button
                   onClick={handleDeleteComment}
                   className="bg-red-600 hover:bg-red-700 text-white font-medium"
                 >

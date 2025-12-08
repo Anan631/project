@@ -2988,6 +2988,13 @@ electron@^23.1.2:
     "@types/node" "^16.11.26"
     extract-zip "^2.0.1"
 
+emoji-picker-react@^4.16.1:
+  version "4.16.1"
+  resolved "https://registry.yarnpkg.com/emoji-picker-react/-/emoji-picker-react-4.16.1.tgz#47f5fef2937b17e35384e27525a0a492efc67092"
+  integrity sha512-MrPX0tOCfRL3uYI4of/2GRZ7S6qS7YlacKiF78uFH84/C62vcuHE2DZyv5b4ZJMk0e06es1jjB4e31Bb+YSM8w==
+  dependencies:
+    flairup "1.0.0"
+
 emoji-regex@^8.0.0:
   version "8.0.0"
   resolved "https://registry.npmjs.org/emoji-regex/-/emoji-regex-8.0.0.tgz"
@@ -3452,6 +3459,11 @@ firebase@^11.9.1:
     "@firebase/storage" "0.13.14"
     "@firebase/storage-compat" "0.3.24"
     "@firebase/util" "1.12.1"
+
+flairup@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/flairup/-/flairup-1.0.0.tgz#d3af0052ad02734c12d2446608a869498adb351b"
+  integrity sha512-IKlE+pNvL2R+kVL1kEhUYqRxVqeFnjiIvHWDMLFXNaqyUdFXQM2wte44EfMYJNHkW16X991t2Zg8apKkhv7OBA==
 
 fn.name@1.x.x:
   version "1.1.0"

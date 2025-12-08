@@ -4,6 +4,7 @@
 // File DB removed
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { apiClient } from './api';
 
 // ---- TYPE DEFINITIONS (Matching JSON structure) ----
 
@@ -58,6 +59,7 @@ export interface Project {
   photos: ProjectPhoto[];
   timelineTasks: TimelineTask[];
   comments: ProjectComment[];
+  chatMessages?: ChatMessage[];
   linkedOwnerEmail?: string;
   createdAt?: string; // ISO string
 }
@@ -90,6 +92,15 @@ export interface ProjectComment {
   dataAiHintAvatar?: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  sender: 'ENGINEER' | 'OWNER';
+  text?: string;
+  type: 'text' | 'audio';
+  audioUrl?: string; // Base64 or URL
+  timestamp: string;
+}
+
 export interface CostReportItem {
   id: string;
   name: string;
@@ -109,6 +120,7 @@ export interface CostReport {
   ownerName: string;
   items: CostReportItem[];
   totalCost_ILS: number;
+  pdfData?: string; // Base64 encoded PDF for owner download
   createdAt: string; // ISO string
 }
 
@@ -630,22 +642,63 @@ export async function changeUserPassword(userId: string, currentPassword_input: 
   return { success: true, message: 'تم تغيير كلمة المرور بنجاح.' };
 }
 
+export const sendProjectMessage = async (projectId: string, message: ChatMessage) => {
+  try {
+    const res = await apiClient.post(`/projects/${projectId}/messages`, message);
+    return res;
+  } catch (error) {
+    console.error('Error sending message:', error);
+    return { success: false, error };
+  }
+};
+
 export async function addCostReport(reportData: Omit<CostReport, 'id' | 'createdAt'>): Promise<CostReport | null> {
-  const res = await fetch(`${API_BASE_URL}/reports`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(reportData),
-  });
-  const json = await res.json();
-  if (!res.ok || !json.success) return null;
-  await logAction('COST_REPORT_ADD_SUCCESS', 'INFO', `Cost report "${reportData.reportName}" added for project ID ${reportData.projectId}.`);
-  return json.report as CostReport;
+  try {
+    console.log('[db.ts] addCostReport: sending to', `${API_BASE_URL}/reports`);
+    const res = await fetch(`${API_BASE_URL}/reports`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reportData),
+    });
+    const json = await res.json();
+    console.log('[db.ts] addCostReport response:', res.status, json);
+    if (!res.ok || !json.success) {
+      console.error('[db.ts] addCostReport failed:', json.message || json.error);
+      return null;
+    }
+    await logAction('COST_REPORT_ADD_SUCCESS', 'INFO', `Cost report "${reportData.reportName}" added for project ID ${reportData.projectId}.`);
+    return json.report as CostReport;
+  } catch (error) {
+    console.error('[db.ts] addCostReport error:', error);
+    return null;
+  }
 }
 
 export async function getCostReportsForProject(projectId: string): Promise<CostReport[]> {
   const res = await fetch(`${API_BASE_URL}/reports/project/${projectId}`, { cache: 'no-store' });
   const json = await res.json();
-  return (json.reports || []) as CostReport[];
+  return (json.reports || []).map((r: any) => ({ ...r, id: r.id || r._id })) as CostReport[];
+}
+
+export async function getCostReportsForOwner(ownerId: string): Promise<CostReport[]> {
+  const res = await fetch(`${API_BASE_URL}/reports/owner/${ownerId}`, { cache: 'no-store' });
+  const json = await res.json();
+  return (json.reports || []).map((r: any) => ({ ...r, id: r.id || r._id })) as CostReport[];
+}
+
+export async function deleteCostReport(reportId: string): Promise<{ success: boolean; message?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/reports/${reportId}`, {
+      method: 'DELETE',
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) return { success: false, message: json.message || 'فشل حذف التقرير.' };
+    await logAction('COST_REPORT_DELETE_SUCCESS', 'INFO', `Cost report ${reportId} deleted.`);
+    return { success: true, message: 'تم حذف التقرير بنجاح.' };
+  } catch (error: any) {
+    console.error('[db.ts] deleteCostReport error:', error);
+    return { success: false, message: 'فشل حذف التقرير بسبب خطأ في الخادم.' };
+  }
 }
 
 export async function deleteAllLogs(adminUserId: string): Promise<{ success: boolean; message?: string }> {

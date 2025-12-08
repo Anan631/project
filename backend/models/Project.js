@@ -36,6 +36,18 @@ const projectCommentSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const chatMessageSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    sender: { type: String, required: true }, // 'ENGINEER', 'OWNER'
+    text: String,
+    type: { type: String, enum: ['text', 'audio'], default: 'text' },
+    audioUrl: String,
+    timestamp: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const projectSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
@@ -53,6 +65,7 @@ const projectSchema = new mongoose.Schema(
     photos: { type: [projectPhotoSchema], default: [] },
     timelineTasks: { type: [timelineTaskSchema], default: [] },
     comments: { type: [projectCommentSchema], default: [] },
+    chatMessages: { type: [chatMessageSchema], default: [] },
     linkedOwnerEmail: String,
     hiddenForUserIds: { type: [String], default: [] },
     createdByUserId: String, // User ID of the creator

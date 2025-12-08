@@ -12,13 +12,14 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   CalendarDays, Image as ImageIcon, FileText, MessageSquare, Edit, Send, Palette, CheckCircle2,
-  UploadCloud, Download, Link2, HardHat, Users, Percent, FileEdit, BarChart3, GanttChartSquare, Settings2, Loader2 as LoaderIcon, Mail, Calculator, Wrench, ListChecks, Wallet, Plus, Trash2, Save, Clock, DollarSign, User, MapPin, Building, Flag, Target, TrendingUp, Activity, FileImage, Video, File, Folder, Star, AlertCircle, Info, X
+  UploadCloud, Download, Link2, HardHat, Users, Percent, FileEdit, BarChart3, GanttChartSquare, Settings2, Loader2 as LoaderIcon, Mail, Calculator, Wrench, ListChecks, Wallet, Plus, Trash2, Save, Clock, DollarSign, User, MapPin, Building, Flag, Target, TrendingUp, Activity, FileImage, Video, File, Folder, Star, AlertCircle, Info, X, MessageCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogTrigger, DialogOverlay } from '@/components/ui/dialog';
 import { findProjectById, updateProject as dbUpdateProject, getCostReportsForProject, addCostReport, type Project, type ProjectComment, type ProjectPhoto, type TimelineTask, type CostReport } from '@/lib/db';
+import { apiClient, type ConcreteCalculationInput, type SteelCalculationInput } from '@/lib/api';
 import Link from 'next/link';
 import EditProjectDialog from '@/components/engineer/EditProjectDialog';
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import ProjectChatDialog from "@/components/ProjectChatDialog";
 
 export default function EngineerProjectDetailPage() {
   const params = useParams();
@@ -39,6 +41,7 @@ export default function EngineerProjectDetailPage() {
   const [progressUpdate, setProgressUpdate] = useState({ percentage: '', notes: '' });
   const [linkedOwnerEmailInput, setLinkedOwnerEmailInput] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadCaption, setUploadCaption] = useState('');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isContactEngineerModalOpen, setIsContactEngineerModalOpen] = useState(false);
@@ -47,7 +50,10 @@ export default function EngineerProjectDetailPage() {
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationProgress, setSimulationProgress] = useState(0);
   const [simulationStatus, setSimulationStatus] = useState('');
+  const [reportToDelete, setReportToDelete] = useState<string | null>(null);
   const [newTask, setNewTask] = useState({ name: '', startDate: '', endDate: '', color: '#3b82f6', status: 'مخطط له' });
+
+  const [isLoading, setIsLoading] = useState(true);
 
   // Default colors for tasks
   const defaultColors = [
@@ -64,6 +70,7 @@ export default function EngineerProjectDetailPage() {
   ];
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [isCostReportModalOpen, setIsCostReportModalOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [newCostReport, setNewCostReport] = useState({ reportName: '', totalCost_ILS: 0 });
   const [activeTab, setActiveTab] = useState('overview');
   const [fileType, setFileType] = useState('image');
@@ -77,23 +84,39 @@ export default function EngineerProjectDetailPage() {
   const isOwnerView = false; // This is Engineer's view
 
   const refreshProjectData = async () => {
-    const [currentProject, reports] = await Promise.all([
-      findProjectById(projectId),
-      getCostReportsForProject(projectId)
-    ]);
-    setProject(currentProject ? { ...currentProject } : null);
-    setCostReports(reports);
+    try {
+      const [currentProject, reports] = await Promise.all([
+        findProjectById(projectId),
+        getCostReportsForProject(projectId)
+      ]);
 
-    if (currentProject?.linkedOwnerEmail) {
-      setLinkedOwnerEmailInput(currentProject.linkedOwnerEmail);
-    }
-    if (currentProject?.overallProgress) {
-      setProgressUpdate(prev => ({ ...prev, percentage: currentProject.overallProgress.toString() }));
+      // Self-healing: If project is 100% complete but status is not 'Completed', fix it automatically
+      if (currentProject && currentProject.overallProgress === 100 && currentProject.status !== 'مكتمل') {
+        await dbUpdateProject(projectId, { status: 'مكتمل' });
+        currentProject.status = 'مكتمل';
+      }
+
+      setProject(currentProject ? { ...currentProject } : null);
+      setCostReports(reports);
+
+      if (currentProject?.linkedOwnerEmail) {
+        setLinkedOwnerEmailInput(currentProject.linkedOwnerEmail);
+      }
+      if (currentProject?.overallProgress) {
+        setProgressUpdate(prev => ({ ...prev, percentage: currentProject.overallProgress.toString() }));
+      }
+    } catch (error) {
+      console.error("Error fetching project data:", error);
+      toast({ title: "خطأ", description: "فشل تحميل بيانات المشروع", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    refreshProjectData();
+    if (projectId) {
+      refreshProjectData();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
@@ -142,7 +165,7 @@ export default function EngineerProjectDetailPage() {
       quantitySummary: (project.quantitySummary || '') + (progressUpdate.notes ? `\n(ملاحظة تقدم: ${progressUpdate.notes})` : '')
     };
 
-    // Update status based on progress
+    // Update status based on progress - Automatically set to Completed if 100%
     if (newProgress === 100) {
       updates.status = 'مكتمل';
     } else if (newProgress > 0 && newProgress < 100 && project.status === 'مخطط له') {
@@ -248,20 +271,10 @@ export default function EngineerProjectDetailPage() {
           reader.readAsDataURL(selectedFile);
         });
       } else {
-        // For videos and other files, use as-is (but check size limit)
-        if (fileType === 'video' && selectedFile.size > 30 * 1024 * 1024) {
-          toast({
-            title: "الفيديو كبير جداً",
-            description: "الحد الأقصى لحجم الفيديو هو 30 ميجابايت.",
-            variant: "destructive"
-          });
-          setIsUploadingFile(false);
-          return;
-        }
-
+        // For videos, use as-is (but check size limit)
         base64String = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = () => {
+          reader.onload = (e) => {
             const result = reader.result as string;
             resolve(result);
           };
@@ -277,7 +290,7 @@ export default function EngineerProjectDetailPage() {
         src: base64String,
         alt: `Uploaded: ${selectedFile.name}`,
         dataAiHint: fileType === 'image' ? "uploaded image" : fileType === 'video' ? "uploaded video" : "uploaded document",
-        caption: `تم الرفع: ${selectedFile.name}`,
+        caption: uploadCaption || `تم الرفع: ${selectedFile.name}`,
         fileType: fileType as 'image' | 'video' | 'document'
       };
 
@@ -288,6 +301,7 @@ export default function EngineerProjectDetailPage() {
       if (updatedProjectResult.success) {
         await refreshProjectData();
         setSelectedFile(null);
+        setUploadCaption('');
         const fileInput = document.getElementById('projectFileUpload') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
         toast({ title: "تم رفع الملف بنجاح", description: `${selectedFile.name} جاهز الآن.` });
@@ -419,6 +433,15 @@ export default function EngineerProjectDetailPage() {
       width: `${Math.max(2, Math.min(100, widthPercentage))}%`,
     };
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+        <LoaderIcon className="h-16 w-16 text-blue-600 animate-spin mb-4" />
+        <p className="text-xl font-semibold text-gray-600">جاري تحميل بيانات المشروع...</p>
+      </div>
+    );
+  }
 
   if (!project) {
     return (
@@ -568,6 +591,261 @@ export default function EngineerProjectDetailPage() {
     }
   };
 
+  const handleDownloadReport = (report: CostReport) => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const tableRows = report.items.map(item => `
+        <tr>
+          <td>${item.name}</td>
+          <td>${item.quantity} ${item.unit}</td>
+          <td>${item.pricePerUnit_ILS.toFixed(2)} ₪</td>
+          <td style="font-weight: 700;">${item.totalCost_ILS.toFixed(2)} ₪</td>
+        </tr>
+      `).join('');
+
+      const fullReportTitle = `تقرير تكلفة البناء: ${report.reportName}`;
+      const currentDate = new Date(report.createdAt).toLocaleDateString('ar-EG-u-nu-latn');
+      const itemsCount = report.items.length;
+
+      const reportHtml = `
+        <html>
+          <head>
+            <title>${fullReportTitle}</title>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+            <style>
+              @media print {
+                body {
+                  -webkit-print-color-adjust: exact;
+                  color-adjust: exact;
+                }
+              }
+              body {
+                font-family: 'Tajawal', sans-serif;
+                direction: rtl;
+                background-color: #f3f4f6;
+                margin: 0;
+                padding: 20px;
+                color: #1f2937;
+              }
+              .container {
+                max-width: 1200px;
+                margin: auto;
+                background: linear-gradient(to bottom, #ffffff, #f9fafb);
+                padding: 40px 50px;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
+                border: 1px solid #e5e7eb;
+              }
+              .report-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding-bottom: 25px;
+                border-bottom: 4px solid #4f46e5;
+                margin-bottom: 30px;
+              }
+              .report-header .titles {
+                text-align: right;
+              }
+              .report-header h1 {
+                margin: 0;
+                color: #312e81;
+                font-size: 36px;
+                font-weight: 700;
+                letter-spacing: -1px;
+              }
+              .report-header p {
+                margin: 8px 0 0;
+                font-size: 18px;
+                color: #4b5563;
+              }
+              .report-meta {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-bottom: 40px;
+              }
+              .meta-item {
+                background-color: #f9fafb;
+                padding: 20px;
+                border-radius: 12px;
+                border: 1px solid #e5e7eb;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+              }
+              .meta-item .label {
+                font-size: 14px;
+                color: #6b7280;
+                font-weight: 400;
+              }
+              .meta-item .value {
+                font-size: 18px;
+                color: #312e81;
+                font-weight: 700;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 15px;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                margin-bottom: 30px;
+              }
+              th, td {
+                padding: 16px 20px;
+                text-align: right;
+                border-bottom: 1px solid #e5e7eb;
+              }
+              thead th {
+                background: linear-gradient(to bottom, #4f46e5, #4338ca);
+                font-weight: 700;
+                color: #ffffff;
+                font-size: 16px;
+              }
+              tbody tr {
+                transition: background-color 0.2s ease;
+              }
+              tbody tr:last-child {
+                border-bottom: 0;
+              }
+              tbody tr:nth-of-type(even) {
+                background-color: #f9fafb;
+              }
+              tbody tr:hover {
+                background-color: #f0f0ff;
+              }
+              .total-section {
+                background-color: #f9fafb;
+                padding: 25px;
+                border-radius: 12px;
+                border: 2px solid #4f46e5;
+                margin: 30px 0;
+              }
+              .total-section .total-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              }
+              .total-section .total-label {
+                font-size: 24px;
+                color: #4f46e5;
+                font-weight: 700;
+              }
+              .total-section .total-value {
+                font-size: 32px;
+                color: #312e81;
+                font-weight: 700;
+              }
+              .report-footer {
+                margin-top: 50px;
+                text-align: center;
+                font-size: 14px;
+                color: #9ca3af;
+                padding-top: 20px;
+                border-top: 1px solid #e5e7eb;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <header class="report-header">
+                <div class="titles">
+                  <h1>${fullReportTitle}</h1>
+                  <p>تفصيل شامل لتكاليف المواد والعمالة</p>
+                </div>
+              </header>
+              
+              <section class="report-meta">
+                <div class="meta-item">
+                  <span class="label">المهندس المسؤول</span>
+                  <span class="value">${report.engineerName}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">المالك/العميل</span>
+                  <span class="value">${report.ownerName}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">تاريخ التقرير</span>
+                  <span class="value">${currentDate}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">عدد المواد</span>
+                  <span class="value">${itemsCount}</span>
+                </div>
+              </section>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>المادة</th>
+                    <th>الكمية</th>
+                    <th>سعر الوحدة</th>
+                    <th>المجموع</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tableRows}
+                </tbody>
+              </table>
+
+              <div class="total-section">
+                <div class="total-row">
+                  <span class="total-label">المجموع الكلي:</span>
+                  <span class="total-value">${report.totalCost_ILS.toFixed(2)} ₪</span>
+                </div>
+              </div>
+
+              <footer class="report-footer">
+                <p>هذا التقرير تم إنشاؤه بواسطة نظام إدارة المشاريع.</p>
+                <p>&copy; ${new Date().getFullYear()} جميع الحقوق محفوظة.</p>
+              </footer>
+            </div>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.write(reportHtml);
+      printWindow.document.close();
+      printWindow.print();
+
+      toast({
+        title: "تم فتح التقرير",
+        description: "تم فتح التقرير في نافذة جديدة. يمكنك طباعته أو حفظه كملف PDF."
+      });
+    } else {
+      toast({
+        title: "خطأ في الطباعة",
+        description: "لم يتمكن المتصفح من فتح نافذة الطباعة.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Prepare delete intent
+  const handleDeleteCostReport = (reportId: string) => {
+    setReportToDelete(reportId);
+  };
+
+  // Confirm delete
+  const confirmDeleteReport = async () => {
+    if (!project || !reportToDelete) return;
+
+    const result = await deleteCostReport(reportToDelete);
+
+    if (result.success) {
+      const refreshed = await getCostReportsForProject(project.id.toString());
+      setCostReports(refreshed);
+      toast({ title: "تم الحذف", description: "تم حذف تقرير التكاليف بنجاح." });
+    } else {
+      toast({ title: "خطأ", description: "فشل حذف التقرير.", variant: "destructive" });
+    }
+    setReportToDelete(null);
+  };
+
 
   // Simulation for generating reports
   const simulateReportGeneration = async () => {
@@ -682,6 +960,14 @@ export default function EngineerProjectDetailPage() {
                       <FileEdit size={18} className="ms-1.5" /> تعديل بيانات المشروع
                     </Button>
                   )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-blue-600 text-white border-blue-600 font-semibold hover:bg-blue-700 hover:text-white transition-all duration-200"
+                    onClick={() => setIsChatOpen(true)}
+                  >
+                    <MessageCircle size={18} className="ms-1.5" /> مراسلة المالك
+                  </Button>
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm text-blue-100 mt-3">
@@ -752,18 +1038,18 @@ export default function EngineerProjectDetailPage() {
                 <Button variant="outline" className="w-full justify-start bg-blue-500/20 text-blue-100 border-blue-500/30 hover:bg-blue-500/30 h-14" onClick={() => simulateAction("فتح نموذج إدخال تفاصيل العناصر الإنشائية")}>
                   <ListChecks size={18} className="ms-2" /> إدخال تفاصيل العناصر
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start bg-red-500/20 text-red-100 border-red-500/30 hover:bg-red-500/30 h-14" 
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-red-500/20 text-red-100 border-red-500/30 hover:bg-red-500/30 h-14"
                   asChild
                 >
                   <Link href={`/engineer/projects/${projectId}/concrete-calculations`}>
                     <HardHat size={18} className="ms-2" /> حساب كميات الباطون
                   </Link>
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start bg-green-500/20 text-green-100 border-green-500/30 hover:bg-green-500/30 h-14" 
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-green-500/20 text-green-100 border-green-500/30 hover:bg-green-500/30 h-14"
                   asChild
                 >
                   <Link href={`/engineer/projects/${projectId}/steel-calculations`}>
@@ -852,7 +1138,7 @@ export default function EngineerProjectDetailPage() {
                               <div>
                                 <p className="text-sm text-gray-600">التكاليف الإجمالية</p>
                                 <p className="font-semibold text-gray-800">
-                                  {costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0).toLocaleString('en-US')} ��يكل
+                                  {costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0).toLocaleString('en-US')} ₪
                                 </p>
                               </div>
                             </div>
@@ -909,8 +1195,8 @@ export default function EngineerProjectDetailPage() {
                       <Separator className="my-6" />
                       <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
                         {project.comments && project.comments.length > 0 ? (
-                          project.comments.slice().reverse().map((comment) => (
-                            <div key={comment.id} className={cn(
+                          project.comments.slice().reverse().map((comment, index) => (
+                            <div key={comment.id || `comment-${index}`} className={cn(
                               "p-4 rounded-xl border shadow-sm transition-all hover:shadow-md",
                               comment.user === "المالك" ? "bg-yellow-50 border-pink-200" : "bg-gray-50 border-gray-200"
                             )}>
@@ -1009,15 +1295,15 @@ export default function EngineerProjectDetailPage() {
                       <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                         <Wallet size={28} /> تقارير التكاليف
                       </CardTitle>
-                      <Button size="sm" variant="outline" onClick={() => setIsCostReportModalOpen(true)} className="border-teal-600 text-teal-600 hover:bg-teal-50">
+                      <Button size="sm" onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold border-0">
                         <Plus size={16} className="ms-1" /> إضافة تقرير
                       </Button>
                     </CardHeader>
                     <CardContent>
                       {costReports.length > 0 ? (
                         <div className="space-y-3">
-                          {costReports.map(report => (
-                            <div key={report.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors">
+                          {costReports.map((report, index) => (
+                            <div key={report.id || `overview-cost-${index}`} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors">
                               <div>
                                 <p className="font-medium text-sm text-gray-700">{report.reportName}</p>
                                 <p className="text-xs text-gray-500">{new Date(report.createdAt).toLocaleDateString('en-US')}</p>
@@ -1038,7 +1324,7 @@ export default function EngineerProjectDetailPage() {
                           <Wallet className="h-12 w-12 mx-auto text-gray-300 mb-3" />
                           <p className="text-gray-500 text-sm mb-3">لا توجد تقارير تكاليف محفوظة لهذا المشروع بعد.</p>
                           {!isOwnerView && (
-                            <Button size="sm" onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-teal-700">
+                            <Button size="sm" onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold">
                               <Plus size={16} className="ms-1" /> إضافة أول تقرير
                             </Button>
                           )}
@@ -1058,9 +1344,6 @@ export default function EngineerProjectDetailPage() {
                   </CardTitle>
                   {!isOwnerView && (
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="bg-green-700 text-white border-green-700 hover:bg-green-800 hover:text-white hover:border-green-800 active:bg-white active:text-black active:border-green-700 transition-all duration-200" onClick={() => setIsEditModalOpen(true)}>
-                        <FileEdit size={18} className="ms-1.5" /> تعديل بيانات المشروع
-                      </Button>
                       <Button variant="outline" size="sm" className="border-blue-600 text-black hover:bg-blue-600 hover:text-white transition-colors" onClick={() => setIsAddTaskModalOpen(true)}>
                         <Plus size={18} className="ms-1.5" /> إضافة مهمة
                       </Button>
@@ -1096,7 +1379,7 @@ export default function EngineerProjectDetailPage() {
                           const taskEndDate = new Date(task.endDate);
 
                           return (
-                            <div key={task.id} className="relative h-16 flex items-center text-right pr-3 group" style={{ zIndex: index + 1 }}>
+                            <div key={task.id || `chart-task-${index}`} className="relative h-16 flex items-center text-right pr-3 group" style={{ zIndex: index + 1 }}>
                               {/* Task Color Indicator */}
                               <div
                                 className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow-sm"
@@ -1156,13 +1439,13 @@ export default function EngineerProjectDetailPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {project.timelineTasks.map((task) => {
+                            {project.timelineTasks.map((task, index) => {
                               const startDate = new Date(task.startDate);
                               const endDate = new Date(task.endDate);
                               const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
                               return (
-                                <TableRow key={task.id} className="hover:bg-gray-50">
+                                <TableRow key={task.id || `timeline-task-${index}`} className="hover:bg-gray-50">
                                   <TableCell className="font-medium">{task.name}</TableCell>
                                   <TableCell>
                                     <div className="flex items-center gap-2">
@@ -1254,7 +1537,7 @@ export default function EngineerProjectDetailPage() {
                     </CardTitle>
                     <div className="flex flex-wrap gap-2">
                       {!isOwnerView && project.photos && project.photos.length > 0 && (
-                        <>
+                        <div key="media-actions" className="flex gap-2">
                           <Button
                             onClick={toggleSelectAll}
                             variant="outline"
@@ -1274,7 +1557,7 @@ export default function EngineerProjectDetailPage() {
                               حذف المحدد ({selectedMediaIds.length})
                             </Button>
                           )}
-                        </>
+                        </div>
                       )}
                       {!isOwnerView && (
                         <Button onClick={() => setIsUploadModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 shadow-md">
@@ -1287,11 +1570,11 @@ export default function EngineerProjectDetailPage() {
                 <CardContent className="pt-6">
                   {project.photos && project.photos.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                      {project.photos.map((photo) => {
+                      {project.photos.map((photo, index) => {
                         const mediaType = photo.fileType || 'image';
 
                         return (
-                          <div key={photo.id} className="group relative rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-transparent hover:border-purple-300">
+                          <div key={photo.id || `photo-${index}`} className="group relative rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 bg-white border border-gray-200 flex flex-col">
                             {/* Selection Checkbox */}
                             {!isOwnerView && (
                               <div className="absolute top-2 left-2 z-20">
@@ -1388,7 +1671,7 @@ export default function EngineerProjectDetailPage() {
                     <Wallet size={28} /> تقارير التكاليف
                   </CardTitle>
                   {!isOwnerView && (
-                    <Button onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-teal-700">
+                    <Button onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold">
                       <Plus size={18} className="ms-2" /> إضافة تقرير جديد
                     </Button>
                   )}
@@ -1425,18 +1708,18 @@ export default function EngineerProjectDetailPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {costReports.map(report => (
-                            <TableRow key={report.id}>
+                          {costReports.map((report, index) => (
+                            <TableRow key={report.id || `cost-report-${index}`}>
                               <TableCell className="font-medium">{report.reportName}</TableCell>
                               <TableCell className="font-semibold text-green-700">{report.totalCost_ILS.toLocaleString('en-US')}</TableCell>
                               <TableCell>{new Date(report.createdAt).toLocaleDateString('en-US')}</TableCell>
                               <TableCell>
                                 <div className="flex gap-2">
-                                  <Button variant="outline" size="sm">
+                                  <Button variant="outline" size="sm" onClick={() => handleDownloadReport(report)}>
                                     <Download size={14} />
                                   </Button>
-                                  <Button variant="outline" size="sm">
-                                    <FileEdit size={14} />
+                                  <Button variant="outline" size="sm" onClick={() => handleDeleteCostReport(report.id)} className="text-red-500 hover:bg-red-50 hover:text-red-600 border-red-200">
+                                    <Trash2 size={14} />
                                   </Button>
                                 </div>
                               </TableCell>
@@ -1457,7 +1740,7 @@ export default function EngineerProjectDetailPage() {
                       <Wallet className="h-16 w-16 mx-auto text-gray-300 mb-4" />
                       <p className="text-gray-500 text-sm mb-6">لا توجد تقارير تكاليف محفوظة لهذا المشروع بعد.</p>
                       {!isOwnerView && (
-                        <Button onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-teal-700">
+                        <Button onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold">
                           <Plus size={18} className="ms-2" /> إضافة أول تقرير
                         </Button>
                       )}
@@ -1470,148 +1753,181 @@ export default function EngineerProjectDetailPage() {
         </div>
       </div>
 
-      {/* Modals - No design changes here as they were not requested, but they will inherit the new Dialog styling */}
+      {/* Modals */}
+      {project && (
+        <ProjectChatDialog
+          isOpen={isChatOpen}
+          onOpenChange={setIsChatOpen}
+          project={project}
+          currentUserRole="ENGINEER"
+          onMessageSent={refreshProjectData}
+        />
+      )}
       <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-        <DialogOverlay className="bg-black/50 backdrop-blur-sm" />
-        <DialogContent className="sm:max-w-[425px] bg-white/95 border-0 shadow-2xl rounded-lg overflow-hidden">
-          <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-pink-500 to-pink-600"></div>
-          <div className="absolute top-4 left-4 z-10">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsUploadModalOpen(false)}
-              className="rounded-full bg-white/80 hover:bg-white text-gray-700 shadow-md"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+        <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
+        <DialogContent className="sm:max-w-[500px] bg-white border-0 shadow-2xl rounded-2xl overflow-hidden p-0">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white">
+            <div className="flex justify-between items-center">
+              <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                <UploadCloud size={24} /> رفع وسائط للمشروع
+              </DialogTitle>
+              <Button variant="ghost" size="icon" onClick={() => setIsUploadModalOpen(false)} className="text-white hover:bg-white/20 rounded-full">
+                <X size={20} />
+              </Button>
+            </div>
+            <p className="text-purple-100 mt-2 text-sm">أضف صوراً أو فيديوهات أو مستندات لتوثيق مراحل المشروع.</p>
           </div>
-          <DialogHeader className="pt-8 pb-4 px-6">
-            <DialogTitle className="text-xl font-bold text-gray-800 text-right">رفع وسائط جديدة</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 px-6 space-y-4 text-right">
-            <div>
-              <Label htmlFor="fileType" className="block mb-1.5 font-semibold text-gray-700">نوع الوسائط:</Label>
+
+          <div className="p-6 space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="fileType" className="text-sm font-semibold text-gray-700">نوع الملف</Label>
               <Select value={fileType} onValueChange={setFileType}>
-                <SelectTrigger className="bg-white focus:border-pink-500 border-gray-200">
+                <SelectTrigger className="h-12 bg-gray-50 border-gray-200 focus:ring-purple-500 rounded-xl">
                   <SelectValue placeholder="اختر نوع الوسائط" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="image">صورة</SelectItem>
-                  <SelectItem value="video">فيديو</SelectItem>
-                  <SelectItem value="document">مستند</SelectItem>
+                  <SelectItem value="image">📸 صورة</SelectItem>
+                  <SelectItem value="video">🎥 فيديو</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="projectFileUpload" className="block mb-1.5 font-semibold text-gray-700">اختر ملفًا:</Label>
-              <Input id="projectFileUpload" type="file" onChange={handleFileChange} className="bg-white focus:border-pink-500 border-gray-200" />
-              {selectedFile && <p className="text-xs text-gray-500 mt-1">الملف المختار: {selectedFile.name}</p>}
+
+            <div className="space-y-2">
+              <Label htmlFor="projectFileUpload" className="text-sm font-semibold text-gray-700">الملف</Label>
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
+                <input
+                  id="projectFileUpload"
+                  type="file"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <div className="flex flex-col items-center gap-2 text-gray-500">
+                  <UploadCloud size={32} className="text-purple-400" />
+                  <span className="font-medium text-purple-600">اضغط هنا لاختيار ملف</span>
+                  <span className="text-xs">أو قم بسحب وإسقاط الملف هنا</span>
+                </div>
+              </div>
+              {selectedFile && (
+                <div className="flex items-center gap-2 p-3 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium border border-purple-100">
+                  <File size={16} /> {selectedFile.name}
+                </div>
+              )}
             </div>
-            <Button onClick={handleFileUpload} disabled={isUploadingFile || !selectedFile || isOwnerView} className="w-full bg-pink-600 hover:bg-pink-700">
-              {isUploadingFile ? <LoaderIcon className="ms-2 h-5 w-5 animate-spin" /> : <UploadCloud size={18} className="ms-2" />}
-              {isUploadingFile ? 'جاري الرفع...' : 'رفع الملف'}
+
+            <div className="space-y-2">
+              <Label htmlFor="uploadCaption" className="text-sm font-semibold text-gray-700">ملاحظات / وصف (اختياري)</Label>
+              <Textarea
+                id="uploadCaption"
+                value={uploadCaption}
+                onChange={(e) => setUploadCaption(e.target.value)}
+                className="bg-gray-50 border-gray-200 focus:ring-purple-500 rounded-xl resize-none"
+                placeholder="أضف وصفاً أو ملاحظات حول هذا الملف..."
+                rows={3}
+              />
+            </div>
+
+            <Button
+              onClick={handleFileUpload}
+              disabled={isUploadingFile || !selectedFile || isOwnerView}
+              className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-xl shadow-lg shadow-purple-200 transition-all hover:scale-[1.02]"
+            >
+              {isUploadingFile ? <LoaderIcon className="me-2 h-5 w-5 animate-spin" /> : <UploadCloud size={20} className="me-2" />}
+              {isUploadingFile ? 'جاري الرفع...' : 'رفع الوسائط'}
             </Button>
-            {isOwnerView && <p className="text-xs text-red-500 text-center">المالك لا يمكنه رفع الملفات.</p>}
+            {isOwnerView && <p className="text-xs text-red-500 text-center bg-red-50 p-2 rounded-lg">تنبيه: المالك لا يملك صلاحية رفع الملفات.</p>}
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Add Task Dialog */}
       <Dialog open={isAddTaskModalOpen} onOpenChange={setIsAddTaskModalOpen}>
-        <DialogOverlay className="bg-black/50 backdrop-blur-sm" />
-        <DialogContent className="sm:max-w-[425px] bg-white/95 border-0 shadow-2xl rounded-lg overflow-hidden">
-          <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-orange-500 to-orange-600"></div>
-          <div className="absolute top-4 left-4 z-10">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsAddTaskModalOpen(false)}
-              className="rounded-full bg-white/80 hover:bg-white text-gray-700 shadow-md"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+        <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
+        <DialogContent className="sm:max-w-[500px] bg-white border-0 shadow-2xl rounded-2xl overflow-hidden p-0">
+          <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-6 text-white">
+            <div className="flex justify-between items-center">
+              <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                <GanttChartSquare size={24} /> إضافة مهمة جديدة
+              </DialogTitle>
+              <Button variant="ghost" size="icon" onClick={() => setIsAddTaskModalOpen(false)} className="text-white hover:bg-white/20 rounded-full">
+                <X size={20} />
+              </Button>
+            </div>
+            <p className="text-orange-100 mt-2 text-sm">أضف مهمة جديدة للجدول الزمني للمشروع.</p>
           </div>
-          <DialogHeader className="pt-8 pb-4 px-6">
-            <DialogTitle className="text-xl font-bold text-gray-800 text-right">إضافة مهمة جديدة</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 px-6 space-y-4 text-right">
-            <div>
-              <Label htmlFor="taskName" className="block mb-1.5 font-semibold text-gray-700">اسم المهمة:</Label>
+
+          <div className="p-6 space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="taskName" className="text-sm font-semibold text-gray-700">اسم المهمة</Label>
               <Input
                 id="taskName"
                 value={newTask.name}
                 onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
-                className="bg-white focus:border-orange-500 border-gray-200"
-                placeholder="مثال: الحفر والأساسات"
+                className="h-11 bg-gray-50 border-gray-200 focus:ring-orange-500 rounded-xl"
+                placeholder="مثال: صب القواعد المسلحة"
               />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="startDate" className="block mb-1.5 font-semibold text-gray-700">تاريخ البدء:</Label>
+              <div className="space-y-2">
+                <Label htmlFor="startDate" className="text-sm font-semibold text-gray-700">تاريخ البدء</Label>
                 <Input
                   id="startDate"
                   type="date"
                   value={newTask.startDate}
                   onChange={(e) => setNewTask({ ...newTask, startDate: e.target.value })}
-                  className="bg-white focus:border-orange-500 border-gray-200"
+                  className="h-11 bg-gray-50 border-gray-200 focus:ring-orange-500 rounded-xl"
                 />
               </div>
-              <div>
-                <Label htmlFor="endDate" className="block mb-1.5 font-semibold text-gray-700">تاريخ الانتهاء:</Label>
+              <div className="space-y-2">
+                <Label htmlFor="endDate" className="text-sm font-semibold text-gray-700">تاريخ الانتهاء</Label>
                 <Input
                   id="endDate"
                   type="date"
                   value={newTask.endDate}
                   onChange={(e) => setNewTask({ ...newTask, endDate: e.target.value })}
-                  className="bg-white focus:border-orange-500 border-gray-200"
+                  className="h-11 bg-gray-50 border-gray-200 focus:ring-orange-500 rounded-xl"
                 />
               </div>
             </div>
-            <div>
-              <Label htmlFor="taskStatus" className="block mb-1.5 font-semibold text-gray-700">الحالة:</Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="taskStatus" className="text-sm font-semibold text-gray-700">حالة المهمة</Label>
               <Select value={newTask.status} onValueChange={(value) => setNewTask({ ...newTask, status: value })}>
-                <SelectTrigger className="bg-white focus:border-orange-500 border-gray-200">
-                  <SelectValue placeholder="اختر حالة المهمة" />
+                <SelectTrigger className="h-11 bg-gray-50 border-gray-200 focus:ring-orange-500 rounded-xl">
+                  <SelectValue placeholder="اختر الحالة" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="مخطط له">مخطط له</SelectItem>
-                  <SelectItem value="قيد التنفيذ">قيد التنفيذ</SelectItem>
-                  <SelectItem value="مكتمل">مكتمل</SelectItem>
+                  <SelectItem value="مخطط له">📅 مخطط له</SelectItem>
+                  <SelectItem value="قيد التنفيذ">🚧 قيد التنفيذ</SelectItem>
+                  <SelectItem value="مكتمل">✅ مكتمل</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="taskColor" className="block mb-1.5 font-semibold text-gray-700">اللون:</Label>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="taskColor"
-                    type="color"
-                    value={newTask.color}
-                    onChange={(e) => setNewTask({ ...newTask, color: e.target.value })}
-                    className="w-12 h-12 p-1 bg-white border rounded-lg shadow-sm"
-                  />
-                  <span className="text-sm text-gray-600">اختر لون المهمة</span>
-                </div>
 
-                {/* Color Palette */}
-                <div className="grid grid-cols-5 gap-2">
-                  {defaultColors.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${newTask.color === color ? 'border-gray-800 shadow-lg' : 'border-gray-300'
-                        }`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setNewTask({ ...newTask, color })}
-                      title={color}
-                    />
-                  ))}
-                </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-700">لون التمييز</Label>
+              <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                {defaultColors.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`w-8 h-8 rounded-full shadow-sm transition-all hover:scale-110 ${newTask.color === color ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : ''}`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setNewTask({ ...newTask, color })}
+                  />
+                ))}
+                <input
+                  type="color"
+                  value={newTask.color}
+                  onChange={(e) => setNewTask({ ...newTask, color: e.target.value })}
+                  className="w-8 h-8 rounded-full overflow-hidden cursor-pointer border-0 p-0"
+                  title="اختر لون مخصص"
+                />
               </div>
             </div>
-            <Button onClick={handleAddTask} className="w-full bg-orange-600 hover:bg-orange-700">
-              <Plus size={18} className="ms-2" /> إضافة المهمة
+
+            <Button onClick={handleAddTask} className="w-full h-12 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl shadow-lg shadow-orange-200 transition-all hover:scale-[1.02]">
+              <Plus size={20} className="me-2" /> إضافة المهمة للجدول
             </Button>
           </div>
         </DialogContent>
@@ -1726,47 +2042,50 @@ export default function EngineerProjectDetailPage() {
 
       {/* Cost Report Dialog */}
       <Dialog open={isCostReportModalOpen} onOpenChange={setIsCostReportModalOpen}>
-        <DialogOverlay className="bg-black/50 backdrop-blur-sm" />
-        <DialogContent className="sm:max-w-[425px] bg-white/95 border-0 shadow-2xl rounded-lg overflow-hidden">
-          <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-teal-500 to-teal-600"></div>
-          <div className="absolute top-4 left-4 z-10">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsCostReportModalOpen(false)}
-              className="rounded-full bg-white/80 hover:bg-white text-gray-700 shadow-md"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+        <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
+        <DialogContent className="sm:max-w-[500px] bg-white border-0 shadow-2xl rounded-2xl overflow-hidden p-0">
+          <div className="bg-gradient-to-r from-teal-600 to-emerald-600 p-6 text-white">
+            <div className="flex justify-between items-center">
+              <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                <Wallet size={24} /> إضافة تقرير تكاليف
+              </DialogTitle>
+              <Button variant="ghost" size="icon" onClick={() => setIsCostReportModalOpen(false)} className="text-white hover:bg-white/20 rounded-full">
+                <X size={20} />
+              </Button>
+            </div>
+            <p className="text-teal-100 mt-2 text-sm">سجّل تقريراً مالياً جديداً للمشروع.</p>
           </div>
-          <DialogHeader className="pt-8 pb-4 px-6">
-            <DialogTitle className="text-xl font-bold text-gray-800 text-right">إضافة تقرير تكاليف جديد</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 px-6 space-y-4 text-right">
-            <div>
-              <Label htmlFor="reportName" className="block mb-1.5 font-semibold text-gray-700">اسم التقرير:</Label>
+
+          <div className="p-6 space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="reportName" className="text-sm font-semibold text-gray-700">اسم التقرير</Label>
               <Input
                 id="reportName"
                 value={newCostReport.reportName}
                 onChange={(e) => setNewCostReport({ ...newCostReport, reportName: e.target.value })}
-                className="bg-white focus:border-teal-500 border-gray-200"
-                placeholder="مثال: تكاليف المواد الأولية"
+                className="h-11 bg-gray-50 border-gray-200 focus:ring-teal-500 rounded-xl"
+                placeholder="مثال: تكاليف التشطيبات النهائية"
               />
             </div>
-            <div>
-              <Label htmlFor="totalCost" className="block mb-1.5 font-semibold text-gray-700">إجمالي التكلفة (شيكل):</Label>
-              <Input
-                id="totalCost"
-                type="number"
-                min="0"
-                value={newCostReport.totalCost_ILS || ''}
-                onChange={(e) => setNewCostReport({ ...newCostReport, totalCost_ILS: Number(e.target.value) })}
-                className="bg-white focus:border-teal-500 border-gray-200"
-                placeholder="مثال: 15000"
-              />
+
+            <div className="space-y-2">
+              <Label htmlFor="totalCost" className="text-sm font-semibold text-gray-700">إجمالي التكلفة (شيكل)</Label>
+              <div className="relative">
+                <Input
+                  id="totalCost"
+                  type="number"
+                  min="0"
+                  value={newCostReport.totalCost_ILS || ''}
+                  onChange={(e) => setNewCostReport({ ...newCostReport, totalCost_ILS: Number(e.target.value) })}
+                  className="h-11 bg-gray-50 border-gray-200 focus:ring-teal-500 rounded-xl ps-12 text-lg font-medium"
+                  placeholder="0.00"
+                />
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold">₪</span>
+              </div>
             </div>
-            <Button onClick={handleAddCostReport} className="w-full bg-teal-600 hover:bg-teal-700">
-              <Plus size={18} className="ms-2" /> إضافة التقرير
+
+            <Button onClick={handleAddCostReport} className="w-full h-12 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-teal-200 transition-all hover:scale-[1.02]">
+              <Plus size={20} className="me-2" /> حفظ التقرير
             </Button>
           </div>
         </DialogContent>
@@ -1853,6 +2172,23 @@ export default function EngineerProjectDetailPage() {
         onProjectUpdated={refreshProjectData}
         project={project}
       />
+
+      <AlertDialog open={!!reportToDelete} onOpenChange={(open) => !open && setReportToDelete(null)}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">حذف التقرير</AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              هل أنت متأكد من أنك تريد حذف هذا التقرير؟ لا يمكن التراجع عن هذا الإجراء وسيتم حذفه من سجلات المشروع.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteReport} className="bg-red-600 hover:bg-red-700 focus:ring-red-600">
+              حذف نهائي
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

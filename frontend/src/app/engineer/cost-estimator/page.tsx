@@ -21,7 +21,7 @@ export default function EngineerCostEstimatorPage() {
     // التحقق من تفضيلات المستخدم للوضع الليلي
     const darkModePreference = localStorage.getItem('darkMode') === 'true';
     setIsDarkMode(darkModePreference);
-    
+
     // جلب التقديرات المحفوظة
     const estimates = JSON.parse(localStorage.getItem('costEstimates') || '[]');
     setSavedEstimates(estimates);
@@ -59,15 +59,6 @@ export default function EngineerCostEstimatorPage() {
             </div>
             <div className="flex items-center space-x-4 space-x-reverse">
               <button
-                onClick={() => setShowHistory(!showHistory)}
-                className="flex items-center space-x-2 space-x-reverse px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                <span>السجل</span>
-              </button>
-              <button
                 onClick={toggleDarkMode}
                 className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
               >
@@ -80,7 +71,7 @@ export default function EngineerCostEstimatorPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
-            <motion.div 
+            <motion.div
               className="lg:col-span-2"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -96,7 +87,7 @@ export default function EngineerCostEstimatorPage() {
             </motion.div>
 
             {/* Sidebar */}
-            <motion.div 
+            <motion.div
               className="lg:col-span-1"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -139,7 +130,7 @@ export default function EngineerCostEstimatorPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 dark:text-gray-400">متوسط التكلفة</span>
                     <span className="font-semibold text-gray-900 dark:text-white">
-                      {savedEstimates.length > 0 
+                      {savedEstimates.length > 0
                         ? `${(savedEstimates.reduce((acc, e) => acc + (e.totalCost || 0), 0) / savedEstimates.length).toLocaleString()} ريال`
                         : 'غير متوفر'
                       }
@@ -152,13 +143,13 @@ export default function EngineerCostEstimatorPage() {
 
           {/* History Modal */}
           {showHistory && (
-            <motion.div 
+            <motion.div
               className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <motion.div 
+              <motion.div
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden"
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}

@@ -63,14 +63,38 @@ export interface CostEstimationResult {
 }
 
 class ApiClient {
+  public async get<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { ...options, method: 'GET' });
+  }
+
+  public async post<T>(endpoint: string, data?: any, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  public async put<T>(endpoint: string, data?: any, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  public async delete<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { ...options, method: 'DELETE' });
+  }
+
   private async request<T>(
-    endpoint: string, 
+    endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
       const url = `${API_BASE_URL}${endpoint}`;
       console.log('[API Request]', url, options.method || 'GET');
-      
+
       // Default headers
       const defaultHeaders = {
         'Content-Type': 'application/json',
@@ -98,7 +122,7 @@ class ApiClient {
       // إعداد timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 ثواني
-      
+
       fetchOptions.signal = controller.signal;
 
       const response = await fetch(url, fetchOptions);
@@ -107,7 +131,7 @@ class ApiClient {
       // معالجة الاستجابة
       if (!response.ok) {
         let errorMessage = `خطأ في الخادم: ${response.status} ${response.statusText}`;
-        
+
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
@@ -116,7 +140,7 @@ class ApiClient {
           const text = await response.text();
           if (text) errorMessage = text;
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -134,10 +158,10 @@ class ApiClient {
 
     } catch (error) {
       console.error('API request failed:', error);
-      
+
       // معالجة أنواع الأخطاء المختلفة
       let errorMessage = 'حدث خطأ في الاتصال بالخادم';
-      
+
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           errorMessage = 'انتهت مهلة الاتصال بالخادم. يرجى المحاولة مرة أخرى.';
@@ -147,7 +171,7 @@ class ApiClient {
           errorMessage = error.message;
         }
       }
-      
+
       return {
         success: false,
         message: errorMessage,
@@ -182,8 +206,8 @@ class ApiClient {
 
   // ✅ Generate cost report
   async generateCostReport(
-    projectId: string, 
-    calculationType: 'concrete' | 'steel', 
+    projectId: string,
+    calculationType: 'concrete' | 'steel',
     input: any
   ): Promise<ApiResponse<any>> {
     return this.request('/calculations/generate-cost-report', {
@@ -210,9 +234,9 @@ class ApiClient {
   async testConnection(): Promise<{ success: boolean; message: string; details?: any }> {
     try {
       console.log(`🔍 Testing connection to: ${API_BASE_URL}`);
-      
+
       const response = await this.healthCheck();
-      
+
       if (response.success && response.data) {
         console.log('✅ Server connection successful:', response.data);
         return {
@@ -229,9 +253,9 @@ class ApiClient {
       }
     } catch (error) {
       console.error('❌ Server connection failed:', error);
-      
+
       const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
-      
+
       return {
         success: false,
         message: `فشل الاتصال بالخادم: ${errorMessage}\n\nتأكد من:\n1. تشغيل الخادم على ${API_BASE_URL.replace('/api', '')}\n2. إعدادات CORS في الخادم\n3. الاتصال بالشبكة`

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const costReportItemSchema = new mongoose.Schema(
   {
-    id: { type: String, required: true },
+    id: { type: String, required: false },
     name: String,
     quantity: Number,
     unit: String,
@@ -23,9 +23,11 @@ const costReportSchema = new mongoose.Schema(
     ownerName: String,
     items: { type: [costReportItemSchema], default: [] },
     totalCost_ILS: Number,
+    pdfData: String, // Base64 encoded PDF for owner download
   },
   { timestamps: true }
 );
+
 
 module.exports = mongoose.model('CostReport', costReportSchema);
 
