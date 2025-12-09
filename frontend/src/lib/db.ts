@@ -121,6 +121,7 @@ export interface CostReport {
   items: CostReportItem[];
   totalCost_ILS: number;
   pdfData?: string; // Base64 encoded PDF for owner download
+  status?: 'SAVED' | 'SENT';
   createdAt: string; // ISO string
 }
 

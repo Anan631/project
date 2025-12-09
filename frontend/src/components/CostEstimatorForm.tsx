@@ -1,19 +1,16 @@
-
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Printer, PlusCircle, Trash2, Calculator, HardHat, User, Save, Loader2, Blocks, Ruler, FileText, ShoppingBasket, FileSignature, Briefcase, Download } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Printer, PlusCircle, Trash2, Calculator, HardHat, User, Save, Loader2, Blocks, Ruler, FileText, ShoppingBasket, FileSignature, Briefcase, Send } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
 import type { UserDocument, Project } from '@/lib/db';
-import { getUsers, addCostReport, getProjects } from '@/lib/db';
-import { cn } from '@/lib/utils';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { getUsers, getProjects } from '@/lib/db';
 
 interface MaterialItem {
   id: string;
@@ -36,6 +33,7 @@ const baseUnits: Record<string, string> = {
   hasma: "حصمة",
   naama: "ناعمة",
   stone: "م",
+  labor: "يومية",
 };
 
 const getMaterialDisplayName = (key: string): string => {
@@ -51,6 +49,7 @@ const getMaterialDisplayName = (key: string): string => {
     hasma: "حصمة",
     naama: "ناعمة",
     stone: "الحجر",
+    labor: "أيدي عاملة",
   };
   return names[key] || key;
 };
@@ -67,6 +66,7 @@ const materialSubTypes: Record<string, string[]> = {
   hasma: ["حصمة حبة كبيرة", "حصمة حبة صغيرة"],
   naama: ["ناعمة"],
   stone: ["حجر طبيعي", "حجر صناعي"],
+  labor: ["عامل عادي", "معلم بناء", "معلم قصارة", "معلم بلاط", "كهربائي", "سباك", "دهان", "نجار طوبار", "حداد مسلح", "مقاول عام", "عامل نظافة"],
 };
 
 export default function CostEstimatorForm() {
@@ -85,7 +85,9 @@ export default function CostEstimatorForm() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
-
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [selectedAction, setSelectedAction] = useState<'SAVE_PRINT_SEND' | 'PRINT_ONLY' | 'SEND_ONLY' | null>(null);
 
   useEffect(() => {
     const name = localStorage.getItem('userName');
@@ -101,9 +103,6 @@ export default function CostEstimatorForm() {
       ]);
 
       if (usersResult.success && usersResult.users) {
-        // The API may return user objects that omit sensitive fields (e.g. password_hash).
-        // Ensure the shape matches UserDocument by providing a safe default for password_hash
-        // so TypeScript accepts the assignment to UserDocument[].
         const ownersList: UserDocument[] = usersResult.users
           .filter(u => u.role === 'OWNER' && u.status === 'ACTIVE')
           .map(u => ({ ...(u as any), password_hash: (u as any).password_hash ?? '' } as UserDocument));
@@ -214,116 +213,7 @@ export default function CostEstimatorForm() {
     return items.reduce((sum, item) => sum + item.totalCost_ILS, 0);
   };
 
-  // Generate PDF report that can be saved and sent to owner
-  const generateReportPDF = (reportTitle: string, engName: string, ownerName: string): string => {
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-
-    // Add Arabic font support - using built-in font with RTL support workaround
-    doc.setFont('helvetica');
-
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 15;
-    let yPos = 20;
-
-    // Header
-    doc.setFontSize(22);
-    doc.setTextColor(79, 70, 229); // Indigo color
-    const headerText = `تقرير تكلفة البناء: ${reportTitle}`;
-    doc.text(headerText, pageWidth - margin, yPos, { align: 'right' });
-
-    yPos += 15;
-    doc.setFontSize(12);
-    doc.setTextColor(71, 85, 105); // Gray color
-
-    doc.text(`المهندس المسؤول: ${engName}`, pageWidth - margin, yPos, { align: 'right' });
-    yPos += 8;
-    doc.text(`المالك/العميل: ${ownerName}`, pageWidth - margin, yPos, { align: 'right' });
-    yPos += 8;
-    doc.text(`تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}`, pageWidth - margin, yPos, { align: 'right' });
-    yPos += 8;
-    doc.text(`العملة: شيكل (₪)`, pageWidth - margin, yPos, { align: 'right' });
-
-    yPos += 15;
-
-    // Draw line
-    doc.setDrawColor(79, 70, 229);
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-
-    yPos += 10;
-
-    // Table data
-    const tableData = items.map((item, index) => [
-      `${item.totalCost_ILS.toFixed(2)} ₪`,
-      `${item.pricePerUnit_ILS.toFixed(2)} ₪`,
-      `${item.quantity} ${item.unit}`,
-      item.name,
-      (index + 1).toString()
-    ]);
-
-    // Add table using autoTable
-    autoTable(doc, {
-      startY: yPos,
-      head: [['المجموع', 'سعر الوحدة', 'الكمية', 'المادة', '#']],
-      body: tableData,
-      styles: {
-        font: 'helvetica',
-        fontSize: 10,
-        cellPadding: 5,
-        halign: 'center',
-        valign: 'middle'
-      },
-      headStyles: {
-        fillColor: [248, 250, 252],
-        textColor: [30, 41, 59],
-        fontStyle: 'bold',
-        halign: 'center'
-      },
-      columnStyles: {
-        0: { halign: 'left', fontStyle: 'bold' },
-        3: { halign: 'right' },
-        4: { halign: 'center', cellWidth: 15 }
-      },
-      margin: { left: margin, right: margin },
-      tableWidth: 'auto',
-      didDrawPage: () => {
-        // Footer on each page
-        doc.setFontSize(8);
-        doc.setTextColor(156, 163, 175);
-        doc.text(
-          `تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات`,
-          pageWidth / 2,
-          doc.internal.pageSize.getHeight() - 10,
-          { align: 'center' }
-        );
-      }
-    });
-
-    // Get final Y position after table
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
-
-
-    // Total row
-    doc.setFillColor(241, 245, 249);
-    doc.rect(margin, finalY, pageWidth - (margin * 2), 15, 'F');
-
-    doc.setFontSize(14);
-    doc.setTextColor(79, 70, 229);
-    doc.setFont('helvetica', 'bold');
-    doc.text('المجموع الكلي:', pageWidth - margin - 5, finalY + 10, { align: 'right' });
-
-    doc.setTextColor(30, 41, 59);
-    doc.text(`${calculateOverallTotal_ILS().toFixed(2)} ₪`, margin + 40, finalY + 10, { align: 'left' });
-
-    // Return as base64
-    return doc.output('datauristring');
-  };
-
-  const handleSaveAndPrintReport = async () => {
+  const handleSaveClick = () => {
     if (!selectedProjectId) {
       toast({ title: "بيانات ناقصة", description: "يرجى اختيار مشروع لربط التقرير به.", variant: "destructive" });
       return;
@@ -340,41 +230,55 @@ export default function CostEstimatorForm() {
       toast({ title: "بيانات ناقصة", description: "يرجى إضافة مواد للتقرير.", variant: "destructive" });
       return;
     }
+    setIsSaveDialogOpen(true);
+  };
 
-    setIsSaving(true);
+  const handleActionClick = (action: 'SAVE_PRINT_SEND' | 'PRINT_ONLY' | 'SEND_ONLY') => {
+    setSelectedAction(action);
+    setIsSaveDialogOpen(false);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!selectedAction) return;
+
+    setIsConfirmDialogOpen(false);
     const selectedOwner = owners.find(o => o.id === selectedOwnerId);
-    if (!selectedOwner) {
+    if (!selectedOwner && selectedAction !== 'PRINT_ONLY') {
       toast({ title: "خطأ", description: "المالك المختار غير موجود.", variant: "destructive" });
-      setIsSaving(false);
       return;
     }
 
-    // Save report data (without PDF to avoid size issues)
-
-    // Determine effective Engineer Name (fallback to project engineer if missing)
     let effectiveEngineerName = engineerName;
-    if (!effectiveEngineerName) {
-      const proj = projects.find(p => p.id.toString() === selectedProjectId);
-      if (proj && proj.engineer) {
-        effectiveEngineerName = proj.engineer;
-      }
+    const proj = projects.find(p => p.id.toString() === selectedProjectId);
+    if (!effectiveEngineerName && proj && proj.engineer) {
+      effectiveEngineerName = proj.engineer;
     }
 
+    const ownerName = selectedOwner ? selectedOwner.name : 'غير محدد';
+
+    if (selectedAction === 'PRINT_ONLY') {
+      printReport(reportName, effectiveEngineerName, ownerName);
+      toast({ title: "الطباعة", description: "جاري تجهيز التقرير للطباعة." });
+      return;
+    }
+
+    setIsSaving(true);
+    const status = (selectedAction === 'SAVE_PRINT_SEND') ? 'SENT' : 'SENT';
+
     const reportData = {
-      projectId: selectedProjectId, // Send as string (ObjectId), do not parse to int
+      projectId: selectedProjectId,
       reportName,
       engineerId,
       engineerName: effectiveEngineerName,
       ownerId: selectedOwnerId,
-      ownerName: selectedOwner.name,
+      ownerName: ownerName,
       items: items,
       totalCost_ILS: calculateOverallTotal_ILS(),
+      status: status
     };
 
-    console.log('Saving report data:', reportData);
-
     try {
-      // Direct client-side fetch to bypass server action issues
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       const response = await fetch(`${API_URL}/reports`, {
         method: 'POST',
@@ -383,20 +287,25 @@ export default function CostEstimatorForm() {
       });
 
       const json = await response.json();
-      console.log('API response:', response.status, json);
-
       setIsSaving(false);
 
       if (response.ok && json.success) {
+        let toastDescription = "";
+        switch (selectedAction) {
+          case 'SAVE_PRINT_SEND':
+            toastDescription = "تم حفظ وإرسال التقرير، وسيتم طباعته.";
+            printReport(reportName, effectiveEngineerName, ownerName);
+            break;
+          case 'SEND_ONLY':
+            toastDescription = "تم حفظ وإرسال التقرير للمالك.";
+            break;
+        }
         toast({
-          title: "تم الحفظ بنجاح",
-          description: "تم حفظ التقرير وإرساله للمالك. يمكن للمالك تنزيله من حسابه.",
-          variant: "default"
+          title: "تم بنجاح",
+          description: toastDescription,
         });
-        // Show print preview for engineer
-        printReport(reportName, effectiveEngineerName, selectedOwner.name);
+
       } else {
-        console.error('Save failed:', json.message || json.error);
         toast({ title: "فشل الحفظ", description: json.message || "حدث خطأ أثناء حفظ التقرير.", variant: "destructive" });
       }
     } catch (error) {
@@ -405,10 +314,6 @@ export default function CostEstimatorForm() {
       toast({ title: "فشل الحفظ", description: "حدث خطأ في الاتصال بالخادم.", variant: "destructive" });
     }
   };
-
-
-
-
 
   const printReport = (reportTitle: string, engName: string, ownerName: string) => {
     const printWindow = window.open('', '_blank');
@@ -592,7 +497,7 @@ export default function CostEstimatorForm() {
                   <span class="label">تاريخ التقرير</span>
                   <span class="value">${currentDate}</span>
                 </div>
-                <div class="meta-item">
+                <div className="meta-item">
                   <span class="label">عدد المواد</span>
                   <span class="value">${itemsCount}</span>
                 </div>
@@ -639,7 +544,6 @@ export default function CostEstimatorForm() {
       });
     }
   };
-
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 cost-estimator-body">
@@ -758,6 +662,9 @@ export default function CostEstimatorForm() {
                     <div className="text-right">
                       <div className="text-sm">المجموع الكلي</div>
                       <div className="text-2xl font-bold">{calculateOverallTotal_ILS().toFixed(2)} ₪</div>
+                      <div className="text-xs opacity-75 mt-1">
+                        متوسط التكلفة: {items.length > 0 ? (calculateOverallTotal_ILS() / items.length).toFixed(2) : '0.00'} ₪ / مادة
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
@@ -797,27 +704,228 @@ export default function CostEstimatorForm() {
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <Save className="h-5 w-5 text-indigo-500" />
-                    <CardTitle className="text-gray-800">حفظ وربط التقرير</CardTitle>
+                    <CardTitle className="text-gray-800">حفظ التقرير</CardTitle>
                   </div>
+                  <CardDescription>
+                    اختر خيارات الحفظ المناسبة
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="reportName" className="flex items-center gap-2 mb-2 font-medium text-gray-700"><FileSignature size={16} /> اسم التقرير</Label>
-                    <Input id="reportName" value={reportName} onChange={(e) => setReportName(e.target.value)} placeholder="مثال: تقدير تكلفة فيلا السيد أحمد" className="bg-gray-50" disabled={!!selectedProjectId} />
-                  </div>
-                  <div>
-                    <Label htmlFor="owner" className="flex items-center gap-2 mb-2 font-medium text-gray-700"><User size={16} /> ربط بمالك</Label>
-                    <Select onValueChange={setSelectedOwnerId} value={selectedOwnerId} dir="rtl" disabled={!!selectedProjectId}>
-                      <SelectTrigger id="owner" className="w-full text-right bg-gray-50"><SelectValue placeholder="اختر مالكًا..." /></SelectTrigger>
-                      <SelectContent>{owners.map(owner => (<SelectItem key={owner.id} value={owner.id}>{owner.name} ({owner.email})</SelectItem>))}</SelectContent>
-                    </Select>
-                  </div>
+                <CardContent>
+                  <Button onClick={handleSaveClick} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3" disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="ml-2 h-4 w-4" />}
+                    حفظ التقرير
+                  </Button>
                 </CardContent>
-                <CardFooter className="flex flex-col sm:flex-row gap-3 pt-4">
-                  <Button onClick={handleClearAllItems} variant="destructive" className="w-full sm:w-auto"><Trash2 className="ml-2 h-5 w-5" /> مسح كل المواد</Button>
-                  <Button onClick={handleSaveAndPrintReport} disabled={isSaving} className="w-full sm:w-auto flex-grow bg-gradient-to-r from-indigo-500 to-purple-500 text-white"><Printer className="ml-2 h-5 w-5" /> {isSaving ? "جاري الحفظ..." : "حفظ وطباعة التقرير"}</Button>
-                </CardFooter>
               </Card>
+
+              <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                <DialogContent className="sm:max-w-md lg:max-w-lg rounded-2xl overflow-hidden border-0 shadow-2xl p-0" dir="rtl">
+                  {/* Header with gradient */}
+                  <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 p-6 text-white">
+                    <DialogHeader className="text-white">
+                      <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                        <div className="bg-white/20 p-2 rounded-full">
+                          <Save className="h-6 w-6" />
+                        </div>
+                        خيارات حفظ التقرير
+                      </DialogTitle>
+                      <DialogDescription className="text-indigo-100 mt-2">
+                        اختر طريقة حفظ التقرير التي تناسبك من الخيارات أدناه
+                      </DialogDescription>
+                    </DialogHeader>
+                  </div>
+
+                  {/* Action Buttons Section */}
+                  <div className="p-6 space-y-4">
+                    {/* Option 1: Save, Print & Send */}
+                    <div className="group transition-all duration-300 hover:scale-[1.02]">
+                      <Button
+                        onClick={() => handleActionClick('SAVE_PRINT_SEND')}
+                        className="w-full h-16 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-lg font-bold rounded-xl shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative flex items-center gap-3">
+                          <div className="bg-white/20 p-2 rounded-full">
+                            <Printer className="h-6 w-6" />
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold">حفظ وطباعة وإرسال</div>
+                            <div className="text-sm font-normal opacity-90">يتم حفظ التقرير وإرساله للمالك وفتح نافذة الطباعة</div>
+                          </div>
+                        </div>
+                      </Button>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="relative py-2">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-200"></div>
+                      </div>
+                      <div className="relative flex justify-center">
+                        <span className="bg-white px-4 text-sm text-gray-500">أو اختر أحد الخيارات التالية</span>
+                      </div>
+                    </div>
+
+                    {/* Two-column grid for other options */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Option 2: Print Only */}
+                      <div className="group transition-all duration-300 hover:scale-[1.02]">
+                        <Button
+                          onClick={() => handleActionClick('PRINT_ONLY')}
+                          variant="outline"
+                          className="w-full h-28 border-2 border-amber-200 hover:border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 text-black hover:text-black font-bold rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center justify-center gap-3 p-4 relative overflow-hidden"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-br from-amber-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          <div className="relative">
+                            <div className="bg-amber-100 p-3 rounded-full">
+                              <Printer className="h-8 w-8 text-amber-600" />
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-bold text-base">طباعة فقط</div>
+                            <div className="text-xs text-gray-600 mt-1">طباعة التقرير دون حفظ أو إرسال</div>
+                          </div>
+                        </Button>
+                      </div>
+
+                      {/* Option 3: Send Only */}
+                      <div className="group transition-all duration-300 hover:scale-[1.02]">
+                        <Button
+                          onClick={() => handleActionClick('SEND_ONLY')}
+                          className="w-full h-28 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-2 border-blue-200 hover:border-blue-300 text-black rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col items-center justify-center gap-3 p-4 relative overflow-hidden"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                          <div className="relative">
+                            <div className="bg-blue-100 p-3 rounded-full">
+                              <Send className="h-8 w-8 text-blue-600" />
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="font-bold text-base">إرسال فقط</div>
+                            <div className="text-xs text-gray-600 mt-1">إرسال التقرير للمالك دون طباعة</div>
+                          </div>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Stats Section */}
+                    <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div className="space-y-1">
+                          <div className="text-2xl font-bold text-indigo-600">{items.length}</div>
+                          <div className="text-xs text-gray-600">عدد المواد</div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-2xl font-bold text-emerald-600">{calculateOverallTotal_ILS().toFixed(0)} ₪</div>
+                          <div className="text-xs text-gray-600">التكلفة الإجمالية</div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-2xl font-bold text-purple-600">
+                            {items.length > 0 ? (calculateOverallTotal_ILS() / items.length).toFixed(0) : 0} ₪
+                          </div>
+                          <div className="text-xs text-gray-600">متوسط التكلفة</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <DialogFooter className="px-6 pb-6 pt-0 bg-gradient-to-r from-gray-50 to-gray-100">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span>جاهز للحفظ</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setIsSaveDialogOpen(false)}
+                          className="hover:bg-gray-200 text-gray-700 border border-gray-300"
+                        >
+                          إلغاء
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Confirmation Dialog */}
+              <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+                <DialogContent className="sm:max-w-md lg:max-w-lg rounded-2xl overflow-hidden border-0 shadow-2xl p-0" dir="rtl">
+                  {/* Header with gradient */}
+                  <div className="bg-gradient-to-r from-orange-500 to-red-500 p-6 text-white">
+                    <DialogHeader className="text-white">
+                      <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                        <div className="bg-white/20 p-2 rounded-full">
+                          <Save className="h-6 w-6" />
+                        </div>
+                        تأكيد العملية
+                      </DialogTitle>
+                      <DialogDescription className="text-orange-100 mt-2">
+                        هل أنت متأكد من رغبتك في تنفيذ هذه العملية؟
+                      </DialogDescription>
+                    </DialogHeader>
+                  </div>
+
+                  {/* Confirmation Content */}
+                  <div className="p-6 space-y-4">
+                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-orange-100 p-2 rounded-full mt-1">
+                          <FileText className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-orange-900 mb-2">العملية المطلوب تأكيدها</h3>
+                          <p className="text-sm text-orange-700">
+                            {selectedAction === 'SAVE_PRINT_SEND' && 'حفظ التقرير وإرساله للمالك وطباعته'}
+                            {selectedAction === 'PRINT_ONLY' && 'طباعة التقرير دون حفظ أو إرسال'}
+                            {selectedAction === 'SEND_ONLY' && 'إرسال التقرير للمالك دون طباعة'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gray-50 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-gray-800">{items.length}</div>
+                        <div className="text-sm text-gray-600">عدد المواد</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-gray-800">{calculateOverallTotal_ILS().toFixed(0)} ₪</div>
+                        <div className="text-sm text-gray-600">التكلفة الإجمالية</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <DialogFooter className="px-6 pb-6 pt-0 bg-gradient-to-r from-gray-50 to-gray-100">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                        <span>تأكيد العملية</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setIsConfirmDialogOpen(false)}
+                          className="hover:bg-red-500 hover:text-white text-gray-700 border border-gray-300"
+                        >
+                          إلغاء
+                        </Button>
+                        <Button
+                          onClick={handleConfirmAction}
+                          className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold"
+                        >
+                          تأكيد العملية
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </>
           )}
         </div>

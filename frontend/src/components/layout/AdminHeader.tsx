@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Instagram, Facebook } from 'lucide-react';
-import Notifications from './Notifications';
+import NotificationsFixed from './NotificationsFixed';
 import WhatsAppIcon from '../icons/WhatsAppIcon';
 
 // Social & Clock Component
@@ -116,19 +116,27 @@ export default function AdminHeader() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const pathname = usePathname();
 
+  // تحميل دور المستخدم من التخزين المحلي عند تغيير المسار
   useEffect(() => {
+    // التأكد من أن الكود يعمل فقط في العميل
     if (typeof window !== 'undefined') {
-      const role = localStorage.getItem('userRole');
-      setUserRole(role);
+      try {
+        const role = localStorage.getItem('userRole');
+        setUserRole(role);
+      } catch (error) {
+        console.error('Error accessing localStorage:', error);
+        setUserRole(null);
+      }
     }
   }, [pathname]);
 
+  // تحديد ما إذا كان يجب عرض إشعارات بناءً على دور المستخدم
   const showNotifications = userRole === 'ENGINEER' || userRole === 'OWNER';
 
   return (
     <header className="shadow-md">
       <SocialAndClock />
-      <div className="bg-slate-800 text-white backdrop-blur-sm">
+      <div className="bg-slate-800 text-white backdrop-blur-sm transition-all duration-300">
         <div className="container mx-auto flex h-20 items-center justify-between px-4">
           {/* Right Side: Spacer */}
           <div className="flex-1 flex justify-start">
@@ -148,11 +156,11 @@ export default function AdminHeader() {
 
           {/* Left Side: Notifications */}
           <div className="flex-1 flex justify-end">
-            {showNotifications && <Notifications />}
+            {showNotifications && <NotificationsFixed />}
           </div>
         </div>
       </div>
-      <div className="h-0.5 bg-app-gold" />
+      <div className="h-0.5 bg-app-gold transition-all duration-300" />
     </header>
   );
 }

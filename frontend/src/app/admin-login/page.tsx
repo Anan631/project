@@ -196,13 +196,13 @@ export default function AdminLoginPage() {
 
   const onSubmit: SubmitHandler<AdminLoginFormValues> = async (data) => {
     setIsLoading(true);
-    setFailedAttempts(prev => prev + 1);
     
     try {
       const result: LoginActionResponse = await adminLoginAction(data);
       setIsLoading(false);
 
       if (result.success) {
+        // محاولة ناجحة - لا نزيد المحاولات الفاشلة
         toast({ 
           title: "تم التحقق بنجاح", 
           description: "تم التحقق من هويتك بنجاح. جاري التوجيه إلى لوحة التحكم.", 
@@ -223,6 +223,8 @@ export default function AdminLoginPage() {
           router.push('/admin'); 
         }
       } else {
+        // محاولة فاشلة - نزيد عدد المحاولات الفاشلة
+        setFailedAttempts(prev => prev + 1);
         toast({ 
           title: "فشل التحقق من الهوية", 
           description: result.message || "بيانات الاعتماد غير صحيحة أو غير كافية للوصول.", 
@@ -241,6 +243,8 @@ export default function AdminLoginPage() {
       }
     } catch (error) {
       setIsLoading(false);
+      // في حالة خطأ في الشبكة أو النظام - تعتبر محاولة فاشلة
+      setFailedAttempts(prev => prev + 1);
       console.error("Admin login submission error:", error);
       toast({ 
         title: "خطأ في النظام", 
@@ -403,7 +407,7 @@ export default function AdminLoginPage() {
                 <div className="mb-6 text-center">
                   <div className="inline-flex items-center gap-2 bg-black/50 px-4 py-2 rounded-full border border-red-700">
                     <Lock className="w-4 h-4 text-red-500" />
-                    <span className="text-red-300 text-sm">محاولات الدخول الفاشلة: {failedAttempts}</span>
+                    <span className="text-red-300 text-sm">المحاولات الفاشلة: {failedAttempts}</span>
                   </div>
                 </div>
                 

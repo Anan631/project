@@ -9,7 +9,7 @@ import {
   User, LogOut, X, ChevronDown, Home, Calculator,
   FileText, Phone, Mail, MapPin, Star, Award, Shield
 } from 'lucide-react';
-import Notifications from './Notifications';
+import NotificationsFixed from './NotificationsFixed';
 import WhatsAppIcon from '../icons/WhatsAppIcon';
 import { APP_LOGO_SRC } from '@/lib/branding';
 
@@ -557,7 +557,7 @@ export default function Header() {
             {!isLoading && showNotifications && (
               <div className="animate-fade-in">
                 <div className="relative">
-                  <Notifications />
+                  <NotificationsFixed />
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                 </div>
               </div>

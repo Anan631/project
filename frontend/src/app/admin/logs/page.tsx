@@ -21,7 +21,6 @@ import {
   Database,
   ShieldAlert,
   Info,
-  CheckCircle,
   AlertCircle,
   FileText,
   Table as TableIcon
@@ -111,13 +110,6 @@ export default function AdminLogsPage() {
         border: 'border-amber-200',
         icon: AlertTriangle,
         color: 'text-amber-600'
-      },
-      'SUCCESS': { 
-        bg: 'bg-emerald-50', 
-        text: 'text-emerald-700', 
-        border: 'border-emerald-200',
-        icon: CheckCircle,
-        color: 'text-emerald-600'
       },
       'INFO': { 
         bg: 'bg-sky-50', 
@@ -256,7 +248,6 @@ export default function AdminLogsPage() {
               font-weight: bold;
             }
             .badge-info { background-color: #d4edf7; color: #0c5460; }
-            .badge-success { background-color: #d4f7e0; color: #155724; }
             .badge-warning { background-color: #fff3cd; color: #856404; }
             .badge-error { background-color: #f8d7da; color: #721c24; }
           </style>
@@ -280,12 +271,10 @@ export default function AdminLogsPage() {
               ${filteredLogs.map(log => {
                 const levelClass = 
                   log.level === 'INFO' ? 'badge-info' :
-                  log.level === 'SUCCESS' ? 'badge-success' :
                   log.level === 'WARNING' ? 'badge-warning' : 'badge-error';
                 
                 const levelText = 
                   log.level === 'INFO' ? 'معلومات' :
-                  log.level === 'SUCCESS' ? 'نجاح' :
                   log.level === 'WARNING' ? 'تحذير' : 'خطأ';
                 
                 return `
@@ -393,7 +382,6 @@ export default function AdminLogsPage() {
       total: logs.length,
       error: logs.filter(log => log.level === 'ERROR').length,
       warning: logs.filter(log => log.level === 'WARNING').length,
-      success: logs.filter(log => log.level === 'SUCCESS').length,
       info: logs.filter(log => log.level === 'INFO').length,
     };
     return stats;
@@ -436,7 +424,7 @@ export default function AdminLogsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl">
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -444,16 +432,6 @@ export default function AdminLogsPage() {
                 <span className="text-sm font-medium text-slate-700">معلومات</span>
               </div>
               <p className="text-2xl font-bold text-sky-600">{stats.info}</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl">
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <CheckCircle className="h-4 w-4 text-emerald-600" />
-                <span className="text-sm font-medium text-slate-700">نجاح</span>
-              </div>
-              <p className="text-2xl font-bold text-emerald-600">{stats.success}</p>
             </CardContent>
           </Card>
           
@@ -559,7 +537,6 @@ export default function AdminLogsPage() {
                 <SelectContent className="rounded-xl">
                   <SelectItem value="all" className="text-lg">📊 جميع المستويات</SelectItem>
                   <SelectItem value="INFO" className="text-lg">ℹ️ معلومات</SelectItem>
-                  <SelectItem value="SUCCESS" className="text-lg">✅ نجاح</SelectItem>
                   <SelectItem value="WARNING" className="text-lg">⚠️ تحذير</SelectItem>
                   <SelectItem value="ERROR" className="text-lg">❌ خطأ</SelectItem>
                 </SelectContent>
@@ -620,7 +597,6 @@ export default function AdminLogsPage() {
                               >
                                 {getLevelIcon(log.level)}
                                 {log.level === 'INFO' ? 'معلومات' : 
-                                 log.level === 'SUCCESS' ? 'نجاح' : 
                                  log.level === 'WARNING' ? 'تحذير' : 'خطأ'}
                               </Badge>
                             </TableCell>

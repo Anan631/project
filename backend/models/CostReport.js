@@ -24,6 +24,7 @@ const costReportSchema = new mongoose.Schema(
     items: { type: [costReportItemSchema], default: [] },
     totalCost_ILS: Number,
     pdfData: String, // Base64 encoded PDF for owner download
+    status: { type: String, enum: ['SAVED', 'SENT'], default: 'SENT' },
   },
   { timestamps: true }
 );

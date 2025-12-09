@@ -120,24 +120,7 @@ export default function EngineerCostEstimatorPage() {
                 </ul>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">إحصائيات سريعة</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400">عدد التقديرات</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">{savedEstimates.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 dark:text-gray-400">متوسط التكلفة</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      {savedEstimates.length > 0
-                        ? `${(savedEstimates.reduce((acc, e) => acc + (e.totalCost || 0), 0) / savedEstimates.length).toLocaleString()} ريال`
-                        : 'غير متوفر'
-                      }
-                    </span>
-                  </div>
-                </div>
-              </div>
+
             </motion.div>
           </div>
 
