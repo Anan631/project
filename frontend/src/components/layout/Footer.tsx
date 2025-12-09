@@ -7,11 +7,13 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import WhatsAppIcon from '../icons/WhatsAppIcon';
 import { APP_LOGO_SRC } from '@/lib/branding';
+import { useSettings } from '@/contexts/SettingsContext';
 
 
 const Footer = () => {
-  const siteName = "المحترف لحساب الكميات";
-  const isLoadingSettings = false;
+  const { settings, isLoading } = useSettings();
+  const siteName = settings?.siteName || "المحترف لحساب الكميات";
+  const isLoadingSettings = isLoading;
   const currentYear = new Date().getFullYear();
 
   const quickLinks = [

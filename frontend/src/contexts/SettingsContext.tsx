@@ -25,19 +25,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         console.error("Failed to fetch system settings:", error);
         // Fallback to default settings if API fails
         setSettings({
-            siteName: 'المحترف لحساب الكميات',
-            defaultLanguage: 'ar',
-            maintenanceMode: false,
-            maxUploadSizeMB: 25,
-            emailNotificationsEnabled: true,
-            loginAttemptsLimit: 5,
-            passwordResetExpiry: 24,
-            twoFactorAuth: false,
-            notificationEmail: '',
-            notificationFrequency: 'daily',
-            allowedFileTypes: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
-            fileScanning: true,
-          });
+          siteName: 'المحترف لحساب الكميات',
+          defaultLanguage: 'ar',
+          maintenanceMode: false,
+          maxUploadSizeMB: 25,
+          emailNotificationsEnabled: true,
+          loginAttemptsLimit: 5,
+          passwordResetExpiry: 24,
+          notificationEmail: '',
+          notificationFrequency: 'daily',
+          allowedFileTypes: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+          fileScanning: true,
+        });
       } finally {
         setIsLoading(false);
       }

@@ -12,14 +12,15 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   CalendarDays, Image as ImageIcon, FileText, MessageSquare, Edit, Send, Palette, CheckCircle2,
-  UploadCloud, Download, Link2, HardHat, Users, Percent, FileEdit, BarChart3, GanttChartSquare, Settings2, Loader2 as LoaderIcon, Mail, Calculator, Wrench, ListChecks, Wallet, Plus, Trash2, Save, Clock, DollarSign, User, MapPin, Building, Flag, Target, TrendingUp, Activity, FileImage, Video, File, Folder, Star, AlertCircle, Info, X, MessageCircle
+  UploadCloud, Download, Link2, HardHat, Users, Percent, FileEdit, BarChart3, GanttChartSquare, Settings2, Loader2 as LoaderIcon, Mail, Calculator, Wrench, ListChecks, Wallet, Plus, Trash2, Save, Clock, DollarSign, User, MapPin, Building, Flag, Target, TrendingUp, Activity, FileImage, Video, File, Folder, Star, AlertCircle, Info, X, MessageCircle, Search, Loader2,
+  UserCheck, Shield, Eye
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogTrigger, DialogOverlay } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { findProjectById, updateProject as dbUpdateProject, getCostReportsForProject, addCostReport, deleteCostReport, type Project, type ProjectComment, type ProjectPhoto, type TimelineTask, type CostReport } from '@/lib/db';
+import { findProjectById, updateProject as dbUpdateProject, getCostReportsForProject, addCostReport, deleteCostReport, searchOwners, type Project, type ProjectComment, type ProjectPhoto, type TimelineTask, type CostReport } from '@/lib/db';
 import { apiClient, type ConcreteCalculationInput, type SteelCalculationInput } from '@/lib/api';
 import Link from 'next/link';
 import EditProjectDialog from '@/components/engineer/EditProjectDialog';
@@ -41,6 +42,10 @@ export default function EngineerProjectDetailPage() {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [progressUpdate, setProgressUpdate] = useState({ percentage: '', notes: '' });
   const [linkedOwnerEmailInput, setLinkedOwnerEmailInput] = useState('');
+  const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
+  const [ownerSearchResults, setOwnerSearchResults] = useState<{id: string, name: string, email: string}[]>([]);
+  const [isSearchingOwners, setIsSearchingOwners] = useState(false);
+  const [selectedOwner, setSelectedOwner] = useState<{id: string, name: string, email: string} | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadCaption, setUploadCaption] = useState('');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -81,6 +86,7 @@ export default function EngineerProjectDetailPage() {
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const [resultsType, setResultsType] = useState('');
   const [selectedMediaIds, setSelectedMediaIds] = useState<string[]>([]);
+  const [selectedCostReports, setSelectedCostReports] = useState<string[]>([]);
 
   const isOwnerView = false; // This is Engineer's view
 
@@ -187,6 +193,40 @@ export default function EngineerProjectDetailPage() {
   };
 
 
+  // Search for owners in database
+  const searchForOwners = async (query: string) => {
+    if (!query.trim()) {
+      setOwnerSearchResults([]);
+      return;
+    }
+    
+    setIsSearchingOwners(true);
+    try {
+      // Use the searchOwners function from db.ts
+      const result = await searchOwners(query);
+      
+      if (result.success && result.owners) {
+        setOwnerSearchResults(result.owners);
+      } else {
+        setOwnerSearchResults([]);
+        toast({ title: "خطأ", description: result.message || "فشل البحث عن المالكين.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Error searching for owners:", error);
+      toast({ title: "خطأ", description: "فشل البحث عن المالكين.", variant: "destructive" });
+    } finally {
+      setIsSearchingOwners(false);
+    }
+  };
+
+  // Handle owner selection
+  const handleOwnerSelect = (owner: {id: string, name: string, email: string}) => {
+    setSelectedOwner(owner);
+    setLinkedOwnerEmailInput(owner.email);
+    setOwnerSearchQuery(owner.name);
+    setOwnerSearchResults([]);
+  };
+
   const handleLinkOwnerSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!project || !linkedOwnerEmailInput.trim()) {
@@ -194,10 +234,25 @@ export default function EngineerProjectDetailPage() {
       return;
     }
 
-    const updatedProjectResult = await dbUpdateProject(project.id.toString(), { linkedOwnerEmail: linkedOwnerEmailInput });
+    const updatedProjectResult = await dbUpdateProject(project.id.toString(), { 
+      linkedOwnerEmail: linkedOwnerEmailInput,
+      clientName: selectedOwner?.name || project.clientName
+    });
     if (updatedProjectResult.success) {
       await refreshProjectData();
-      toast({ title: "تم ربط المالك", description: `تم ربط المالك بالبريد الإلكتروني: ${linkedOwnerEmailInput}.` });
+      toast({ 
+        title: "تم ربط المالك بنجاح", 
+        description: (
+          <div className="flex flex-col gap-2">
+            <div>تم ربط المالك <span className="font-bold">{selectedOwner?.name || "غير محدد"}</span> بالمشروع <span className="font-bold">{project.name}</span> بنجاح.</div>
+            {selectedOwner && (
+              <div className="text-sm text-gray-600">سيتم إشعار المالك على بريده الإلكتروني: {selectedOwner.email}</div>
+            )}
+          </div>
+        ) 
+      });
+      setSelectedOwner(null);
+      setOwnerSearchQuery('');
     } else {
       toast({ title: "خطأ", description: "فشل ربط المالك.", variant: "destructive" });
     }
@@ -373,6 +428,51 @@ export default function EngineerProjectDetailPage() {
       setSelectedMediaIds([]);
     } else {
       setSelectedMediaIds(project.photos.map(photo => photo.id));
+    }
+  };
+
+  // Toggle cost report selection
+  const toggleCostReportSelection = (reportId: string) => {
+    setSelectedCostReports(prev =>
+      prev.includes(reportId)
+        ? prev.filter(id => id !== reportId)
+        : [...prev, reportId]
+    );
+  };
+
+  // Toggle select all cost reports
+  const toggleSelectAllCostReports = () => {
+    if (selectedCostReports.length === costReports.length) {
+      setSelectedCostReports([]);
+    } else {
+      setSelectedCostReports(costReports.map(report => report.id));
+    }
+  };
+
+  // Delete selected cost reports
+  const handleDeleteSelectedCostReports = async () => {
+    if (!project || selectedCostReports.length === 0) return;
+
+    let successCount = 0;
+    for (const reportId of selectedCostReports) {
+      const result = await deleteCostReport(reportId);
+      if (result.success) successCount++;
+    }
+
+    if (successCount === selectedCostReports.length) {
+      const refreshed = await getCostReportsForProject(project.id.toString());
+      setCostReports(refreshed);
+      setSelectedCostReports([]);
+      toast({
+        title: "تم الحذف",
+        description: `تم حذف ${selectedCostReports.length} تقرير تكاليف بنجاح.`
+      });
+    } else {
+      toast({
+        title: "خطأ",
+        description: `تم حذف ${successCount} من ${selectedCostReports.length} تقارير فقط.`,
+        variant: "destructive"
+      });
     }
   };
 
@@ -904,7 +1004,7 @@ export default function EngineerProjectDetailPage() {
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Simulation Progress Bar */}
       {isSimulating && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-lg p-4 border-b border-gray-200">
@@ -922,836 +1022,1032 @@ export default function EngineerProjectDetailPage() {
         </div>
       )}
 
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="container mx-auto py-8 px-4">
-          {/* Project Header */}
-          <Card className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white shadow-2xl mb-8 border-0 rounded-xl overflow-hidden relative">
-            <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:60px_60px]" />
-            <CardHeader className="relative z-10 pb-4">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-                <div className="flex-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-3">
-                      <CardTitle className="text-3xl font-bold">{project.name}</CardTitle>
-                      <Badge variant={project.status === 'مكتمل' ? 'default' : project.status === 'قيد التنفيذ' ? 'secondary' : 'outline'} className="text-sm bg-white/20 text-white border-white/30">
-                        {project.status}
-                      </Badge>
-                    </div>
-                    <div className="flex gap-2">
-                      <Badge variant="outline" className="text-xs bg-white/20 text-white border-white/30">
-                        <Building className="h-3 w-3 ms-1" />
-                        {project.location || 'غير محدد'}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs bg-white/20 text-white border-white/30">
-                        <User className="h-3 w-3 ms-1" />
-                        {project.engineer || 'غير محدد'}
-                      </Badge>
-                    </div>
+      <div className="container mx-auto py-8 px-4">
+        {/* Project Header */}
+        <Card className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white shadow-2xl mb-8 border-0 rounded-xl overflow-hidden relative">
+          <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:60px_60px]" />
+          <CardHeader className="relative z-10 pb-4">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+              <div className="flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3">
+                    <CardTitle className="text-3xl font-bold">{project.name}</CardTitle>
+                    <Badge variant={project.status === 'مكتمل' ? 'default' : project.status === 'قيد التنفيذ' ? 'secondary' : 'outline'} className="text-sm bg-white/20 text-white border-white/30">
+                      {project.status}
+                    </Badge>
                   </div>
-                  <CardDescription className="text-blue-100 text-base">{project.description}</CardDescription>
+                  <div className="flex gap-2">
+                    <Badge variant="outline" className="text-xs bg-white/20 text-white border-white/30">
+                      <Building className="h-3 w-3 ms-1" />
+                      {project.location || 'غير محدد'}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs bg-white/20 text-white border-white/30">
+                      <User className="h-3 w-3 ms-1" />
+                      {project.engineer || 'غير محدد'}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  {!isOwnerView && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-green-700 text-white border-green-700 font-semibold hover:bg-green-800 hover:text-white hover:border-green-800 active:bg-white active:text-black active:border-green-700 transition-all duration-200"
-                      onClick={() => setIsEditModalOpen(true)}
-                    >
-                      <FileEdit size={18} className="ms-1.5" /> تعديل بيانات المشروع
-                    </Button>
-                  )}
+                <CardDescription className="text-blue-100 text-base">{project.description}</CardDescription>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                {!isOwnerView && (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="bg-blue-600 text-white border-blue-600 font-semibold hover:bg-blue-700 hover:text-white transition-all duration-200"
-                    onClick={() => setIsChatOpen(true)}
+                    className="bg-green-700 text-white border-green-700 font-semibold hover:bg-green-800 hover:text-white hover:border-green-800 active:bg-white active:text-black active:border-green-700 transition-all duration-200"
+                    onClick={() => setIsEditModalOpen(true)}
                   >
-                    <MessageCircle size={18} className="ms-1.5" /> مراسلة المالك
+                    <FileEdit size={18} className="ms-1.5" /> تعديل بيانات المشروع
                   </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-blue-600 text-white border-blue-600 font-semibold hover:bg-blue-700 hover:text-white transition-all duration-200"
+                  onClick={() => setIsChatOpen(true)}
+                >
+                  <MessageCircle size={18} className="ms-1.5" /> مراسلة المالك
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm text-blue-100 mt-3">
+              <span className="flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                <strong>الموقع:</strong> {project.location || 'غير محدد'}
+              </span>
+              <span className="flex items-center gap-1">
+                <User className="h-4 w-4" />
+                <strong>المهندس:</strong> {project.engineer || 'غير محدد'}
+              </span>
+              <span className="flex items-center gap-1">
+                <Building className="h-4 w-4" />
+                <strong>العميل:</strong> {project.clientName || 'غير محدد'}
+              </span>
+              <span className="flex items-center gap-1">
+                <DollarSign className="h-4 w-4" />
+                <strong>الميزانية:</strong> {project.budget ? `${project.budget.toLocaleString('ar')} شيكل` : 'غير محدد'}
+              </span>
+              <span className="flex items-center gap-1">
+                <CalendarDays className="h-4 w-4" />
+                <strong>تاريخ البدء:</strong> {project.startDate ? formatDate(project.startDate) : 'غير محدد'}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                <strong>التسليم المتوقع:</strong> {project.endDate ? formatDate(project.endDate) : 'غير محدد'}
+              </span>
+              <span className="flex items-center gap-1">
+                <CalendarDays className="h-4 w-4" />
+                <strong>مدة المشروع:</strong> {totalProjectDurationDays} يوم
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0 relative z-10">
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <Label className="text-base font-semibold">التقدم العام للمشروع:</Label>
+                <span className="font-bold text-yellow-300 text-lg">{project.overallProgress}%</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Progress value={project.overallProgress} className="h-4 flex-grow bg-white/20" />
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <p className={`text-sm font-semibold ${project.status === 'مكتمل' ? 'text-green-300' :
+                  project.status === 'قيد التنفيذ' ? 'text-yellow-300' :
+                    'text-blue-300'
+                  }`}>
+                  الحالة الحالية: {project.status}
+                </p>
+                <div className="flex items-center gap-2 text-sm text-blue-100">
+                  <Activity className="h-4 w-4" />
+                  <span className="font-medium text-base">آخر تحديث: {new Date().toLocaleDateString('en-US')}</span>
                 </div>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm text-blue-100 mt-3">
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  <strong>الموقع:</strong> {project.location || 'غير محدد'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <User className="h-4 w-4" />
-                  <strong>المهندس:</strong> {project.engineer || 'غير محدد'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Building className="h-4 w-4" />
-                  <strong>العميل:</strong> {project.clientName || 'غير محدد'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <DollarSign className="h-4 w-4" />
-                  <strong>الميزانية:</strong> {project.budget ? `${project.budget.toLocaleString('ar')} شيكل` : 'غير محدد'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <CalendarDays className="h-4 w-4" />
-                  <strong>تاريخ البدء:</strong> {project.startDate ? formatDate(project.startDate) : 'غير محدد'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  <strong>التسليم المتوقع:</strong> {project.endDate ? formatDate(project.endDate) : 'غير محدد'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <CalendarDays className="h-4 w-4" />
-                  <strong>مدة المشروع:</strong> {totalProjectDurationDays} يوم
-                </span>
-              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Management Tools */}
+        {!isOwnerView && (
+          <Card className="bg-gradient-to-br from-slate-700 to-slate-900 text-white shadow-2xl mb-8 border-0 rounded-xl overflow-hidden">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold flex items-center gap-2">
+                <Wrench size={28} /> أدوات إدارة المشروع
+              </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0 relative z-10">
-              <div className="mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <Label className="text-base font-semibold">التقدم العام للمشروع:</Label>
-                  <span className="font-bold text-yellow-300 text-lg">{project.overallProgress}%</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Progress value={project.overallProgress} className="h-4 flex-grow bg-white/20" />
-                </div>
-                <div className="flex justify-between items-center mt-2">
-                  <p className={`text-sm font-semibold ${project.status === 'مكتمل' ? 'text-green-300' :
-                    project.status === 'قيد التنفيذ' ? 'text-yellow-300' :
-                      'text-blue-300'
-                    }`}>
-                    الحالة الحالية: {project.status}
-                  </p>
-                  <div className="flex items-center gap-2 text-sm text-blue-100">
-                    <Activity className="h-4 w-4" />
-                    <span className="font-medium text-base">آخر تحديث: {new Date().toLocaleDateString('en-US')}</span>
-                  </div>
-                </div>
-              </div>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Button variant="outline" className="w-full justify-start bg-blue-500/20 text-blue-100 border-blue-500/30 hover:bg-blue-500/30 h-14" onClick={() => simulateAction("فتح نموذج إدخال تفاصيل العناصر الإنشائية")}>
+                <ListChecks size={18} className="ms-2" /> إدخال تفاصيل العناصر
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start bg-red-500/20 text-red-100 border-red-500/30 hover:bg-red-500/30 h-14"
+                asChild
+              >
+                <Link href={`/engineer/projects/${projectId}/concrete-calculations`}>
+                  <HardHat size={18} className="ms-2" /> حساب كميات الباطون
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start bg-green-500/20 text-green-100 border-green-500/30 hover:bg-green-500/30 h-14"
+                asChild
+              >
+                <Link href={`/engineer/projects/${projectId}/steel-calculations`}>
+                  <BarChart3 size={18} className="ms-2" /> حساب كميات الحديد
+                </Link>
+              </Button>
+              <Button variant="outline" className="w-full justify-start bg-purple-500/20 text-purple-100 border-purple-500/30 hover:bg-purple-500/30 h-14" onClick={() => setIsUploadModalOpen(true)}>
+                <UploadCloud size={18} className="ms-2" /> رفع صور/فيديو للمشروع
+              </Button>
+              <Button variant="outline" className="w-full justify-start bg-orange-500/20 text-orange-100 border-orange-500/30 hover:bg-orange-500/30 h-14" onClick={() => setIsAddTaskModalOpen(true)}>
+                <GanttChartSquare size={18} className="ms-2" /> إضافة مهمة جديدة
+              </Button>
+              <Button variant="outline" className="w-full justify-start bg-cyan-500/20 text-cyan-100 border-cyan-500/30 hover:bg-cyan-500/30 h-14" onClick={simulateReportGeneration}>
+                <Download size={18} className="ms-2" /> توليد/تصدير التقارير
+              </Button>
             </CardContent>
           </Card>
+        )}
 
-          {/* Management Tools */}
-          {!isOwnerView && (
-            <Card className="bg-gradient-to-br from-slate-700 to-slate-900 text-white shadow-2xl mb-8 border-0 rounded-xl overflow-hidden">
-              <CardHeader>
-                <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                  <Wrench size={28} /> أدوات إدارة المشروع
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Button variant="outline" className="w-full justify-start bg-blue-500/20 text-blue-100 border-blue-500/30 hover:bg-blue-500/30 h-14" onClick={() => simulateAction("فتح نموذج إدخال تفاصيل العناصر الإنشائية")}>
-                  <ListChecks size={18} className="ms-2" /> إدخال تفاصيل العناصر
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start bg-red-500/20 text-red-100 border-red-500/30 hover:bg-red-500/30 h-14"
-                  asChild
-                >
-                  <Link href={`/engineer/projects/${projectId}/concrete-calculations`}>
-                    <HardHat size={18} className="ms-2" /> حساب كميات الباطون
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start bg-green-500/20 text-green-100 border-green-500/30 hover:bg-green-500/30 h-14"
-                  asChild
-                >
-                  <Link href={`/engineer/projects/${projectId}/steel-calculations`}>
-                    <BarChart3 size={18} className="ms-2" /> حساب كميات الحديد
-                  </Link>
-                </Button>
-                <Button variant="outline" className="w-full justify-start bg-purple-500/20 text-purple-100 border-purple-500/30 hover:bg-purple-500/30 h-14" onClick={() => setIsUploadModalOpen(true)}>
-                  <UploadCloud size={18} className="ms-2" /> رفع صور/فيديو للمشروع
-                </Button>
-                <Button variant="outline" className="w-full justify-start bg-orange-500/20 text-orange-100 border-orange-500/30 hover:bg-orange-500/30 h-14" onClick={() => setIsAddTaskModalOpen(true)}>
-                  <GanttChartSquare size={18} className="ms-2" /> إضافة مهمة جديدة
-                </Button>
-                <Button variant="outline" className="w-full justify-start bg-cyan-500/20 text-cyan-100 border-cyan-500/30 hover:bg-cyan-500/30 h-14" onClick={simulateReportGeneration}>
-                  <Download size={18} className="ms-2" /> توليد/تصدير التقارير
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+        {/* Main Content Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-5 mb-6 bg-white shadow-lg p-1 rounded-xl h-12">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md">نظرة عامة</TabsTrigger>
+            <TabsTrigger value="timeline" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md">الجدول الزمني</TabsTrigger>
+            <TabsTrigger value="media" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md">الوسائط</TabsTrigger>
+            <TabsTrigger value="costs" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md">التكاليف</TabsTrigger>
+            <TabsTrigger value="owner" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md">ربط المالك</TabsTrigger>
+          </TabsList>
 
-          {/* Main Content Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-6 bg-white shadow-lg p-1 rounded-xl h-12">
-              <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md">نظرة عامة</TabsTrigger>
-              <TabsTrigger value="timeline" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md">الجدول الزمني</TabsTrigger>
-              <TabsTrigger value="media" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md">الوسائط</TabsTrigger>
-              <TabsTrigger value="costs" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md">التكاليف</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview" className="space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                  <Card className="bg-white shadow-xl border-t-4 border-t-green-500 rounded-lg overflow-hidden">
-                    <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-                      <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <Target size={28} /> ملخص المشروع
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200 shadow-sm">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-blue-100 rounded-full">
-                                <CalendarDays className="h-5 w-5 text-blue-600" />
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-600">مدة المشروع</p>
-                                <p className="font-semibold text-gray-800">{totalProjectDurationDays} يوم</p>
-                              </div>
+          <TabsContent value="overview" className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-8">
+                <Card className="bg-white shadow-xl border-t-4 border-t-green-500 rounded-lg overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+                    <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                      <Target size={28} /> ملخص المشروع
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-200 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 rounded-full">
+                              <CalendarDays className="h-5 w-5 text-blue-600" />
                             </div>
-                          </div>
-
-                          <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-green-100 rounded-full">
-                                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-600">المهام المكتملة</p>
-                                <p className="font-semibold text-gray-800">
-                                  {(project.timelineTasks?.filter(t => t.status === 'مكتمل').length || 0).toLocaleString('en-US')} / {(project.timelineTasks?.length || 0).toLocaleString('en-US')}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between p-4 bg-purple-50 rounded-xl border border-purple-200 shadow-sm">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-purple-100 rounded-full">
-                                <MessageSquare className="h-5 w-5 text-purple-600" />
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-600">التعليقات</p>
-                                <p className="font-semibold text-gray-800">{(project.comments?.length || 0).toLocaleString('en-US')}</p>
-                              </div>
+                            <div>
+                              <p className="text-sm text-gray-600">مدة المشروع</p>
+                              <p className="font-semibold text-gray-800">{totalProjectDurationDays} يوم</p>
                             </div>
                           </div>
                         </div>
 
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-xl border border-yellow-200 shadow-sm">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-yellow-100 rounded-full">
-                                <DollarSign className="h-5 w-5 text-yellow-600" />
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-600">التكاليف الإجمالية</p>
-                                <p className="font-semibold text-gray-800">
-                                  {costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0).toLocaleString('en-US')} ₪
-                                </p>
-                              </div>
+                        <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-200 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-green-100 rounded-full">
+                              <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">المهام المكتملة</p>
+                              <p className="font-semibold text-gray-800">
+                                {(project.timelineTasks?.filter(t => t.status === 'مكتمل').length || 0).toLocaleString('en-US')} / {(project.timelineTasks?.length || 0).toLocaleString('en-US')}
+                              </p>
                             </div>
                           </div>
+                        </div>
 
-                          <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-200 shadow-sm">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-red-100 rounded-full">
-                                <ImageIcon className="h-5 w-5 text-red-600" />
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-600">الوسائط</p>
-                                <p className="font-semibold text-gray-800">{(project.photos?.length || 0).toLocaleString('en-US')}</p>
-                              </div>
+                        <div className="flex items-center justify-between p-4 bg-purple-50 rounded-xl border border-purple-200 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-100 rounded-full">
+                              <MessageSquare className="h-5 w-5 text-purple-600" />
                             </div>
-                          </div>
-
-                          <div className="flex items-center justify-between p-4 bg-indigo-50 rounded-xl border border-indigo-200 shadow-sm">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 bg-indigo-100 rounded-full">
-                                <TrendingUp className="h-5 w-5 text-indigo-600" />
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-600">معدل التقدم</p>
-                                <p className="font-semibold text-gray-800">{project.overallProgress.toLocaleString('en-US')}%</p>
-                              </div>
+                            <div>
+                              <p className="text-sm text-gray-600">التعليقات</p>
+                              <p className="font-semibold text-gray-800">{(project.comments?.length || 0).toLocaleString('en-US')}</p>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
 
-                  <Card className="bg-white shadow-xl border-t-4 border-t-pink-500 rounded-lg overflow-hidden">
-                    <CardHeader className="bg-gradient-to-r from-pink-50 to-rose-50">
-                      <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <MessageSquare size={28} /> التعليقات والاستفسارات
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <form onSubmit={handleCommentSubmit} className="space-y-4 mb-6">
-                        <div>
-                          <Label htmlFor="newComment" className="font-semibold text-gray-700">أضف تعليقاً أو استفساراً:</Label>
-                          <Textarea
-                            id="newComment" value={newComment} onChange={(e) => setNewComment(e.target.value)}
-                            placeholder="اكتب تعليقك هنا..." rows={3} className="mt-1 focus:border-pink-500 focus:ring-pink-500"
-                          />
-                        </div>
-                        <Button type="submit" className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold" disabled={isSubmittingComment || !newComment.trim()}>
-                          {isSubmittingComment ? <LoaderIcon className="h-5 w-5 animate-spin" /> : <Send size={18} />}
-                          إرسال التعليق
-                        </Button>
-                      </form>
-                      <Separator className="my-6" />
-                      <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
-                        {project.comments && project.comments.length > 0 ? (
-                          project.comments.slice().reverse().map((comment, index) => (
-                            <div key={comment.id || `comment-${index}`} className={cn(
-                              "p-4 rounded-xl border shadow-sm transition-all hover:shadow-md",
-                              comment.user === "المالك" ? "bg-yellow-50 border-pink-200" : "bg-gray-50 border-gray-200"
-                            )}>
-                              <div className="flex items-start gap-3">
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage src={comment.avatar} alt={comment.user} />
-                                  <AvatarFallback className={comment.user === "المالك" ? "bg-yellow-200 text-yellow-800" : "bg-blue-200 text-blue-800"}>
-                                    {comment.user.substring(0, 1)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-grow">
-                                  <div className="flex justify-between items-start">
-                                    <p className="font-semibold text-gray-800">{comment.user}</p>
-                                    <p className="text-xs text-gray-500">{new Date(comment.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                                  </div>
-                                  <p className="text-gray-700 mt-2">{comment.text}</p>
-                                </div>
-                              </div>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-xl border border-yellow-200 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-yellow-100 rounded-full">
+                              <DollarSign className="h-5 w-5 text-yellow-600" />
                             </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-8">
-                            <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                            <p className="text-gray-500">لا توجد تعليقات حتى الآن. كن أول من يعلق!</p>
+                            <div>
+                              <p className="text-sm text-gray-600">التكاليف الإجمالية</p>
+                              <p className="font-semibold text-gray-800">
+                                {costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0).toLocaleString('en-US')} ₪
+                              </p>
+                            </div>
                           </div>
-                        )}
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-200 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-red-100 rounded-full">
+                              <ImageIcon className="h-5 w-5 text-red-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">الوسائط</p>
+                              <p className="font-semibold text-gray-800">{(project.photos?.length || 0).toLocaleString('en-US')}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 bg-indigo-50 rounded-xl border border-indigo-200 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-indigo-100 rounded-full">
+                              <TrendingUp className="h-5 w-5 text-indigo-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">معدل التقدم</p>
+                              <p className="font-semibold text-gray-800">{project.overallProgress.toLocaleString('en-US')}%</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <div className="space-y-8">
-                  {!isOwnerView && (
-                    <>
-                      <Card className="bg-white shadow-xl border-t-4 border-t-yellow-500 rounded-lg overflow-hidden">
-                        <CardHeader className="bg-gradient-to-r from-yellow-50 to-amber-50">
-                          <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                            <Percent size={28} /> تحديث تقدم الإنشاء
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <form onSubmit={handleProgressSubmit} className="space-y-4">
-                            <div>
-                              <Label htmlFor="progressPercentage" className="font-semibold text-gray-700">نسبة التقدم الإجمالية (%):</Label>
-                              <Input
-                                id="progressPercentage" type="number" min="0" max="100"
-                                value={progressUpdate.percentage}
-                                onChange={(e) => setProgressUpdate({ ...progressUpdate, percentage: e.target.value })}
-                                className="mt-1 focus:border-yellow-500 focus:ring-yellow-500" placeholder="مثال: 75"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="progressNotes" className="font-semibold text-gray-700">ملاحظات التقدم:</Label>
-                              <Textarea
-                                id="progressNotes" rows={3}
-                                value={progressUpdate.notes}
-                                onChange={(e) => setProgressUpdate({ ...progressUpdate, notes: e.target.value })}
-                                className="mt-1 focus:border-yellow-500 focus:ring-yellow-500" placeholder="أضف ملاحظات حول التقدم المحرز..."
-                              />
-                            </div>
-                            <Button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-semibold">
-                              <Send size={18} className="ms-2" /> إرسال تحديث التقدم
-                            </Button>
-                          </form>
-                        </CardContent>
-                      </Card>
-
-                      <Card className="bg-white shadow-xl border-t-4 border-t-indigo-500 rounded-lg overflow-hidden">
-                        <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50">
-                          <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                            <Users size={28} /> ربط المالك بالمشروع
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <form onSubmit={handleLinkOwnerSubmit} className="space-y-4">
-                            <div>
-                              <Label htmlFor="ownerEmail" className="font-semibold text-gray-700">البريد الإلكتروني للمالك:</Label>
-                              <Input
-                                id="ownerEmail" type="email"
-                                value={linkedOwnerEmailInput}
-                                onChange={(e) => setLinkedOwnerEmailInput(e.target.value)}
-                                className="mt-1 focus:border-indigo-500 focus:ring-indigo-500" placeholder="owner@example.com"
-                              />
-                            </div>
-                            <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">
-                              <Link2 size={18} className="ms-2" /> {project.linkedOwnerEmail ? "تحديث ربط المالك" : "ربط المالك"}
-                            </Button>
-                          </form>
-                        </CardContent>
-                      </Card>
-                    </>
-                  )}
-
-                  <Card className="bg-white shadow-xl border-t-4 border-t-teal-500 rounded-lg overflow-hidden">
-                    <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50 flex flex-row justify-between items-center">
-                      <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <Wallet size={28} /> تقارير التكاليف
-                      </CardTitle>
-                      <Button size="sm" onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold border-0">
-                        <Plus size={16} className="ms-1" /> إضافة تقرير
+                <Card className="bg-white shadow-xl border-t-4 border-t-pink-500 rounded-lg overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-pink-50 to-rose-50">
+                    <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                      <MessageSquare size={28} /> التعليقات والاستفسارات
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleCommentSubmit} className="space-y-4 mb-6">
+                      <div>
+                        <Label htmlFor="newComment" className="font-semibold text-gray-700">أضف تعليقاً أو استفساراً:</Label>
+                        <Textarea
+                          id="newComment" value={newComment} onChange={(e) => setNewComment(e.target.value)}
+                          placeholder="اكتب تعليقك هنا..." rows={3} className="mt-1 focus:border-pink-500 focus:ring-pink-500"
+                        />
+                      </div>
+                      <Button type="submit" className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold" disabled={isSubmittingComment || !newComment.trim()}>
+                        {isSubmittingComment ? <LoaderIcon className="h-5 w-5 animate-spin" /> : <Send size={18} />}
+                        إرسال التعليق
                       </Button>
-                    </CardHeader>
-                    <CardContent>
-                      {costReports.length > 0 ? (
-                        <div className="space-y-3">
-                          {costReports.map((report, index) => (
-                            <div key={report.id || `overview-cost-${index}`} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors">
-                              <div>
-                                <p className="font-medium text-sm text-gray-700">{report.reportName}</p>
-                                <p className="text-xs text-gray-500">{new Date(report.createdAt).toLocaleDateString('en-US')}</p>
+                    </form>
+                    <Separator className="my-6" />
+                    <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
+                      {project.comments && project.comments.length > 0 ? (
+                        project.comments.slice().reverse().map((comment, index) => (
+                          <div key={comment.id || `comment-${index}`} className={cn(
+                            "p-4 rounded-xl border shadow-sm transition-all hover:shadow-md",
+                            comment.user === "المالك" ? "bg-yellow-50 border-pink-200" : "bg-gray-50 border-gray-200"
+                          )}>
+                            <div className="flex items-start gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={comment.avatar} alt={comment.user} />
+                                <AvatarFallback className={comment.user === "المالك" ? "bg-yellow-200 text-yellow-800" : "bg-blue-200 text-blue-800"}>
+                                  {comment.user.substring(0, 1)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-grow">
+                                <div className="flex justify-between items-start">
+                                  <p className="font-semibold text-gray-800">{comment.user}</p>
+                                  <p className="text-xs text-gray-500">{new Date(comment.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                </div>
+                                <p className="text-gray-700 mt-2">{comment.text}</p>
                               </div>
-                              <p className="font-semibold text-base text-green-700">{report.totalCost_ILS.toLocaleString('en-US')} شيكل</p>
                             </div>
-                          ))}
-                          <Separator />
-                          <div className="flex justify-between items-center pt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                            <p className="font-bold text-base text-gray-800">الإجمالي الكلي:</p>
-                            <p className="font-bold text-xl text-green-700">
-                              {costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0).toLocaleString('ar')} شيكل
-                            </p>
                           </div>
-                        </div>
+                        ))
                       ) : (
                         <div className="text-center py-8">
-                          <Wallet className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                          <p className="text-gray-500 text-sm mb-3">لا توجد تقارير تكاليف محفوظة لهذا المشروع بعد.</p>
-                          {!isOwnerView && (
-                            <Button size="sm" onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold">
-                              <Plus size={16} className="ms-1" /> إضافة أول تقرير
-                            </Button>
-                          )}
+                          <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                          <p className="text-gray-500">لا توجد تعليقات حتى الآن. كن أول من يعلق!</p>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="timeline" className="space-y-8">
-              <Card className="bg-white shadow-xl border-t-4 border-t-green-500 rounded-lg overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 flex flex-row justify-between items-center">
-                  <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    <GanttChartSquare size={28} /> الجدول الزمني للمشروع
-                  </CardTitle>
-                  {!isOwnerView && (
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="border-blue-600 text-black hover:bg-blue-600 hover:text-white transition-colors" onClick={() => setIsAddTaskModalOpen(true)}>
-                        <Plus size={18} className="ms-1.5" /> إضافة مهمة
-                      </Button>
                     </div>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  {project.timelineTasks && project.timelineTasks.length > 0 ? (
-                    <>
-                      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                          <div className="bg-white p-4 rounded-lg shadow-sm">
-                            <p className="text-sm text-gray-600 mb-1">تاريخ البدء</p>
-                            <p className="font-bold text-blue-700">{formatDate(projectStartDate.toISOString())}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-8">
+                {!isOwnerView && (
+                  <>
+                    <Card className="bg-white shadow-xl border-t-4 border-t-yellow-500 rounded-lg overflow-hidden">
+                      <CardHeader className="bg-gradient-to-r from-yellow-50 to-amber-50">
+                        <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                          <Percent size={28} /> تحديث تقدم الإنشاء
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleProgressSubmit} className="space-y-4">
+                          <div>
+                            <Label htmlFor="progressPercentage" className="font-semibold text-gray-700">نسبة التقدم الإجمالية (%):</Label>
+                            <Input
+                              id="progressPercentage" type="number" min="0" max="100"
+                              value={progressUpdate.percentage}
+                              onChange={(e) => setProgressUpdate({ ...progressUpdate, percentage: e.target.value })}
+                              className="mt-1 focus:border-yellow-500 focus:ring-yellow-500" placeholder="مثال: 75"
+                            />
                           </div>
-                          <div className="bg-white p-4 rounded-lg shadow-sm">
-                            <p className="text-sm text-gray-600 mb-1">تاريخ الانتهاء</p>
-                            <p className="font-bold text-green-700">{formatDate(projectEndDate.toISOString())}</p>
+                          <div>
+                            <Label htmlFor="progressNotes" className="font-semibold text-gray-700">ملاحظات التقدم:</Label>
+                            <Textarea
+                              id="progressNotes" rows={3}
+                              value={progressUpdate.notes}
+                              onChange={(e) => setProgressUpdate({ ...progressUpdate, notes: e.target.value })}
+                              className="mt-1 focus:border-yellow-500 focus:ring-yellow-500" placeholder="أضف ملاحظات حول التقدم المحرز..."
+                            />
                           </div>
-                          <div className="bg-white p-4 rounded-lg shadow-sm">
-                            <p className="text-sm text-gray-600 mb-1">المدة الإجمالية</p>
-                            <p className="font-bold text-purple-700">{totalProjectDurationDays} يوم</p>
+                          <Button type="submit" className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-semibold">
+                            <Send size={18} className="ms-2" /> إرسال تحديث التقدم
+                          </Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+
+                <Card className="bg-white shadow-xl border-t-4 border-t-teal-500 rounded-lg overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50 flex flex-row justify-between items-center">
+                    <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                      <Wallet size={28} /> تقارير التكاليف
+                    </CardTitle>
+                    <Button size="sm" onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold border-0">
+                      <Plus size={16} className="ms-1" /> إضافة تقرير
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {costReports.length > 0 ? (
+                      <div className="space-y-3">
+                        {costReports.map((report, index) => (
+                          <div key={report.id || `overview-cost-${index}`} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors">
+                            <div>
+                              <p className="font-medium text-sm text-gray-700">{report.reportName}</p>
+                              <p className="text-xs text-gray-500">{new Date(report.createdAt).toLocaleDateString('en-US')}</p>
+                            </div>
+                            <p className="font-semibold text-base text-green-700">{report.totalCost_ILS.toLocaleString('en-US')} شيكل</p>
                           </div>
+                        ))}
+                        <Separator />
+                        <div className="flex justify-between items-center pt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                          <p className="font-bold text-base text-gray-800">الإجمالي الكلي:</p>
+                          <p className="font-bold text-xl text-green-700">
+                            {costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0).toLocaleString('ar')} شيكل
+                          </p>
                         </div>
                       </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Wallet className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                        <p className="text-gray-500 text-sm mb-3">لا توجد تقارير تكاليف محفوظة لهذا المشروع بعد.</p>
+                        {!isOwnerView && (
+                          <Button size="sm" onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold">
+                            <Plus size={16} className="ms-1" /> إضافة أول تقرير
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
 
-                      {/* Timeline Chart */}
-                      <div className="space-y-5 relative overflow-x-auto p-6 pb-8 min-h-[300px] bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl shadow-inner border">
-                        {/* Timeline Tasks */}
-                        {project.timelineTasks.map((task, index) => {
-                          const { left, width } = getTaskPositionAndWidth(task);
-                          const taskStartDate = new Date(task.startDate);
-                          const taskEndDate = new Date(task.endDate);
+          <TabsContent value="timeline" className="space-y-8">
+            <Card className="bg-white shadow-xl border-t-4 border-t-green-500 rounded-lg overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 flex flex-row justify-between items-center">
+                <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                  <GanttChartSquare size={28} /> الجدول الزمني للمشروع
+                </CardTitle>
+                {!isOwnerView && (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="border-blue-600 text-black hover:bg-blue-600 hover:text-white transition-colors" onClick={() => setIsAddTaskModalOpen(true)}>
+                      <Plus size={18} className="ms-1.5" /> إضافة مهمة
+                    </Button>
+                  </div>
+                )}
+              </CardHeader>
+              <CardContent>
+                {project.timelineTasks && project.timelineTasks.length > 0 ? (
+                  <>
+                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                        <div className="bg-white p-4 rounded-lg shadow-sm">
+                          <p className="text-sm text-gray-600 mb-1">تاريخ البدء</p>
+                          <p className="font-bold text-blue-700">{formatDate(projectStartDate.toISOString())}</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm">
+                          <p className="text-sm text-gray-600 mb-1">تاريخ الانتهاء</p>
+                          <p className="font-bold text-green-700">{formatDate(projectEndDate.toISOString())}</p>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow-sm">
+                          <p className="text-sm text-gray-600 mb-1">المدة الإجمالية</p>
+                          <p className="font-bold text-purple-700">{totalProjectDurationDays} يوم</p>
+                        </div>
+                      </div>
+                    </div>
 
-                          return (
-                            <div key={task.id || `chart-task-${index}`} className="relative h-16 flex items-center text-right pr-3 group" style={{ zIndex: index + 1 }}>
-                              {/* Task Color Indicator */}
-                              <div
-                                className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow-sm"
-                                style={{ backgroundColor: task.color }}
-                              />
+                    {/* Timeline Chart */}
+                    <div className="space-y-5 relative overflow-x-auto p-6 pb-8 min-h-[300px] bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl shadow-inner border">
+                      {/* Timeline Tasks */}
+                      {project.timelineTasks.map((task, index) => {
+                        const { left, width } = getTaskPositionAndWidth(task);
+                        const taskStartDate = new Date(task.startDate);
+                        const taskEndDate = new Date(task.endDate);
 
-                              {/* Task Bar */}
-                              <div
-                                className={cn(
-                                  "absolute h-10 rounded-lg shadow-md flex items-center justify-between px-3 text-white transition-all duration-300 ease-in-out hover:shadow-lg text-sm font-medium",
-                                  !isOwnerView && "cursor-pointer group-hover:ring-2 group-hover:ring-white group-hover:ring-opacity-50"
-                                )}
-                                style={{
-                                  left,
-                                  width,
-                                  right: 'auto',
-                                  backgroundColor: task.color,
-                                  boxShadow: `0 4px 8px ${task.color}40`
-                                }}
-                                title={`${task.name}\nمن: ${formatTimelineDate(task.startDate)}\nإلى: ${formatTimelineDate(task.endDate)}\nالحالة: ${task.status}${task.progress !== undefined ? `\nالتقدم: ${task.progress}%` : ''}`}
-                                onClick={!isOwnerView ? () => openEditTaskModal(task) : undefined}
-                              >
-                                <span className="font-semibold truncate">{task.name}</span>
-                                <div className="flex items-center gap-1">
-                                  {task.status === 'مكتمل' && <CheckCircle2 size={16} className="text-white shrink-0" />}
-                                  {task.status === 'قيد التنفيذ' && <div className="h-3 w-3 rounded-full bg-white animate-pulse shrink-0"></div>}
-                                  {task.status === 'مخطط له' && <div className="h-3 w-3 rounded-full bg-white/70 shrink-0"></div>}
-                                </div>
+                        return (
+                          <div key={task.id || `chart-task-${index}`} className="relative h-16 flex items-center text-right pr-3 group" style={{ zIndex: index + 1 }}>
+                            {/* Task Color Indicator */}
+                            <div
+                              className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                              style={{ backgroundColor: task.color }}
+                            />
+
+                            {/* Task Bar */}
+                            <div
+                              className={cn(
+                                "absolute h-10 rounded-lg shadow-md flex items-center justify-between px-3 text-white transition-all duration-300 ease-in-out hover:shadow-lg text-sm font-medium",
+                                !isOwnerView && "cursor-pointer group-hover:ring-2 group-hover:ring-white group-hover:ring-opacity-50"
+                              )}
+                              style={{
+                                left,
+                                width,
+                                right: 'auto',
+                                backgroundColor: task.color,
+                                boxShadow: `0 4px 8px ${task.color}40`
+                              }}
+                              title={`${task.name}\nمن: ${formatTimelineDate(task.startDate)}\nإلى: ${formatTimelineDate(task.endDate)}\nالحالة: ${task.status}${task.progress !== undefined ? `\nالتقدم: ${task.progress}%` : ''}`}
+                              onClick={!isOwnerView ? () => openEditTaskModal(task) : undefined}
+                            >
+                              <span className="font-semibold truncate">{task.name}</span>
+                              <div className="flex items-center gap-1">
+                                {task.status === 'مكتمل' && <CheckCircle2 size={16} className="text-white shrink-0" />}
+                                {task.status === 'قيد التنفيذ' && <div className="h-3 w-3 rounded-full bg-white animate-pulse shrink-0"></div>}
+                                {task.status === 'مخطط له' && <div className="h-3 w-3 rounded-full bg-white/70 shrink-0"></div>}
                               </div>
+                            </div>
 
-                              {/* Task Info */}
-                              <div className="absolute right-0 top-0 h-full flex flex-col justify-center pr-2">
-                                <div className="text-xs text-gray-600 bg-white/80 px-2 py-1 rounded shadow-sm">
-                                  <div className="font-medium">{task.name}</div>
-                                  <div className="text-gray-500">
-                                    {formatTimelineDate(task.startDate)} - {formatTimelineDate(task.endDate)}
-                                  </div>
+                            {/* Task Info */}
+                            <div className="absolute right-0 top-0 h-full flex flex-col justify-center pr-2">
+                              <div className="text-xs text-gray-600 bg-white/80 px-2 py-1 rounded shadow-sm">
+                                <div className="font-medium">{task.name}</div>
+                                <div className="text-gray-500">
+                                  {formatTimelineDate(task.startDate)} - {formatTimelineDate(task.endDate)}
                                 </div>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="mt-8">
-                        <h3 className="text-lg font-semibold mb-4 text-gray-800">قائمة المهام</h3>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="text-right">المهمة</TableHead>
-                              <TableHead className="text-right">اللون</TableHead>
-                              <TableHead className="text-right">تاريخ البدء</TableHead>
-                              <TableHead className="text-right">تاريخ الانتهاء</TableHead>
-                              <TableHead className="text-right">المدة</TableHead>
-                              <TableHead className="text-right">الحالة</TableHead>
-                              <TableHead className="text-right">الإجراءات</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {project.timelineTasks.map((task, index) => {
-                              const startDate = new Date(task.startDate);
-                              const endDate = new Date(task.endDate);
-                              const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-                              return (
-                                <TableRow key={task.id || `timeline-task-${index}`} className="hover:bg-gray-50">
-                                  <TableCell className="font-medium">{task.name}</TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-2">
-                                      <div
-                                        className="w-6 h-6 rounded-full border-2 border-gray-300 shadow-sm"
-                                        style={{ backgroundColor: task.color }}
-                                      />
-                                      <span className="text-xs text-gray-500 font-mono">{task.color}</span>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="text-sm">
-                                      <div className="font-medium">{formatDate(task.startDate)}</div>
-                                      <div className="text-xs text-gray-500">
-                                        {startDate.toLocaleDateString('en-US', { weekday: 'short' })}
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="text-sm">
-                                      <div className="font-medium">{formatDate(task.endDate)}</div>
-                                      <div className="text-xs text-gray-500">
-                                        {endDate.toLocaleDateString('en-US', { weekday: 'short' })}
-                                      </div>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="text-sm font-medium text-blue-600">
-                                      {duration} يوم
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <Badge
-                                      variant={task.status === 'مكتمل' ? 'default' : task.status === 'قيد التنفيذ' ? 'secondary' : 'outline'}
-                                      className={cn(
-                                        task.status === 'مكتمل' && 'bg-green-100 text-green-800',
-                                        task.status === 'قيد التنفيذ' && 'bg-yellow-100 text-yellow-800',
-                                        task.status === 'مخطط له' && 'bg-blue-100 text-blue-800'
-                                      )}
-                                    >
-                                      {task.status}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell>
-                                    {!isOwnerView && (
-                                      <div className="flex gap-2">
-                                        <Button variant="outline" size="sm" onClick={() => openEditTaskModal(task)}>
-                                          <FileEdit size={14} />
-                                        </Button>
-                                        <Button variant="outline" size="sm" onClick={() => handleDeleteTask(task.id)}>
-                                          <Trash2 size={14} />
-                                        </Button>
-                                      </div>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-12">
-                      <GanttChartSquare className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                      <p className="text-gray-500 mb-6">لا يوجد جدول زمني محدد لهذا المشروع بعد.</p>
-                      {!isOwnerView && (
-                        <Button onClick={() => setIsAddTaskModalOpen(true)} className="bg-green-600 hover:bg-green-700">
-                          <Plus size={18} className="ms-2" /> إضافة أول مهمة
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="media" className="space-y-8">
-              <Card className="bg-white shadow-xl border-t-4 border-t-purple-500 rounded-lg overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                      <ImageIcon size={28} className="text-purple-600" /> وسائط المشروع
-                      {project.photos && project.photos.length > 0 && (
-                        <Badge variant="secondary" className="text-sm">
-                          {project.photos.length}
-                        </Badge>
-                      )}
-                    </CardTitle>
-                    <div className="flex flex-wrap gap-2">
-                      {!isOwnerView && project.photos && project.photos.length > 0 && (
-                        <div key="media-actions" className="flex gap-2">
-                          <Button
-                            onClick={toggleSelectAll}
-                            variant="outline"
-                            size="sm"
-                            className="border-purple-300 text-black hover:bg-green-600 hover:text-white transition-colors"
-                          >
-                            {selectedMediaIds.length === project.photos.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
-                          </Button>
-                          {selectedMediaIds.length > 0 && (
-                            <Button
-                              onClick={handleDeleteSelected}
-                              variant="destructive"
-                              size="sm"
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              <Trash2 size={16} className="ms-1" />
-                              حذف المحدد ({selectedMediaIds.length})
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                      {!isOwnerView && (
-                        <Button onClick={() => setIsUploadModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 shadow-md">
-                          <UploadCloud size={18} className="ms-2" /> رفع وسائط جديدة
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  {project.photos && project.photos.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                      {project.photos.map((photo, index) => {
-                        const mediaType = photo.fileType || 'image';
-
-                        return (
-                          <div key={photo.id || `photo-${index}`} className="group relative rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 bg-white border border-gray-200 flex flex-col">
-                            {/* Selection Checkbox */}
-                            {!isOwnerView && (
-                              <div className="absolute top-2 left-2 z-20">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedMediaIds.includes(photo.id)}
-                                  onChange={() => toggleMediaSelection(photo.id)}
-                                  className="w-5 h-5 cursor-pointer accent-purple-600 rounded"
-                                />
-                              </div>
-                            )}
-
-                            {/* Delete Button */}
-                            {!isOwnerView && (
-                              <button
-                                onClick={() => handleDeleteMedia(photo.id)}
-                                className="absolute bottom-2 left-2 z-20 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg"
-                                title="حذف"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            )}
-
-                            {mediaType === 'image' ? (
-                              <div className="aspect-square relative bg-gray-200">
-                                <Image
-                                  src={photo.src}
-                                  alt={photo.alt}
-                                  fill
-                                  className="object-cover transition-transform duration-300 group-hover:scale-110"
-                                  data-ai-hint={photo.dataAiHint}
-                                />
-                                <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
-                                  <FileImage size={14} />
-                                  صورة
-                                </div>
-                              </div>
-                            ) : mediaType === 'video' ? (
-                              <div className="aspect-square relative bg-black">
-                                <video
-                                  src={photo.src}
-                                  controls
-                                  className="w-full h-full object-contain"
-                                  preload="metadata"
-                                >
-                                  متصفحك لا يدعم تشغيل الفيديو.
-                                </video>
-                                <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
-                                  <Video size={14} />
-                                  فيديو
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="aspect-square relative bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center p-4">
-                                <File size={48} className="text-gray-400 mb-3" />
-                                <p className="text-sm text-gray-600 text-center font-medium">{photo.caption || photo.alt}</p>
-                                <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
-                                  <File size={14} />
-                                  مستند
-                                </div>
-                              </div>
-                            )}
-
-                            {photo.caption && (
-                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent text-white p-3 text-sm text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <p className="font-medium drop-shadow-lg">{photo.caption}</p>
-                              </div>
-                            )}
                           </div>
                         );
                       })}
                     </div>
-                  ) : (
-                    <div className="text-center py-16 bg-gradient-to-br from-gray-50 to-purple-50 rounded-xl border-2 border-dashed border-gray-300">
-                      <div className="inline-flex items-center justify-center w-20 h-20 bg-purple-100 rounded-full mb-4">
-                        <ImageIcon className="h-10 w-10 text-purple-500" />
+
+                    <div className="mt-8">
+                      <h3 className="text-lg font-semibold mb-4 text-gray-800">قائمة المهام</h3>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-right">المهمة</TableHead>
+                            <TableHead className="text-right">اللون</TableHead>
+                            <TableHead className="text-right">تاريخ البدء</TableHead>
+                            <TableHead className="text-right">تاريخ الانتهاء</TableHead>
+                            <TableHead className="text-right">المدة</TableHead>
+                            <TableHead className="text-right">الحالة</TableHead>
+                            <TableHead className="text-right">الإجراءات</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {project.timelineTasks.map((task, index) => {
+                            const startDate = new Date(task.startDate);
+                            const endDate = new Date(task.endDate);
+                            const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+                            return (
+                              <TableRow key={task.id || `timeline-task-${index}`} className="hover:bg-gray-50">
+                                <TableCell className="font-medium">{task.name}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-6 h-6 rounded-full border-2 border-gray-300 shadow-sm"
+                                      style={{ backgroundColor: task.color }}
+                                    />
+                                    <span className="text-xs text-gray-500 font-mono">{task.color}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm">
+                                    <div className="font-medium">{formatDate(task.startDate)}</div>
+                                    <div className="text-xs text-gray-500">
+                                      {startDate.toLocaleDateString('en-US', { weekday: 'short' })}
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm">
+                                    <div className="font-medium">{formatDate(task.endDate)}</div>
+                                    <div className="text-xs text-gray-500">
+                                      {endDate.toLocaleDateString('en-US', { weekday: 'short' })}
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm font-medium text-blue-600">
+                                    {duration} يوم
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant={task.status === 'مكتمل' ? 'default' : task.status === 'قيد التنفيذ' ? 'secondary' : 'outline'}
+                                    className={cn(
+                                      task.status === 'مكتمل' && 'bg-green-100 text-green-800',
+                                      task.status === 'قيد التنفيذ' && 'bg-yellow-100 text-yellow-800',
+                                      task.status === 'مخطط له' && 'bg-blue-100 text-blue-800'
+                                    )}
+                                  >
+                                    {task.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {!isOwnerView && (
+                                    <div className="flex gap-2">
+                                      <Button variant="outline" size="sm" onClick={() => openEditTaskModal(task)}>
+                                        <FileEdit size={14} />
+                                      </Button>
+                                      <Button variant="outline" size="sm" onClick={() => handleDeleteTask(task.id)}>
+                                        <Trash2 size={14} />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <GanttChartSquare className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                    <p className="text-gray-500 mb-6">لا يوجد جدول زمني محدد لهذا المشروع بعد.</p>
+                    {!isOwnerView && (
+                      <Button onClick={() => setIsAddTaskModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+                        <Plus size={18} className="ms-2" /> إضافة أول مهمة
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="media" className="space-y-8">
+            <Card className="bg-white shadow-xl border-t-4 border-t-purple-500 rounded-lg overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <ImageIcon size={28} className="text-purple-600" /> وسائط المشروع
+                    {project.photos && project.photos.length > 0 && (
+                      <Badge variant="secondary" className="text-sm">
+                        {project.photos.length}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <div className="flex flex-wrap gap-2">
+                    {!isOwnerView && project.photos && project.photos.length > 0 && (
+                      <div key="media-actions" className="flex gap-2">
+                        <Button
+                          onClick={toggleSelectAll}
+                          variant="outline"
+                          size="sm"
+                          className="border-purple-300 text-black hover:bg-green-600 hover:text-white transition-colors"
+                        >
+                          {selectedMediaIds.length === project.photos.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
+                        </Button>
+                        {selectedMediaIds.length > 0 && (
+                          <Button
+                            onClick={handleDeleteSelected}
+                            variant="destructive"
+                            size="sm"
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            <Trash2 size={16} className="ms-1" />
+                            حذف المحدد ({selectedMediaIds.length})
+                          </Button>
+                        )}
                       </div>
-                      <p className="text-gray-600 text-lg mb-6 font-medium">لا توجد وسائط مرفوعة لهذا المشروع حالياً</p>
-                      {!isOwnerView && (
-                        <Button onClick={() => setIsUploadModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 shadow-lg">
-                          <UploadCloud size={18} className="ms-2" /> رفع أول وسائط
+                    )}
+                    {!isOwnerView && (
+                      <Button onClick={() => setIsUploadModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 shadow-md">
+                        <UploadCloud size={18} className="ms-2" /> رفع وسائط جديدة
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {project.photos && project.photos.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {project.photos.map((photo, index) => {
+                      const mediaType = photo.fileType || 'image';
+
+                      return (
+                        <div key={photo.id || `photo-${index}`} className="group relative rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 bg-white border border-gray-200 flex flex-col">
+                          {/* Selection Checkbox */}
+                          {!isOwnerView && (
+                            <div className="absolute top-2 left-2 z-20">
+                              <input
+                                type="checkbox"
+                                checked={selectedMediaIds.includes(photo.id)}
+                                onChange={() => toggleMediaSelection(photo.id)}
+                                className="w-5 h-5 cursor-pointer accent-purple-600 rounded"
+                              />
+                            </div>
+                          )}
+
+                          {/* Delete Button */}
+                          {!isOwnerView && (
+                            <button
+                              onClick={() => handleDeleteMedia(photo.id)}
+                              className="absolute bottom-2 left-2 z-20 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg"
+                              title="حذف"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+
+                          {mediaType === 'image' ? (
+                            <div className="aspect-square relative bg-gray-200">
+                              <Image
+                                src={photo.src}
+                                alt={photo.alt}
+                                fill
+                                className="object-cover transition-transform duration-300 group-hover:scale-110"
+                                data-ai-hint={photo.dataAiHint}
+                              />
+                              <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
+                                <FileImage size={14} />
+                                صورة
+                              </div>
+                            </div>
+                          ) : mediaType === 'video' ? (
+                            <div className="aspect-square relative bg-black">
+                              <video
+                                src={photo.src}
+                                controls
+                                className="w-full h-full object-contain"
+                                preload="metadata"
+                              >
+                                متصفحك لا يدعم تشغيل الفيديو.
+                              </video>
+                              <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
+                                <Video size={14} />
+                                فيديو
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="aspect-square relative bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center p-4">
+                              <File size={48} className="text-gray-400 mb-3" />
+                              <p className="text-sm text-gray-600 text-center font-medium">{photo.caption || photo.alt}</p>
+                              <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
+                                <File size={14} />
+                                مستند
+                              </div>
+                            </div>
+                          )}
+
+                          {photo.caption && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent text-white p-3 text-sm text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <p className="font-medium drop-shadow-lg">{photo.caption}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-16 bg-gradient-to-br from-gray-50 to-purple-50 rounded-xl border-2 border-dashed border-gray-300">
+                    <div className="inline-flex items-center justify-center w-20 h-20 bg-purple-100 rounded-full mb-4">
+                      <ImageIcon className="h-10 w-10 text-purple-500" />
+                    </div>
+                    <p className="text-gray-600 text-lg mb-6 font-medium">لا توجد وسائط مرفوعة لهذا المشروع حالياً</p>
+                    {!isOwnerView && (
+                      <Button onClick={() => setIsUploadModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 shadow-lg">
+                        <UploadCloud size={18} className="ms-2" /> رفع أول وسائط
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="costs" className="space-y-8">
+            <Card className="bg-white shadow-xl border-t-4 border-t-teal-500 rounded-lg overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                  <Wallet size={28} /> تقارير التكاليف
+                  {costReports.length > 0 && (
+                    <Badge variant="secondary" className="text-sm">
+                      {costReports.length}
+                    </Badge>
+                  )}
+                </CardTitle>
+                <div className="flex flex-wrap gap-2">
+                  {!isOwnerView && costReports.length > 0 && (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={toggleSelectAllCostReports}
+                        variant="outline"
+                        size="sm"
+                        className="border-teal-300 text-black hover:bg-green-600 hover:text-white transition-colors"
+                      >
+                        {selectedCostReports.length === costReports.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
+                      </Button>
+                      {selectedCostReports.length > 0 && (
+                        <Button
+                          onClick={handleDeleteSelectedCostReports}
+                          variant="destructive"
+                          size="sm"
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          <Trash2 size={16} className="ms-1" />
+                          حذف المحدد ({selectedCostReports.length})
                         </Button>
                       )}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="costs" className="space-y-8">
-              <Card className="bg-white shadow-xl border-t-4 border-t-teal-500 rounded-lg overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50 flex flex-row justify-between items-center">
-                  <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    <Wallet size={28} /> تقارير التكاليف
-                  </CardTitle>
                   {!isOwnerView && (
                     <Button onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold">
                       <Plus size={18} className="ms-2" /> إضافة تقرير جديد
                     </Button>
                   )}
-                </CardHeader>
-                <CardContent>
-                  {costReports.length > 0 ? (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                          <p className="text-sm text-blue-700 mb-1">عدد التقارير</p>
-                          <p className="text-2xl font-bold text-blue-900">{costReports.length.toLocaleString('en-US')}</p>
-                        </div>
-                        <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-                          <p className="text-sm text-green-700 mb-1">إجمالي التكاليف</p>
-                          <p className="text-2xl font-bold text-green-900">
-                            {costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0).toLocaleString('en-US')} شيكل
-                          </p>
-                        </div>
-                        <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
-                          <p className="text-sm text-purple-700 mb-1">متوسط التكلفة</p>
-                          <p className="text-2xl font-bold text-purple-900">
-                            {Math.round(costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0) / costReports.length).toLocaleString('en-US')} شيكل
-                          </p>
-                        </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {costReports.length > 0 ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <p className="text-sm text-blue-700 mb-1">عدد التقارير</p>
+                        <p className="text-2xl font-bold text-blue-900">{costReports.length.toLocaleString('en-US')}</p>
                       </div>
-
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="text-right">اسم التقرير</TableHead>
-                            <TableHead className="text-right">التكلفة (شيكل)</TableHead>
-                            <TableHead className="text-right">التاريخ</TableHead>
-                            <TableHead className="text-right">الإجراءات</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {costReports.map((report, index) => (
-                            <TableRow key={report.id || `cost-report-${index}`}>
-                              <TableCell className="font-medium">{report.reportName}</TableCell>
-                              <TableCell className="font-semibold text-green-700">{report.totalCost_ILS.toLocaleString('en-US')}</TableCell>
-                              <TableCell>{new Date(report.createdAt).toLocaleDateString('en-US')}</TableCell>
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  <Button variant="outline" size="sm" onClick={() => handleDownloadReport(report)}>
-                                    <Download size={14} />
-                                  </Button>
-                                  <Button variant="outline" size="sm" onClick={() => handleDeleteCostReport(report.id)} className="text-red-500 hover:bg-red-50 hover:text-red-600 border-red-200">
-                                    <Trash2 size={14} />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-
-                      <div className="flex justify-between items-center pt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                        <p className="font-bold text-base text-gray-800">الإجمالي الكلي:</p>
-                        <p className="font-bold text-xl text-green-700">
+                      <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                        <p className="text-sm text-green-700 mb-1">إجمالي التكاليف</p>
+                        <p className="text-2xl font-bold text-green-900">
                           {costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0).toLocaleString('en-US')} شيكل
                         </p>
                       </div>
+                      <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                        <p className="text-sm text-purple-700 mb-1">متوسط التكلفة</p>
+                        <p className="text-2xl font-bold text-purple-900">
+                          {Math.round(costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0) / costReports.length).toLocaleString('en-US')} شيكل
+                        </p>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Wallet className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                      <p className="text-gray-500 text-sm mb-6">لا توجد تقارير تكاليف محفوظة لهذا المشروع بعد.</p>
-                      {!isOwnerView && (
-                        <Button onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold">
-                          <Plus size={18} className="ms-2" /> إضافة أول تقرير
-                        </Button>
-                      )}
+
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {!isOwnerView && <TableHead className="text-right w-12">تحديد</TableHead>}
+                          <TableHead className="text-right">اسم التقرير</TableHead>
+                          <TableHead className="text-right">التكلفة (شيكل)</TableHead>
+                          <TableHead className="text-right">التاريخ</TableHead>
+                          <TableHead className="text-right">الإجراءات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {costReports.map((report, index) => (
+                          <TableRow 
+                            key={report.id || `cost-report-${index}`}
+                            className={selectedCostReports.includes(report.id) ? "bg-blue-50" : ""}
+                          >
+                            {!isOwnerView && (
+                              <TableCell>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedCostReports.includes(report.id)}
+                                  onChange={() => toggleCostReportSelection(report.id)}
+                                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                              </TableCell>
+                            )}
+                            <TableCell className="font-medium">{report.reportName}</TableCell>
+                            <TableCell className="font-semibold text-green-700">{report.totalCost_ILS.toLocaleString('en-US')}</TableCell>
+                            <TableCell>{new Date(report.createdAt).toLocaleDateString('en-US')}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={() => handleDownloadReport(report)}>
+                                  <Download size={14} />
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => handleDeleteCostReport(report.id)} className="text-red-500 hover:bg-red-50 hover:text-red-600 border-red-200">
+                                  <Trash2 size={14} />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+
+                    <div className="flex justify-between items-center pt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <p className="font-bold text-base text-gray-800">الإجمالي الكلي:</p>
+                      <p className="font-bold text-xl text-green-700">
+                        {costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0).toLocaleString('en-US')} شيكل
+                      </p>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Wallet className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                    <p className="text-gray-500 text-sm mb-6">لا توجد تقارير تكاليف محفوظة لهذا المشروع بعد.</p>
+                    {!isOwnerView && (
+                      <Button onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold">
+                        <Plus size={18} className="ms-2" /> إضافة أول تقرير
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="owner" className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <Card className="bg-white shadow-xl border-t-4 border-t-indigo-500 rounded-lg overflow-hidden h-full">
+                  <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 pb-4">
+                    <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-2">
+                      <Users size={28} /> ربط المالك بالمشروع
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">ابحث عن المالك من قاعدة البيانات أو أدخل بريده الإلكتروني مباشرة</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-2">
+                    <form onSubmit={handleLinkOwnerSubmit} className="space-y-6">
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="ownerSearch" className="font-semibold text-gray-700 flex items-center gap-2 mb-2">
+                            <Search className="h-4 w-4" />
+                            البحث عن المالك:
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="ownerSearch"
+                              value={ownerSearchQuery}
+                              onChange={(e) => {
+                                setOwnerSearchQuery(e.target.value);
+                                searchForOwners(e.target.value);
+                              }}
+                              className="focus:border-indigo-500 focus:ring-indigo-500 pr-12 text-lg py-3" 
+                              placeholder="اكتب اسم المالك أو بريده الإلكتروني..."
+                            />
+                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                            {isSearchingOwners && (
+                              <Loader2 className="absolute left-12 top-1/2 transform -translate-y-1/2 text-indigo-500 h-5 w-5 animate-spin" />
+                            )}
+                          </div>
+                          
+                          {ownerSearchResults.length > 0 && (
+                            <div className="mt-3 border border-gray-200 rounded-lg shadow-md max-h-64 overflow-y-auto bg-white z-10 absolute w-full">
+                              <div className="p-2 bg-gray-50 border-b border-gray-200 font-semibold text-sm text-gray-700">النتائج ({ownerSearchResults.length})</div>
+                              {ownerSearchResults.map(owner => (
+                                <div
+                                  key={owner.id}
+                                  onClick={() => handleOwnerSelect(owner)}
+                                  className="px-4 py-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center justify-between group transition-colors"
+                                >
+                                  <div>
+                                    <div className="font-medium text-gray-800 group-hover:text-indigo-700">{owner.name}</div>
+                                    <div className="text-sm text-gray-500">{owner.email}</div>
+                                  </div>
+                                  <div className="text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Link2 className="h-4 w-4" />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="ownerEmail" className="font-semibold text-gray-700 flex items-center gap-2 mb-2">
+                            <Mail className="h-4 w-4" />
+                            البريد الإلكتروني للمالك:
+                          </Label>
+                          <Input
+                            id="ownerEmail" type="email"
+                            value={linkedOwnerEmailInput}
+                            onChange={(e) => setLinkedOwnerEmailInput(e.target.value)}
+                            className="focus:border-indigo-500 focus:ring-indigo-500 text-lg py-3" placeholder="owner@example.com"
+                          />
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 text-lg shadow-lg transition-all duration-200 transform hover:scale-[1.02]" 
+                      >
+                        <Link2 size={20} className="ms-2" /> 
+                        {project.linkedOwnerEmail ? "تحديث ربط المالك" : "ربط المالك"}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div className="space-y-6">
+                {project.linkedOwnerEmail && (
+                  <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 shadow-lg overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-bold text-blue-800 flex items-center gap-2">
+                        <UserCheck className="h-5 w-5" />
+                        المالك الحالي
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-blue-100">
+                          <Avatar className="h-12 w-12 bg-blue-100 text-blue-600 border-2 border-blue-200">
+                            {project.clientName ? project.clientName.charAt(0) : "U"}
+                          </Avatar>
+                          <div>
+                            <p className="font-semibold text-blue-800">{project.clientName || "غير محدد"}</p>
+                            <p className="text-sm text-blue-600">{project.linkedOwnerEmail}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-100 p-2 rounded-lg">
+                          <CalendarDays className="h-4 w-4" />
+                          <span>تم الربط: {new Date().toLocaleDateString('ar-SA')}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 shadow-lg overflow-hidden">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg font-bold text-amber-800 flex items-center gap-2">
+                      <Info className="h-5 w-5" />
+                      معلومات هامة
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3 text-sm text-amber-700">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <p>سيتم إرسال إشعار تلقائي للمالك عند ربطه بالمشروع</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <p>يمكن للمالك عرض جميع تفاصيل المشروع والتكاليف</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <p>يمكن تحديث معلومات المالك في أي وقت</p>
+                      </div>
+                      <div className="flex items-start gap-2 mt-4 p-3 bg-white/70 rounded-lg border border-amber-200">
+                        <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                        <div className="space-y-1">
+                          <p className="font-semibold text-amber-800">ملاحظة هامة</p>
+                          <p>بعد ربط المالك، سيتمكنه من عرض جميع تفاصيل المشروع والتقارير المالية</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 shadow-lg overflow-hidden">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg font-bold text-purple-800 flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      صلاحيات المالك
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3 text-sm text-purple-700">
+                      <div className="flex items-center gap-2 p-2 bg-white/70 rounded-lg border border-purple-200">
+                        <Eye className="h-4 w-4 text-purple-600" />
+                        <p>عرض تفاصيل المشروع</p>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-white/70 rounded-lg border border-purple-200">
+                        <DollarSign className="h-4 w-4 text-purple-600" />
+                        <p>الاطلاع على تقارير التكاليف</p>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-white/70 rounded-lg border border-purple-200">
+                        <MessageSquare className="h-4 w-4 text-purple-600" />
+                        <p>التواصل مع المهندس</p>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-white/70 rounded-lg border border-purple-200">
+                        <FileText className="h-4 w-4 text-purple-600" />
+                        <p>تنزيل التقارير بصيغة PDF</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Modals */}
@@ -2190,6 +2486,6 @@ export default function EngineerProjectDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

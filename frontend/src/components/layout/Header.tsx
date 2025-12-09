@@ -12,6 +12,7 @@ import {
 import NotificationsFixed from './NotificationsFixed';
 import WhatsAppIcon from '../icons/WhatsAppIcon';
 import { APP_LOGO_SRC } from '@/lib/branding';
+import { useSettings } from '@/contexts/SettingsContext';
 
 // --- آية الكرسي مقسمة إلى أجزاء ---
 const ayatAlKursiParts = [
@@ -447,6 +448,9 @@ const SocialAndClock = () => {
 
 // مكون الشعار والعنوان بتصميم توهج ذهبي
 const LogoAndTitle = () => {
+  const { settings } = useSettings();
+  const siteName = settings?.siteName || "المحترف لحساب الكميات";
+
   return (
     <Link
       href="/"
@@ -501,7 +505,7 @@ const LogoAndTitle = () => {
       {/* تفاصيل العنوان */}
       <div className="hidden md:block">
         <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 group-hover:from-yellow-300 group-hover:to-yellow-500 transition-all duration-300">
-          المحترف لحساب الكميات
+          {siteName}
         </h1>
         <p className="text-lg text-gray-300 group-hover:text-yellow-100 transition-colors duration-300 font-medium">
           للحديد والباطون والابنية الانشائية
@@ -517,7 +521,7 @@ const LogoAndTitle = () => {
       </div>
       <div className="md:hidden">
         <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-300 group-hover:from-yellow-300 group-hover:to-yellow-500 transition-all duration-300">
-          المحترف
+          {siteName.split(' ')[0] || "المحترف"}
         </h1>
         <p className="text-sm text-gray-300 group-hover:text-yellow-100 transition-colors duration-300 font-medium">
           لحساب الكميات

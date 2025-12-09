@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
 const User = require('../models/User');
+const Setting = require('../models/Setting');
 
 // دالة للتحقق من نطاق البريد الإلكتروني المسموح به لأصحاب الممتلكات
 function isEmailDomainAllowedForOwner(email) {
@@ -109,6 +110,35 @@ router.post('/login', async (req, res) => {
     if (!email || !password_input) {
       return res.status(400).json({ success: false, message: 'Missing credentials' });
     }
+
+    // --- Maintenance Mode Check ---
+    try {
+      // Find the LATEST updated settings document (or just the first one if only one exists)
+      const settings = await Setting.findOne().sort({ updatedAt: -1 });
+      if (settings && settings.maintenanceMode) {
+        // We need to know the user's role before hashing/checking password, or check it after.
+        // Let's check user existence first (which we do next anyway).
+        const userForCheck = await User.findOne({ email: email.toLowerCase() });
+        if (userForCheck) {
+          // If maintenance is ON, allow ONLY 'ADMIN' (and 'SUPERADMIN' if you have it)
+          const role = userForCheck.role ? userForCheck.role.toUpperCase() : '';
+          const allowedRoles = ['ADMIN', 'SUPERADMIN'];
+          if (!allowedRoles.includes(role)) {
+             return res.status(503).json({ // 503 Service Unavailable is appropriate
+               success: false,
+               message: 'الموقع تحت الصيانة حالياً. يرجى المحاولة لاحقاً.', // "The site is currently under maintenance"
+               errorType: 'maintenance_mode'
+             });
+          }
+        }
+      }
+    } catch (settingErr) {
+      console.error('[login] Error checking settings for maintenance mode:', settingErr);
+      // Fallback: Proceed cautiously or block? 
+      // Usually better to fail open or log error, but for maintenance critical, maybe fail open (allow login) 
+      // or just ignore. We'll proceed.
+    }
+    // ------------------------------
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {

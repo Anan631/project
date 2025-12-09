@@ -9,7 +9,6 @@ const settingSchema = new mongoose.Schema(
     emailNotificationsEnabled: Boolean,
     loginAttemptsLimit: Number,
     passwordResetExpiry: Number,
-    twoFactorAuth: Boolean,
     notificationEmail: String,
     notificationFrequency: String,
     allowedFileTypes: [String],

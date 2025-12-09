@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, Edit, UserPlus, KeyRound, UserCheck, Search, AlertTriangle, Check, RefreshCw, Users, Shield, Building, UserCog, Filter, MoreVertical, Mail, Phone, Calendar, Clock, ArrowRight, UserCheck2, Ban, RotateCcw, Settings } from "lucide-react";
+import { Loader2, Trash2, Edit, UserPlus, KeyRound, UserCheck, Search, AlertTriangle, Check, RefreshCw, Users, Shield, Building, UserCog, Filter, MoreVertical, Mail, Phone, Calendar, Clock, ArrowRight, UserCheck2, Ban, RotateCcw, Settings, Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { type UserDocument as User, deleteUser as dbDeleteUser, getUsers, suspendUser, approveEngineer, restoreUser, } from "@/lib/db";
@@ -18,6 +18,57 @@ import AdminSettingsDialog from "@/components/admin/users/AdminSettingsDialog";
 
 // إضافة الأنيميشن المخصصة
 const customStyles = `
+/* Print-specific styles */
+@media print {
+  body {
+    background-color: white;
+    color: black;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block;
+  }
+  
+  .table-container {
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+  
+  .user-table {
+    font-size: 12px;
+  }
+  
+  .user-table th {
+    background-color: #f2f2f2;
+    color: #000;
+    border: 1px solid #000;
+  }
+  
+  .user-table td {
+    border: 1px solid #000;
+    padding: 8px;
+  }
+  
+  .page-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .page-header h1 {
+    font-size: 24px;
+    margin: 0;
+  }
+  
+  .page-header p {
+    font-size: 14px;
+    margin: 5px 0 0 0;
+  }
+}
+
 @keyframes spin-slow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -105,6 +156,7 @@ export default function AdminUsersPage() {
   const [isAdminSettingsDialogOpen, setIsAdminSettingsDialogOpen] = useState(false);
   const [adminName, setAdminName] = useState<string>("");
   const [adminEmail, setAdminEmail] = useState<string>("");
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   useEffect(() => {
     const id = localStorage.getItem("userId");
@@ -292,7 +344,6 @@ export default function AdminUsersPage() {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       'ACTIVE': { color: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'نشط' },
-      'PENDING_APPROVAL': { color: 'bg-amber-100 text-amber-700 border-amber-200', label: 'بانتظار الموافقة' },
       'SUSPENDED': { color: 'bg-orange-100 text-orange-700 border-orange-200', label: 'معلق' },
       'DELETED': { color: 'bg-red-100 text-red-700 border-red-200', label: 'محذوف' }
     };
@@ -311,7 +362,8 @@ export default function AdminUsersPage() {
       engineer: users.filter(user => user.role === 'ENGINEER').length,
       owner: users.filter(user => user.role === 'OWNER').length,
       active: users.filter(user => user.status === 'ACTIVE').length,
-      pending: users.filter(user => user.status === 'PENDING_APPROVAL').length,
+      suspended: users.filter(user => user.status === 'SUSPENDED').length,
+      deleted: users.filter(user => user.status === 'DELETED').length,
     };
     return stats;
   };
@@ -328,16 +380,464 @@ export default function AdminUsersPage() {
     setIsEditUserDialogOpen(false);
   };
   
+  // Function to generate and download PDF report
+  const downloadUsersPDF = () => {
+    setIsGeneratingPDF(true);
+    
+    try {
+      // Create a new window for PDF generation
+      const printWindow = window.open('', '_blank');
+      
+      if (!printWindow) {
+        toast({
+          title: "❌ خطأ",
+          description: "تعذر فتح نافذة جديدة. يرجى التحقق من إعدادات المنع النافذة المنبثقة.",
+          variant: "destructive",
+        });
+        setIsGeneratingPDF(false);
+        return;
+      }
+      
+      // الحصول على التاريخ والوقت الحالي
+      const now = new Date();
+      const reportDate = now.toLocaleDateString("ar-EG", {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      const reportTime = now.toLocaleTimeString("ar-EG", {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      // Write the HTML content for the PDF
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>تقرير المستخدمين - ${reportDate}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
+            
+            * {
+              box-sizing: border-box;
+              margin: 0;
+              padding: 0;
+            }
+            
+            body {
+              font-family: 'Tajawal', sans-serif;
+              padding: 15px;
+              color: #333;
+              font-size: 12px;
+              line-height: 1.3;
+            }
+            
+            .container {
+              width: 100%;
+              max-width: 100%;
+            }
+            
+            .header {
+              text-align: center;
+              margin-bottom: 15px;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #3b82f6;
+            }
+            
+            .header h1 {
+              font-size: 18px;
+              color: #1e40af;
+              margin-bottom: 5px;
+            }
+            
+            .header p {
+              font-size: 11px;
+              color: #666;
+            }
+            
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 12px;
+              padding: 8px;
+              background: #f8fafc;
+              border-radius: 6px;
+              font-size: 11px;
+            }
+            
+            .info-item {
+              text-align: center;
+            }
+            
+            .info-label {
+              color: #666;
+              margin-bottom: 2px;
+            }
+            
+            .info-value {
+              font-weight: bold;
+              color: #1e40af;
+            }
+            
+            .stats-container {
+              display: grid;
+              grid-template-columns: repeat(6, 1fr);
+              gap: 6px;
+              margin-bottom: 15px;
+            }
+            
+            .stat-box {
+              padding: 8px 4px;
+              text-align: center;
+              border: 1px solid #e5e7eb;
+              border-radius: 5px;
+              background: white;
+            }
+            
+            .stat-number {
+              font-size: 16px;
+              font-weight: bold;
+              margin-bottom: 3px;
+            }
+            
+            .stat-label {
+              font-size: 10px;
+              color: #666;
+            }
+            
+            .stat-admin .stat-number { color: #8b5cf6; }
+            .stat-engineer .stat-number { color: #3b82f6; }
+            .stat-owner .stat-number { color: #10b981; }
+            .stat-active .stat-number { color: #10b981; }
+            .stat-suspended .stat-number { color: #f59e0b; }
+            .stat-deleted .stat-number { color: #ef4444; }
+            .stat-total .stat-number { color: #6b7280; }
+            
+            .table-section {
+              margin-bottom: 15px;
+            }
+            
+            .section-title {
+              font-size: 14px;
+              color: #1e40af;
+              margin-bottom: 8px;
+              text-align: center;
+              padding-bottom: 5px;
+              border-bottom: 1px solid #e5e7eb;
+            }
+            
+            .compact-table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 10px;
+            }
+            
+            .compact-table th {
+              background: #f8fafc;
+              padding: 6px 4px;
+              text-align: right;
+              font-weight: bold;
+              border: 1px solid #e5e7eb;
+              color: #374151;
+            }
+            
+            .compact-table td {
+              padding: 5px 4px;
+              border: 1px solid #e5e7eb;
+              text-align: right;
+            }
+            
+            .compact-table tr:nth-child(even) {
+              background: #f9fafb;
+            }
+            
+            .role-badge, .status-badge {
+              display: inline-block;
+              padding: 2px 6px;
+              border-radius: 3px;
+              font-size: 9px;
+              font-weight: 500;
+            }
+            
+            .role-admin { background: #ede9fe; color: #7c3aed; }
+            .role-engineer { background: #dbeafe; color: #1d4ed8; }
+            .role-owner { background: #d1fae5; color: #047857; }
+            
+            .status-active { background: #d1fae5; color: #047857; }
+            .status-suspended { background: #ffedd5; color: #ea580c; }
+            .status-deleted { background: #fee2e2; color: #dc2626; }
+            
+            .summary {
+              background: #f8fafc;
+              padding: 10px;
+              border-radius: 6px;
+              margin-top: 15px;
+              border: 1px solid #e5e7eb;
+            }
+            
+            .summary-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 4px;
+              font-size: 11px;
+            }
+            
+            .summary-label {
+              color: #666;
+            }
+            
+            .summary-value {
+              font-weight: bold;
+              color: #1e40af;
+            }
+            
+            .footer {
+              text-align: center;
+              margin-top: 15px;
+              padding-top: 10px;
+              border-top: 1px solid #e5e7eb;
+              color: #666;
+              font-size: 10px;
+            }
+            
+            .signature {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 10px;
+              padding-top: 8px;
+              border-top: 1px dashed #ccc;
+              font-size: 10px;
+            }
+            
+            .signature-item {
+              text-align: center;
+            }
+            
+            @media print {
+              body {
+                padding: 10px;
+                font-size: 11px;
+              }
+              
+              .header h1 {
+                font-size: 16px;
+              }
+              
+              .compact-table {
+                font-size: 9px;
+              }
+              
+              .stats-container {
+                grid-template-columns: repeat(6, 1fr);
+                gap: 4px;
+              }
+              
+              .stat-box {
+                padding: 6px 3px;
+              }
+              
+              .stat-number {
+                font-size: 14px;
+              }
+              
+              .stat-label {
+                font-size: 9px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <!-- Header -->
+            <div class="header">
+              <h1>تقرير المستخدمين</h1>
+              <p>تم إنشاء التقرير في ${reportDate} الساعة ${reportTime}</p>
+            </div>
+            
+            <!-- Info Row -->
+            <div class="info-row">
+              <div class="info-item">
+                <div class="info-label">المشرف المسؤول</div>
+                <div class="info-value">${adminName}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">البريد الإلكتروني</div>
+                <div class="info-value">${adminEmail}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">عدد المستخدمين</div>
+                <div class="info-value">${filteredUsers.length} مستخدم</div>
+              </div>
+            </div>
+            
+            <!-- Statistics - Compact Grid -->
+            <div class="stats-container">
+              <div class="stat-box stat-total">
+                <div class="stat-number">${stats.total}</div>
+                <div class="stat-label">الإجمالي</div>
+              </div>
+              <div class="stat-box stat-admin">
+                <div class="stat-number">${stats.admin}</div>
+                <div class="stat-label">المشرفين</div>
+              </div>
+              <div class="stat-box stat-engineer">
+                <div class="stat-number">${stats.engineer}</div>
+                <div class="stat-label">المهندسين</div>
+              </div>
+              <div class="stat-box stat-owner">
+                <div class="stat-number">${stats.owner}</div>
+                <div class="stat-label">المالكين</div>
+              </div>
+              <div class="stat-box stat-active">
+                <div class="stat-number">${stats.active}</div>
+                <div class="stat-label">النشطين</div>
+              </div>
+              <div class="stat-box stat-suspended">
+                <div class="stat-number">${stats.suspended}</div>
+                <div class="stat-label">المعلقين</div>
+              </div>
+            </div>
+            
+            <!-- Users Table -->
+            <div class="table-section">
+              <h3 class="section-title">قائمة المستخدمين</h3>
+              <table class="compact-table">
+                <thead>
+                  <tr>
+                    <th width="25%">الاسم</th>
+                    <th width="30%">البريد الإلكتروني</th>
+                    <th width="15%">الدور</th>
+                    <th width="15%">الحالة</th>
+                    <th width="15%">تاريخ الإنشاء</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filteredUsers.map(user => {
+                    const createdAt = user.createdAt ? 
+                      new Date(user.createdAt).toLocaleDateString('ar-EG') : 
+                      'غير محدد';
+                    
+                    return `
+                      <tr>
+                        <td>${user.name}</td>
+                        <td>${user.email}</td>
+                        <td>
+                          <span class="role-badge ${
+                            user.role === 'ADMIN' ? 'role-admin' :
+                            user.role === 'ENGINEER' ? 'role-engineer' :
+                            'role-owner'
+                          }">
+                            ${user.role === 'ADMIN' ? 'مشرف' : 
+                              user.role === 'ENGINEER' ? 'مهندس' : 
+                              'مالك'}
+                          </span>
+                        </td>
+                        <td>
+                          <span class="status-badge ${
+                            user.status === 'ACTIVE' ? 'status-active' :
+                            user.status === 'SUSPENDED' ? 'status-suspended' :
+                            'status-deleted'
+                          }">
+                            ${
+                              user.status === 'ACTIVE' ? 'نشط' :
+                              user.status === 'SUSPENDED' ? 'معلق' :
+                              'محذوف'
+                            }
+                          </span>
+                        </td>
+                        <td>${createdAt}</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Summary -->
+            <div class="summary">
+              <div class="summary-row">
+                <span class="summary-label">إجمالي المستخدمين:</span>
+                <span class="summary-value">${stats.total} مستخدم</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">النسبة النشطة:</span>
+                <span class="summary-value">${stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}%</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">النسبة المعلقة:</span>
+                <span class="summary-value">${stats.total > 0 ? Math.round((stats.suspended / stats.total) * 100) : 0}%</span>
+              </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="footer">
+              <p>تم إنشاء هذا التقرير تلقائياً بواسطة نظام إدارة المستخدمين</p>
+              <p>© ${now.getFullYear()} - جميع الحقوق محفوظة</p>
+              
+              <div class="signature">
+                <div class="signature-item">
+                  <div>المشرف المسؤول:</div>
+                  <div><strong>${adminName}</strong></div>
+                </div>
+                <div class="signature-item">
+                  <div>التوقيع:</div>
+                  <div>________________</div>
+                </div>
+                <div class="signature-item">
+                  <div>التاريخ:</div>
+                  <div><strong>${reportDate}</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      // Write the content to the new window
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      // Wait for the content to be rendered
+      setTimeout(() => {
+        // Trigger the print dialog
+        printWindow.print();
+        
+        toast({
+          title: "✅ تم إنشاء التقرير",
+          description: "تم فتح نافذة الطباعة لتنزيل التقرير كـ PDF",
+        });
+      }, 500);
+      
+      // Add event listener to close the window after printing is done
+      printWindow.onafterprint = () => {
+        // يمكن إبقاء النافذة مفتوحة أو إغلاقها حسب الرغبة
+        // printWindow.close();
+      };
+      
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "❌ خطأ في إنشاء التقرير",
+        description: "حدث خطأ أثناء إنشاء التقرير",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   const handleAdminSettingsUpdated = () => {
-    // تحديث بيانات المشرف من التخزين المحلي
     const name = localStorage.getItem("userName") || "مشرف";
     const email = localStorage.getItem("userEmail") || "admin@example.com";
     setAdminName(name);
     setAdminEmail(email);
-    refreshUsersFromDb(); // تحديث قائمة المستخدمين
+    refreshUsersFromDb();
   };
   
-  // جلب بيانات المشرف من قاعدة البيانات عند فتح نافذة الإعدادات
   const fetchAdminData = async () => {
     if (!adminUserId) return;
     
@@ -346,21 +846,15 @@ export default function AdminUsersPage() {
       const adminData = await findUserById(adminUserId);
       
       if (adminData) {
-        console.log("Admin data from DB:", adminData); // للتأكد من البيانات
-        
-        // تحديث التخزين المحلي بالبيانات من قاعدة البيانات
         localStorage.setItem("userName", adminData.name);
         localStorage.setItem("userEmail", adminData.email);
         
-        // تحديث الحالة مباشرة
         setAdminName(adminData.name);
         setAdminEmail(adminData.email);
         
-        // فرض تحديث المكون بعد فترة قصيرة
         setTimeout(() => {
           setAdminName(adminData.name);
           setAdminEmail(adminData.email);
-          // إرسال حدث مخصص لتحديث المكونات الأخرى
           window.dispatchEvent(new CustomEvent("adminDataUpdated", { 
             detail: { name: adminData.name, email: adminData.email } 
           }));
@@ -373,9 +867,8 @@ export default function AdminUsersPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/30 py-8 px-4">
-      {/* إضافة الأنيميشن المخصصة */}
       <style jsx>{customStyles}</style>
-      
+
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
@@ -448,10 +941,10 @@ export default function AdminUsersPage() {
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl">
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <span className="text-sm font-medium text-slate-700">بانتظار الموافقة</span>
+                <Ban className="h-4 w-4 text-orange-600" />
+                <span className="text-sm font-medium text-slate-700">المعلقين</span>
               </div>
-              <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.suspended}</p>
             </CardContent>
           </Card>
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg rounded-2xl">
@@ -479,16 +972,33 @@ export default function AdminUsersPage() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-3">
-                <Button onClick={refreshUsersFromDb} variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-sky-600 transition-all duration-300 rounded-xl" disabled={isFetching} >
+                <Button onClick={refreshUsersFromDb} variant="outline" className="no-print border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-sky-600 transition-all duration-300 rounded-xl" disabled={isFetching} >
                   <RefreshCw className={`h-4 w-4 ml-2 ${isFetching ? 'animate-spin' : ''}`} />
                   تحديث
                 </Button>
-                <Button onClick={() => setIsAddUserDialogOpen(true)} className="bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-700 hover:to-emerald-700 text-white font-medium rounded-xl transition-all duration-300 hover:scale-105" >
+                <Button onClick={() => setIsAddUserDialogOpen(true)} className="no-print bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-700 hover:to-emerald-700 text-white font-medium rounded-xl transition-all duration-300 hover:scale-105" >
                   <UserPlus className="h-4 w-4 ml-2" />
                   إضافة مستخدم
                 </Button>
+                <Button 
+                  onClick={downloadUsersPDF} 
+                  disabled={isGeneratingPDF || filteredUsers.length === 0}
+                  className="no-print bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-300 hover:scale-105"
+                >
+                  {isGeneratingPDF ? (
+                    <>
+                      <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                      جاري إنشاء التقرير...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 ml-2" />
+                      تنزيل التقرير PDF
+                    </>
+                  )}
+                </Button>
                 {adminUserId && (
-                  <Button onClick={() => setIsAdminSettingsDialogOpen(true)} className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium rounded-xl transition-all duration-300 hover:scale-105" >
+                  <Button onClick={() => setIsAdminSettingsDialogOpen(true)} className="no-print bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium rounded-xl transition-all duration-300 hover:scale-105" >
                     <Settings className="h-4 w-4 ml-2" />
                     إعدادات المشرف
                   </Button>
@@ -533,7 +1043,6 @@ export default function AdminUsersPage() {
                 <SelectContent className="rounded-xl">
                   <SelectItem value="all" className="text-lg">📊 جميع الحالات</SelectItem>
                   <SelectItem value="ACTIVE" className="text-lg">✅ نشط</SelectItem>
-                  <SelectItem value="PENDING_APPROVAL" className="text-lg">⏳ بانتظار الموافقة</SelectItem>
                   <SelectItem value="SUSPENDED" className="text-lg">⚠️ معلق</SelectItem>
                   <SelectItem value="DELETED" className="text-lg">🗑️ محذوف</SelectItem>
                 </SelectContent>
@@ -553,8 +1062,8 @@ export default function AdminUsersPage() {
                 </div>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm">
-                <Table>
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/50 backdrop-blur-sm table-container">
+                <Table className="user-table">
                   <TableHeader className="sticky top-0 z-10">
                     <TableRow className="bg-gradient-to-r from-slate-50 to-blue-50/50 hover:bg-transparent border-b-2 border-slate-100">
                       <TableHead className="text-right font-bold text-slate-700 text-lg py-4">
@@ -619,18 +1128,6 @@ export default function AdminUsersPage() {
                         </TableCell>
                         <TableCell className="py-4">
                           <div className="flex justify-center gap-2">
-                            {user.role === "ENGINEER" && user.status === "PENDING_APPROVAL" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl px-3 py-2 transition-all duration-300 hover:scale-105"
-                                title="موافقة على المهندس"
-                                onClick={() => handleOpenApproveDialog(user)}
-                              >
-                                <UserCheck className="h-4 w-4 ml-1" />
-                                موافقة
-                              </Button>
-                            )}
                             {user.role !== "ADMIN" && (
                               <Button
                                 variant="ghost"

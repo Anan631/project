@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, HardHat, Eye, EyeOff, ArrowLeft, LogIn, Building2, FileText, TrendingUp, Shield } from 'lucide-react';
 import { loginUserAction } from './actions';
 import { type LoginActionResponse } from '@/types/auth';
+import { MaintenanceDialog } from '@/components/auth/MaintenanceDialog';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "البريد الإلكتروني غير صالح." }),
@@ -31,6 +32,7 @@ export default function LoginPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showMaintenanceDialog, setShowMaintenanceDialog] = useState(false);
 
   // Auto redirect if already logged in
   useEffect(() => {
@@ -87,11 +89,15 @@ export default function LoginPage() {
 
         router.push(result.redirectTo || "/engineer/dashboard");
       } else {
-        toast({
-          title: "خطأ في تسجيل الدخول",
-          description: result.message || "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
-          variant: "destructive",
-        });
+        if (result.errorType === 'maintenance_mode') {
+          setShowMaintenanceDialog(true);
+        } else {
+          toast({
+            title: "خطأ في تسجيل الدخول",
+            description: result.message || "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+            variant: "destructive",
+          });
+        }
 
         if (result.fieldErrors) {
           Object.entries(result.fieldErrors).forEach(([field, messages]) => {
@@ -252,6 +258,7 @@ export default function LoginPage() {
 
         </div>
       </div>
-    </AppLayout>
+      <MaintenanceDialog open={showMaintenanceDialog} onOpenChange={setShowMaintenanceDialog} />
+    </AppLayout >
   );
 }

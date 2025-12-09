@@ -10,14 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Save, 
-  Settings as SettingsIcon, 
-  Loader2, 
-  Mail, 
-  ShieldAlert, 
-  Globe, 
-  Upload, 
+import {
+  Save,
+  Settings as SettingsIcon,
+  Loader2,
+  Mail,
+  ShieldAlert,
+  Globe,
+  Upload,
   Bell,
   RefreshCw,
   Eye,
@@ -29,14 +29,23 @@ import {
   Database
 } from 'lucide-react';
 import { getSystemSettings, updateSystemSettings, type SystemSettingsDocument } from '@/lib/db';
+import { useSettings } from '@/contexts/SettingsContext';
 
 export default function AdminSettingsPage() {
   const { toast } = useToast();
+  // We can use the context here too, but for admin page maybe we want fresh fetch or direct control?
+  // The user code used manual fetch. Let's stick to user code style for now but ensure we update context if we can.
+  // Actually, updating the DB will update the backend, but context might need manual refresh if it doesn't poll.
+  // The SettingsProvider fetches on mount. If we update here, other simple user's won't see it until refresh.
+  // That's acceptable for now.
+
   const [settings, setSettings] = useState<SystemSettingsDocument | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [activeTab, setActiveTab] = useState('general');
-  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Hook into global settings to trigger updates if we wanted (optional, but good practice)
+  const { updateSettings: updateGlobalSettings } = useSettings();
 
   useEffect(() => {
     async function fetchSettings() {
@@ -81,21 +90,31 @@ export default function AdminSettingsPage() {
     }
     setIsLoading(true);
 
-    // محاكاة عملية الحفظ
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      // محاكاة عملية الحفظ
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const result = await updateSystemSettings(settings);
+      const result = await updateSystemSettings(settings);
 
-    if (result.success) {
+      if (result.success) {
+        toast({
+          title: "✅ تم الحفظ بنجاح",
+          description: result.message || "تم تحديث إعدادات النظام بنجاح.",
+          variant: "default",
+        });
+        // Update global context so header/footer update immediately without refresh
+        updateGlobalSettings(settings);
+      } else {
+        toast({
+          title: "❌ خطأ في الحفظ",
+          description: result.message || "فشل تحديث إعدادات النظام.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
-        title: "✅ تم الحفظ بنجاح",
-        description: result.message || "تم تحديث إعدادات النظام بنجاح.",
-        variant: "default",
-      });
-    } else {
-      toast({
-        title: "❌ خطأ في الحفظ",
-        description: result.message || "فشل تحديث إعدادات النظام.",
+        title: "❌ خطأ",
+        description: "حدث خطأ غير متوقع",
         variant: "destructive",
       });
     }
@@ -106,25 +125,29 @@ export default function AdminSettingsPage() {
     window.location.reload();
   };
 
-  const handleResetSection = (section: string) => {
+  const handleRestoreDefaults = () => {
     if (!settings) return;
-    
-    const defaultSettings: Partial<SystemSettingsDocument> = {
+
+    // Default system settings
+    const defaultSettings: SystemSettingsDocument = {
+      ...settings, // preserve ID and unrelated fields
+      siteName: "المحترف لحساب الكميات",
       maintenanceMode: false,
-      twoFactorAuth: false,
       emailNotificationsEnabled: true,
       fileScanning: false,
       loginAttemptsLimit: 5,
       passwordResetExpiry: 24,
       maxUploadSizeMB: 10,
-      notificationFrequency: 'instant'
+      notificationFrequency: 'instant',
+      allowedFileTypes: ['pdf', 'docx', 'jpg', 'png', 'mp4'],
+      notificationEmail: settings.notificationEmail // preserve email if changing defaults or reset it? User asked for "default settings". Usually email is config, not default. Let's keep existing email to be safe, or empty it. Prompt implied "Default Settings". Let's assume site name and maintenance are key.
     };
 
-    setSettings(prev => prev ? { ...prev, ...defaultSettings } : null);
-    
+    setSettings(defaultSettings);
+
     toast({
-      title: "🔄 تم الإعادة",
-      description: `تم إعادة تعيين إعدادات ${section} إلى القيم الافتراضية`,
+      title: "🔄 تم استعادة الافتراضي",
+      description: "تم استعادة الإعدادات الافتراضية. يرجى الضغط على حفظ لتأكيد التغييرات.",
       variant: "default",
     });
   };
@@ -192,7 +215,7 @@ export default function AdminSettingsPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-lg border border-slate-200">
               <div className="flex items-center gap-3">
@@ -224,24 +247,24 @@ export default function AdminSettingsPage() {
                   قم بإدارة وتخصيص إعدادات النظام حسب متطلباتك
                 </CardDescription>
               </div>
-              
+
               <div className="flex items-center gap-3">
-                <Button 
+                <Button
                   onClick={handleRefresh}
-                  variant="outline" 
+                  variant="outline"
                   className="border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-sky-600 transition-all duration-300 rounded-xl"
                 >
                   <RefreshCw className="h-4 w-4 ml-2" />
                   تحديث
                 </Button>
-                
+
                 <Button
                   variant="outline"
-                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  onClick={handleRestoreDefaults}
                   className="border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-amber-600 rounded-xl"
                 >
-                  {showAdvanced ? <EyeOff className="h-4 w-4 ml-2" /> : <Eye className="h-4 w-4 ml-2" />}
-                  {showAdvanced ? 'إخفاء المتقدم' : 'عرض المتقدم'}
+                  <RefreshCw className="h-4 w-4 ml-2" />
+                  استعادة الافتراضي
                 </Button>
               </div>
             </div>
@@ -300,25 +323,8 @@ export default function AdminSettingsPage() {
                         <p className="mt-2 text-sm text-slate-500">الاسم الذي سيظهر في أعلى الموقع وشريط العنوان</p>
                       </div>
 
-                      <div>
-                        <Label htmlFor="defaultLanguage" className="block mb-3 font-semibold text-slate-700 flex items-center gap-2">
-                          <Globe className="w-4 h-4 text-sky-600" />
-                          اللغة الافتراضية
-                        </Label>
-                        <Select
-                          value={settings.defaultLanguage}
-                          onValueChange={(value) => handleChange('defaultLanguage', value)}
-                        >
-                          <SelectTrigger className="w-full bg-white border-slate-300 focus:border-sky-400 h-12 rounded-xl text-right">
-                            <SelectValue placeholder="اختر لغة..." />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                            <SelectItem value="ar" className="flex justify-end text-lg">🇸🇦 العربية</SelectItem>
-                            <SelectItem value="en" className="flex justify-end text-lg">🇺🇸 English</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <p className="mt-2 text-sm text-slate-500">اللغة التي سيتم عرض الموقع بها افتراضيًا</p>
-                      </div>
+                      {/* Default Language Section Removed Here */}
+
                     </div>
 
                     <div className="space-y-4">
@@ -349,26 +355,6 @@ export default function AdminSettingsPage() {
                           </Badge>
                         )}
                       </div>
-
-                      {showAdvanced && (
-                        <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200">
-                          <Label className="font-semibold text-amber-700 flex items-center gap-2 mb-3">
-                            <Key className="w-4 h-4" />
-                            الإعدادات المتقدمة
-                          </Label>
-                          <div className="space-y-3">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleResetSection('العامة')}
-                              className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 rounded-xl"
-                            >
-                              <RefreshCw className="h-4 w-4 ml-2" />
-                              إعادة التعيين للإعدادات العامة
-                            </Button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </TabsContent>
@@ -413,47 +399,7 @@ export default function AdminSettingsPage() {
                     </div>
 
                     <div className="space-y-4">
-                      <div className="p-6 bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-2xl border border-slate-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <Label htmlFor="twoFactorAuth" className="font-semibold text-slate-700 flex items-center gap-2 mb-2">
-                              <Shield className="w-5 h-5 text-green-600" />
-                              المصادقة الثنائية
-                            </Label>
-                            <p className="text-sm text-slate-600">
-                              تتطلب تأكيد الهوية عبر تطبيق المصادقة لجميع المستخدمين
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="twoFactorAuth"
-                              checked={settings.twoFactorAuth || false}
-                              onCheckedChange={(checked) => handleChange('twoFactorAuth', !!checked)}
-                              className={`h-6 w-6 ${settings.twoFactorAuth ? 'bg-green-500 border-green-500' : ''}`}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {showAdvanced && (
-                        <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200">
-                          <Label className="font-semibold text-amber-700 flex items-center gap-2 mb-3">
-                            <Key className="w-4 h-4" />
-                            أدوات الأمان المتقدمة
-                          </Label>
-                          <div className="space-y-3">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleResetSection('الأمان')}
-                              className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 rounded-xl"
-                            >
-                              <RefreshCw className="h-4 w-4 ml-2" />
-                              إعادة تعيين إعدادات الأمان
-                            </Button>
-                          </div>
-                        </div>
-                      )}
+                      {/* Advanced Security Tools section removed */}
                     </div>
                   </div>
                 </TabsContent>
@@ -522,26 +468,6 @@ export default function AdminSettingsPage() {
                         </Select>
                         <p className="mt-2 text-sm text-slate-500">معدل إرسال الإشعارات المجمعة للمستخدمين</p>
                       </div>
-
-                      {showAdvanced && (
-                        <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200">
-                          <Label className="font-semibold text-amber-700 flex items-center gap-2 mb-3">
-                            <Key className="w-4 h-4" />
-                            الإعدادات المتقدمة
-                          </Label>
-                          <div className="space-y-3">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleResetSection('الإشعارات')}
-                              className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 rounded-xl"
-                            >
-                              <RefreshCw className="h-4 w-4 ml-2" />
-                              إعادة تعيين إعدادات الإشعارات
-                            </Button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </TabsContent>
@@ -605,26 +531,6 @@ export default function AdminSettingsPage() {
                           </div>
                         </div>
                       </div>
-
-                      {showAdvanced && (
-                        <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-2xl border border-amber-200">
-                          <Label className="font-semibold text-amber-700 flex items-center gap-2 mb-3">
-                            <Key className="w-4 h-4" />
-                            أدوات الملفات المتقدمة
-                          </Label>
-                          <div className="space-y-3">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleResetSection('الملفات')}
-                              className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 rounded-xl"
-                            >
-                              <RefreshCw className="h-4 w-4 ml-2" />
-                              إعادة تعيين إعدادات الملفات
-                            </Button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </TabsContent>
@@ -636,7 +542,7 @@ export default function AdminSettingsPage() {
                       <div className={`w-2 h-2 rounded-full ${isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`}></div>
                       {isLoading ? 'جاري حفظ التغييرات...' : 'جميع التغييرات جاهزة للحفظ'}
                     </div>
-                    
+
                     <Button
                       type="submit"
                       className="w-full lg:w-auto bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-700 hover:to-emerald-700 text-white font-bold py-3 px-8 text-lg rounded-xl shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"

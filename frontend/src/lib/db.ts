@@ -133,7 +133,6 @@ export interface SystemSettingsDocument {
   emailNotificationsEnabled: boolean;
   loginAttemptsLimit: number;
   passwordResetExpiry: number;
-  twoFactorAuth: boolean;
   notificationEmail: string;
   notificationFrequency: string;
   allowedFileTypes: string[];
@@ -206,7 +205,6 @@ export async function getSystemSettings(): Promise<SystemSettingsDocument> {
     emailNotificationsEnabled: true,
     loginAttemptsLimit: 5,
     passwordResetExpiry: 24,
-    twoFactorAuth: false,
     notificationEmail: '',
     notificationFrequency: 'daily',
     allowedFileTypes: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
@@ -548,6 +546,36 @@ export async function deleteUser(userId: string, adminUserId?: string): Promise<
   if (!res.ok || !json.success) return { success: false, message: json.message || 'المستخدم غير موجود.' };
   await logAction('USER_DELETE_SUCCESS_BY_ADMIN', 'INFO', `User ID ${userId} deleted by admin ${adminUserId || ''}.`);
   return { success: true, message: 'تم حذف المستخدم بنجاح.' };
+}
+
+// Search for owners in the database
+export async function searchOwners(query: string): Promise<{ success: boolean, owners?: Array<{id: string, name: string, email: string}>, message?: string }> {
+  try {
+    // Get all users and filter for owners
+    const result = await getUsers();
+    if (!result.success || !result.users) {
+      return { success: false, message: result.message || 'فشل جلب قائمة المستخدمين.' };
+    }
+    
+    // Filter for users with OWNER role and matching the search query
+    const owners = result.users
+      .filter(user => user.role === 'OWNER')
+      .filter(user => 
+        user.name.toLowerCase().includes(query.toLowerCase()) || 
+        user.email.toLowerCase().includes(query.toLowerCase())
+      )
+      .map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email
+      }));
+    
+    return { success: true, owners };
+  } catch (error: any) {
+    console.error('Error searching for owners:', error);
+    await logAction('OWNERS_SEARCH_FAILURE', 'ERROR', `Error searching for owners: ${error.message}`);
+    return { success: false, message: 'فشل البحث عن المالكين.' };
+  }
 }
 
 export async function deleteUserSelf(userId: string): Promise<{ success: boolean, message?: string }> {

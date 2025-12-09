@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Home as HomeIcon, ArrowLeft, Eye, EyeOff, LogIn, Building2, Clock, TrendingUp, Shield } from 'lucide-react';
 import { ownerLoginAction } from './actions';
 import { type LoginActionResponse } from '@/types/auth';
+import { MaintenanceDialog } from '@/components/auth/MaintenanceDialog';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -28,6 +29,7 @@ export default function OwnerLoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showMaintenanceDialog, setShowMaintenanceDialog] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -80,11 +82,15 @@ export default function OwnerLoginPage() {
 
         router.push(result.redirectTo || '/owner/dashboard');
       } else {
-        toast({
-          title: "خطأ في تسجيل الدخول",
-          description: result.message || "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
-          variant: "destructive",
-        });
+        if (result.errorType === 'maintenance_mode') {
+          setShowMaintenanceDialog(true);
+        } else {
+          toast({
+            title: "خطأ في تسجيل الدخول",
+            description: result.message || "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+            variant: "destructive",
+          });
+        }
 
         if (result.fieldErrors) {
           for (const [fieldName, fieldErrorMessages] of Object.entries(result.fieldErrors)) {
@@ -125,7 +131,7 @@ export default function OwnerLoginPage() {
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              
+
               {/* Email */}
               <div>
                 <Label htmlFor="email">البريد الإلكتروني</Label>
@@ -230,6 +236,7 @@ export default function OwnerLoginPage() {
 
         </div>
       </div>
-    </AppLayout>
+      <MaintenanceDialog open={showMaintenanceDialog} onOpenChange={setShowMaintenanceDialog} />
+    </AppLayout >
   );
 }
