@@ -143,7 +143,7 @@ export default function OwnerLoginPage() {
               <div>
                 <div className="flex justify-between mb-2">
                   <Label htmlFor="password_input">كلمة المرور</Label>
-                  <Link href="/forgot-password" className="text-xs text-blue-600">هل نسيت كلمة المرور؟</Link>
+                  <Link href="/owner/forgot-password" className="text-xs text-blue-600">هل نسيت كلمة المرور؟</Link>
                 </div>
 
                 <div className="relative">

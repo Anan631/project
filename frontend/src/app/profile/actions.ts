@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from 'zod';
-import { updateUserProfile, changeUserPassword, deleteUserSelf, getUserById } from '@/lib/db';
+import { updateUser, changeUserPassword, deleteUserSelf, getUserById } from '@/lib/db';
 import type { UserDocument } from '@/lib/db';
 
 // Schema for updating profile
@@ -51,7 +51,7 @@ export async function updateProfileAction(
     };
   }
 
-  const result = await updateUserProfile(validation.data);
+  const result = await updateUser(validation.data.userId, validation.data);
 
   if (!result.success) {
     return {

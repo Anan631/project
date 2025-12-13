@@ -12,6 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserDocument, Project } from '@/lib/db';
 import { getUsers, getProjects } from '@/lib/db';
 
+type Owner = Omit<UserDocument, 'password_hash'>;
+
 interface MaterialItem {
   id: string;
   name: string;
@@ -80,7 +82,7 @@ export default function CostEstimatorForm() {
   const [engineerName, setEngineerName] = useState<string>('');
   const [engineerId, setEngineerId] = useState<string>('');
   const [reportName, setReportName] = useState<string>('');
-  const [owners, setOwners] = useState<UserDocument[]>([]);
+  const [owners, setOwners] = useState<Owner[]>([]);
   const [selectedOwnerId, setSelectedOwnerId] = useState<string>('');
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -103,9 +105,8 @@ export default function CostEstimatorForm() {
       ]);
 
       if (usersResult.success && usersResult.users) {
-        const ownersList: UserDocument[] = usersResult.users
-          .filter(u => u.role === 'OWNER' && u.status === 'ACTIVE')
-          .map(u => ({ ...(u as any), password_hash: (u as any).password_hash ?? '' } as UserDocument));
+        const ownersList: Owner[] = usersResult.users
+          .filter(u => u.role === 'OWNER' && u.status === 'ACTIVE');
         setOwners(ownersList);
       } else {
         toast({ title: "خطأ", description: "فشل تحميل قائمة المالكين.", variant: "destructive" });
@@ -497,7 +498,7 @@ export default function CostEstimatorForm() {
                   <span class="label">تاريخ التقرير</span>
                   <span class="value">${currentDate}</span>
                 </div>
-                <div className="meta-item">
+                <div class="meta-item">
                   <span class="label">عدد المواد</span>
                   <span class="value">${itemsCount}</span>
                 </div>

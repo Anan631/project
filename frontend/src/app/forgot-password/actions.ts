@@ -35,7 +35,14 @@ export async function forgotPasswordAction(
     const tokenResult = await createPasswordResetToken(email);
 
     if (tokenResult.success && tokenResult.token && tokenResult.userId) {
-      const resetLink = `${process.env.BASE_URL || 'http://localhost:3000'}/reset-password?token=${tokenResult.token}`;
+      // Generate role-specific reset link
+      let resetLink = `${process.env.BASE_URL || 'http://localhost:3000'}/reset-password?token=${tokenResult.token}`;
+      
+      if (user.role === 'ENGINEER') {
+        resetLink = `${process.env.BASE_URL || 'http://localhost:3000'}/engineer/reset-password?token=${tokenResult.token}`;
+      } else if (user.role === 'OWNER') {
+        resetLink = `${process.env.BASE_URL || 'http://localhost:3000'}/owner/reset-password?token=${tokenResult.token}`;
+      }
       
       // --- SIMULATE SENDING SMS ---
       // In a real application, you would integrate with an SMS gateway like Twilio here.

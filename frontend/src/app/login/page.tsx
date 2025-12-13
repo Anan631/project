@@ -159,7 +159,7 @@ export default function LoginPage() {
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <Label htmlFor="password_input">كلمة المرور</Label>
-                  <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">
+                  <Link href="/engineer/forgot-password" className="text-xs text-blue-600 hover:underline">
                     هل نسيت كلمة المرور؟
                   </Link>
                 </div>

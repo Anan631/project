@@ -194,9 +194,19 @@ export async function logAction(
 }
 
 export async function getSystemSettings(): Promise<SystemSettingsDocument> {
-  const res = await fetch(`${API_BASE_URL}/settings`, { cache: 'no-store' });
-  const json = await res.json();
-  if (json?.settings) return json.settings;
+  try {
+    const res = await fetch(`${API_BASE_URL}/settings`, { cache: 'no-store' });
+    if (!res.ok) {
+      console.warn(`[db.ts] getSystemSettings: API returned status ${res.status}`);
+      throw new Error(`API error: ${res.statusText}`);
+    }
+    const json = await res.json();
+    if (json?.settings) return json.settings;
+  } catch (error) {
+    console.error('[db.ts] getSystemSettings: Failed to fetch settings via API:', error);
+    console.warn('[db.ts] getSystemSettings: Using default settings as fallback');
+  }
+  
   return {
     siteName: 'المحترف لحساب الكميات',
     defaultLanguage: 'ar',
@@ -220,11 +230,21 @@ export async function updateSystemSettings(settings: SystemSettingsDocument): Pr
       body: JSON.stringify(settings),
       cache: 'no-store',
     });
+    
+    if (!res.ok) {
+      console.error(`[db.ts] updateSystemSettings: API returned status ${res.status}`);
+      return { success: false, message: 'فشل حفظ الإعدادات.' };
+    }
+    
     const json = await res.json();
-    if (!res.ok || !json.success) return { success: false, message: json.message || 'فشل حفظ الإعدادات.' };
+    if (!json.success) {
+      return { success: false, message: json.message || 'فشل حفظ الإعدادات.' };
+    }
+    
     await logAction('SYSTEM_SETTINGS_UPDATE_SUCCESS', 'INFO', 'System settings updated.');
     return { success: true, message: 'تم حفظ الإعدادات بنجاح.' };
   } catch (error: any) {
+    console.error('[db.ts] updateSystemSettings: Failed to update settings:', error);
     await logAction('SYSTEM_SETTINGS_UPDATE_FAILURE', 'ERROR', `Error updating system settings: ${error.message}`);
     return { success: false, message: 'فشل حفظ الإعدادات.' };
   }
@@ -760,6 +780,23 @@ export async function createPasswordResetToken(email: string): Promise<{ success
   } catch (error: any) {
     await logAction('DB_ERROR', 'ERROR', `Error creating password reset token for ${email}: ${error.message}`);
     return { success: false, message: 'Database error.' };
+  }
+}
+
+export async function createPasswordResetTokenWithEmail(email: string, role: string = 'ENGINEER'): Promise<{ success: boolean; token?: string; message?: string; userId?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/password/reset-token-with-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, role }),
+    });
+    const json = await res.json();
+    if (!res.ok || !json.success) return { success: false, message: json.message || 'حدث خطأ أثناء إرسال البريد الإلكتروني.' };
+    await logAction('PASSWORD_RESET_EMAIL_SENT', 'INFO', `Password reset email sent to ${email}.`, json.userId);
+    return { success: true, token: json.token, userId: json.userId, message: json.message };
+  } catch (error: any) {
+    await logAction('DB_ERROR', 'ERROR', `Error sending password reset email to ${email}: ${error.message}`);
+    return { success: false, message: 'حدث خطأ أثناء إرسال البريد الإلكتروني.' };
   }
 }
 

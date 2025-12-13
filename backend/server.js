@@ -32,6 +32,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/password', require('./routes/password'));
 app.use('/api/calculations', require('./routes/calculations')); // تم تصحيح الكتابة من calculations
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/contact', require('./routes/contact'));
 
 /* ------------------- Database Connection -------------------- */
 

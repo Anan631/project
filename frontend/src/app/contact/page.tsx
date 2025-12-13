@@ -90,6 +90,7 @@ import {
 } from "@/components/ui/form";
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import { motion, AnimatePresence } from 'framer-motion';
+import { sendContactMessageAction } from "./actions";
 
 // مخطط التحقق من صحة النموذج باستخدام Zod
 const contactFormSchemaClient = z.object({
@@ -206,23 +207,31 @@ export default function ContactPageEnhanced() {
     setIsFormLoading(true);
     
     try {
-      // محاكاة تأخير استدعاء API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await sendContactMessageAction(data);
       
-      // توست نجاح محسّن مع معلومات الأولوية
-      const priorityText = priorityOptions.find(p => p.value === data.priority)?.label || "متوسطة";
+      // التأكد من أن الاستجابة لديها خاصية success
+      if (!response || typeof response.success === 'undefined') {
+        throw new Error("استجابة غير صحيحة من الخادم");
+      }
       
-      toast({
-        title: "✅ تم إرسال رسالتك بنجاح!",
-        description: `أولوية الرسالة: ${priorityText} - سنتواصل معك في أقرب وقت ممكن 🚀`,
-        variant: "default"
-      });
-      
-      form.reset(); // مسح حقول النموذج بعد الإرسال الناجح
+      if (response.success) {
+        const priorityText = priorityOptions.find(p => p.value === data.priority)?.label || "متوسطة";
+        
+        toast({
+          title: "✅ تم إرسال رسالتك بنجاح!",
+          description: `أولوية الرسالة: ${priorityText} - سنتواصل معك في أقرب وقت ممكن 🚀`,
+          variant: "default"
+        });
+        
+        form.reset();
+      } else {
+        throw new Error(response.error || response.message || "فشل إرسال الرسالة");
+      }
     } catch (error) {
+      console.error('[contact page] Form submission error:', error);
       toast({
         title: "❌ حدث خطأ في الإرسال",
-        description: "يرجى المحاولة مرة أخرى أو التواصل معنا مباشرة",
+        description: error instanceof Error ? error.message : "يرجى المحاولة مرة أخرى أو التواصل معنا مباشرة",
         variant: "destructive"
       });
     } finally {
@@ -455,7 +464,7 @@ export default function ContactPageEnhanced() {
                                   <SelectValue placeholder="اختر نوع الرسالة" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent>
+                              <SelectContent className="z-[9999]">
                                 {messageTypes.map((type) => (
                                   <SelectItem key={type.value} value={type.value}>
                                     <div className="flex items-center gap-3">
@@ -487,7 +496,7 @@ export default function ContactPageEnhanced() {
                                   <SelectValue placeholder="اختر أولوية الرسالة" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent>
+                              <SelectContent className="z-[9999]">
                                 {priorityOptions.map((priority) => (
                                   <SelectItem key={priority.value} value={priority.value}>
                                     <div className="flex items-center gap-3">
@@ -518,7 +527,7 @@ export default function ContactPageEnhanced() {
                                 <SelectValue placeholder="اختر نوع الحساب" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="w-full min-w-0">
+                            <SelectContent className="w-full min-w-0 z-[9999]">
                               {accountTypes.map((type) => (
                                 <SelectItem key={type.value} value={type.value} className="text-lg py-3 px-4">
                                   <div className="flex items-center gap-3">
@@ -656,31 +665,6 @@ export default function ContactPageEnhanced() {
                 </div>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* زر نموذج Google السريع بتصميم Tailwind حديث */}
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <a
-                    href="https://forms.gle/6ZoJf8yZVZUxMR5x7"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <button
-                      type="button"
-                      className="max-w-[320px] flex px-[1.4rem] py-[0.5rem] text-[0.875rem] leading-[1.25rem] font-bold text-center uppercase align-middle items-center rounded-2xl border border-solid border-[rgba(50,50,80,0.25)] gap-[0.75rem] text-white bg-[rgb(50,50,80)] cursor-pointer transition-all duration-600 ease-in-out no-underline hover:scale-[1.02] hover:bg-[rgb(90,90,120)] hover:shadow-[0_2px_4px_rgba(90,90,120,0.1)] focus:outline-none focus:shadow-[0_0_0_3px_rgba(0,0,40,0.3)] active:scale-[0.98] active:opacity-80 md:max-w-full"
-                      style={{ minWidth: '220px' }}
-                    >
-                      <svg className="h-6 w-6 fill-white mr-[0.5rem]" viewBox="0 0 256 262" preserveAspectRatio="xMidYMid" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622 38.755 30.023 2.685.268c24.659-22.774 38.875-56.282 38.875-96.027" fill="#4285F4"></path>
-                        <path d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055-34.523 0-63.824-22.773-74.269-54.25l-1.531.13-40.298 31.187-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1" fill="#34A853"></path>
-                        <path d="M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82 0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602l42.356-32.782" fill="#FBBC05"></path>
-                        <path d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0 79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251" fill="#EB4335"></path>
-                      </svg>
-                      <span>نموذج جوجل لتواصل الفوري والسريع</span>
-                    </button>
-                  </a>
-                </motion.div>
-
-              </div>
             </div>
           </motion.div>
 

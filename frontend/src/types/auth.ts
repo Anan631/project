@@ -8,6 +8,7 @@ export type LoginActionResponse = {
   success: boolean;
   message?: string;
   redirectTo?: string;
+  errorType?: string; // Added this property
   fieldErrors?: {
     email?: string[];
     password?: string[];

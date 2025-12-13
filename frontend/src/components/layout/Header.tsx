@@ -14,7 +14,7 @@ import WhatsAppIcon from '../icons/WhatsAppIcon';
 import { APP_LOGO_SRC } from '@/lib/branding';
 import { useSettings } from '@/contexts/SettingsContext';
 
-// --- آية الكرسي مقسمة إلى أجزاء ---
+// آية الكرسي مقسمة لأجزاء
 const ayatAlKursiParts = [
   "ٱللَّهُ لَآ إِلَٰهَ إِلَّا هُوَ ٱلْحَىُّ ٱلْقَيُّومُ ۚ",
   "لَا تَأْخُذُهُۥ سِنَةٌ وَلَا نَوْمٌ ۚ",
@@ -25,18 +25,10 @@ const ayatAlKursiParts = [
   "وَسِعَ كُرْسِيُّهُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضَ ۖ",
   "وَلَا يَـُٔودُهُۥ حِفْظُهُمَا ۚ وَهُوَ ٱلْعَلِىُّ ٱلْعَظِيمُ",
 ];
-// ------------------------------------
 
-interface DateTime {
-  time: string;
-  date: string;
-}
-
-interface UserRole {
-  userRole: string | null;
-  isLoading: boolean;
-}
-
+// ==================== أنواع البيانات ====================
+interface DateTime { time: string; date: string; }
+interface UserRole { userRole: string | null; isLoading: boolean; }
 interface SocialLink {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -45,7 +37,6 @@ interface SocialLink {
   ariaLabel: string;
   color: string;
 }
-
 interface NavigationItem {
   href: string;
   label: string;
@@ -53,32 +44,27 @@ interface NavigationItem {
   roles?: string[];
 }
 
-// Hook مخصص لإدارة الوقت والتاريخ
+// ==================== الهوكس المخصصة ====================
 const useDateTime = (): DateTime => {
   const [dateTime, setDateTime] = useState<DateTime>({ time: '', date: '' });
 
   const updateDateTime = useCallback(() => {
-    try {
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      const seconds = now.getSeconds().toString().padStart(2, '0');
-      const ampm = hours >= 12 ? 'مساءً' : 'صباحاً';
-      const formattedHours = (hours % 12 || 12).toString().padStart(2, '0');
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'مساءً' : 'صباحاً';
+    const formattedHours = (hours % 12 || 12).toString().padStart(2, '0');
 
-      const time = `${formattedHours}:${minutes}:${seconds} ${ampm}`;
-      const date = now.toLocaleDateString('ar-EG-u-nu-latn', {
+    setDateTime({
+      time: `${formattedHours}:${minutes}:${seconds} ${ampm}`,
+      date: now.toLocaleDateString('ar-EG-u-nu-latn', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
-      });
-
-      setDateTime({ time, date });
-    } catch (error) {
-      console.error('خطأ في تحديث الوقت:', error);
-      setDateTime({ time: 'خطأ', date: 'خطأ' });
-    }
+      }),
+    });
   }, []);
 
   useEffect(() => {
@@ -90,7 +76,6 @@ const useDateTime = (): DateTime => {
   return dateTime;
 };
 
-// Hook مخصص لإدارة دور المستخدم
 const useUserRole = (): UserRole => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,8 +85,7 @@ const useUserRole = (): UserRole => {
     const getUserRole = () => {
       try {
         if (typeof window !== 'undefined') {
-          const role = localStorage.getItem('userRole');
-          setUserRole(role);
+          setUserRole(localStorage.getItem('userRole'));
         }
       } catch (error) {
         console.error('خطأ في قراءة دور المستخدم:', error);
@@ -110,30 +94,21 @@ const useUserRole = (): UserRole => {
         setIsLoading(false);
       }
     };
-
     getUserRole();
   }, [pathname]);
 
   return { userRole, isLoading };
 };
 
-// Hook للتحكم في القائمة المحمولة
 const useMobileMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const toggleMenu = useCallback(() => {
-    setIsOpen(prev => !prev);
-  }, []);
-
-  const closeMenu = useCallback(() => {
-    setIsOpen(false);
-  }, []);
+  const toggleMenu = useCallback(() => setIsOpen(prev => !prev), []);
+  const closeMenu = useCallback(() => setIsOpen(false), []);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        closeMenu();
-      }
+      if (e.key === 'Escape') closeMenu();
     };
 
     if (isOpen) {
@@ -152,46 +127,48 @@ const useMobileMenu = () => {
   return { isOpen, toggleMenu, closeMenu };
 };
 
-// مكون الساعة الثابتة المحسن
+// ==================== مكونات الهيدر ====================
+
+// شريط الساعة الثابتة
 export function FixedClockBar() {
   const { time, date } = useDateTime();
 
   return (
-    <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white p-3 flex items-center justify-between font-mono text-sm backdrop-blur-lg border-b border-yellow-500/30 shadow-lg">
+    <div className="bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white p-3 flex items-center justify-between font-mono text-sm backdrop-blur-lg border-b border-amber-500/30 shadow-xl">
       <div className="flex gap-6 items-center">
-        <div className="flex items-center gap-3 bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm">
-          <Clock className="h-5 w-5 text-yellow-400 animate-pulse" />
-          <div className="w-[140px] min-w-[140px] text-center whitespace-nowrap font-bold tracking-widest text-yellow-100">
+        <div className="flex items-center gap-3 bg-black/30 px-4 py-2 rounded-full backdrop-blur-sm border border-amber-500/20">
+          <Clock className="h-5 w-5 text-amber-400 animate-pulse" />
+          <div className="w-[140px] min-w-[140px] text-center font-bold tracking-widest text-amber-100 bg-black/20 px-3 py-1 rounded">
             {time}
           </div>
         </div>
-        <div className="w-px h-6 bg-yellow-500/50"></div>
-        <div className="flex items-center gap-3 bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm">
-          <Calendar className="h-5 w-5 text-yellow-400" />
-          <span className="text-yellow-100 font-medium">{date}</span>
+        <div className="w-px h-6 bg-gradient-to-b from-transparent via-amber-500/50 to-transparent"></div>
+        <div className="flex items-center gap-3 bg-black/30 px-4 py-2 rounded-full backdrop-blur-sm border border-amber-500/20">
+          <Calendar className="h-5 w-5 text-amber-400" />
+          <span className="text-amber-100 font-medium">{date}</span>
         </div>
       </div>
       <div className="hidden lg:flex items-center gap-6 text-sm">
-        <div className="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full">
-          <MapPin className="h-4 w-4 text-yellow-400" />
-          <span className="text-yellow-100">نابلس، فلسطين</span>
+        <div className="flex items-center gap-2 bg-black/30 px-3 py-1 rounded-full border border-amber-500/20">
+          <MapPin className="h-4 w-4 text-amber-400" />
+          <span className="text-amber-100">نابلس، فلسطين</span>
         </div>
-        <div className="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full">
-          <Phone className="h-4 w-4 text-yellow-400" />
-          <span dir="ltr" className="text-yellow-100">+972 59 437 1424</span>
+        <div className="flex items-center gap-2 bg-black/30 px-3 py-1 rounded-full border border-amber-500/20">
+          <Phone className="h-4 w-4 text-amber-400" />
+          <span dir="ltr" className="text-amber-100">+972 59 437 1424</span>
         </div>
       </div>
     </div>
   );
 }
 
-// مكون الروابط الاجتماعية المحسن
+// الروابط الاجتماعية
 const SocialLinks = () => {
   const socialLinks = useMemo<SocialLink[]>(() => [
     {
       href: "https://wa.me/972594371424",
       icon: WhatsAppIcon,
-      hoverClass: "hover:bg-green-500 hover:shadow-green-500/25",
+      hoverClass: "hover:bg-gradient-to-r hover:from-green-500 hover:to-emerald-600",
       title: "تواصل عبر واتساب",
       ariaLabel: "تواصل معنا عبر واتساب",
       color: "text-green-400"
@@ -199,7 +176,7 @@ const SocialLinks = () => {
     {
       href: "https://www.instagram.com/a.w.samarah3/",
       icon: Instagram,
-      hoverClass: "hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:shadow-purple-500/25",
+      hoverClass: "hover:bg-gradient-to-r hover:from-purple-600 hover:to-pink-500",
       title: "تابعنا على إنستغرام",
       ariaLabel: "تابعنا على إنستغرام",
       color: "text-pink-400"
@@ -207,7 +184,7 @@ const SocialLinks = () => {
     {
       href: "https://www.facebook.com/a.w.samarah4",
       icon: Facebook,
-      hoverClass: "hover:bg-blue-500 hover:shadow-blue-500/25",
+      hoverClass: "hover:bg-gradient-to-r hover:from-blue-600 hover:to-blue-700",
       title: "تابعنا على فيسبوك",
       ariaLabel: "تابعنا على فيسبوك",
       color: "text-blue-400"
@@ -224,12 +201,12 @@ const SocialLinks = () => {
             href={link.href}
             target="_blank"
             rel="noopener noreferrer"
-            className={`group relative bg-white/5 backdrop-blur-sm ${link.hoverClass} p-3 rounded-xl transition-all duration-300 transform hover:scale-110 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 focus:ring-offset-transparent border border-white/10 hover:border-white/20`}
+            className={`group relative bg-white/10 backdrop-blur-sm ${link.hoverClass} p-3 rounded-xl transition-all duration-300 transform hover:scale-110 hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-gray-900 border border-white/20 hover:border-white/40`}
             title={link.title}
             aria-label={link.ariaLabel}
           >
             <IconComponent className={`h-5 w-5 ${link.color} group-hover:text-white transition-colors`} />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl animate-shimmer"></div>
           </a>
         );
       })}
@@ -237,40 +214,26 @@ const SocialLinks = () => {
   );
 };
 
-// مكون عرض الوقت والتاريخ المحسن
+// عرض الوقت والتاريخ
 const TimeDisplay = () => {
   const { time, date } = useDateTime();
 
   return (
-    <div className="bg-gradient-to-r from-black/30 to-black/20 backdrop-blur-lg rounded-xl px-6 py-3 border border-yellow-500/30 shadow-lg">
-      <div className="flex items-center gap-4 text-yellow-100" style={{ direction: 'ltr' }}>
+    <div className="bg-gradient-to-r from-black/40 to-black/30 backdrop-blur-lg rounded-xl px-6 py-3 border border-amber-500/30 shadow-xl">
+      <div className="flex items-center gap-4 text-amber-100" style={{ direction: 'ltr' }}>
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Clock className="h-5 w-5 text-yellow-400 animate-pulse" />
-            <div className="absolute -inset-1 bg-yellow-400/20 rounded-full blur-sm"></div>
+            <Clock className="h-5 w-5 text-amber-400 animate-pulse" />
+            <div className="absolute -inset-1 bg-amber-400/30 rounded-full blur-sm"></div>
           </div>
-          <div
-            className="w-[150px] text-center font-bold whitespace-nowrap overflow-hidden leading-none flex-shrink-0 text-lg"
-            style={{
-              fontFamily: 'Roboto Mono, monospace',
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '0.1em',
-            }}
-          >
+          <div className="w-[150px] text-center font-bold whitespace-nowrap overflow-hidden leading-none text-lg bg-black/20 px-3 py-1 rounded font-mono tracking-widest">
             {time}
           </div>
         </div>
-        <div className="w-px h-6 bg-yellow-500/50"></div>
+        <div className="w-px h-6 bg-gradient-to-b from-transparent via-amber-500/50 to-transparent"></div>
         <div className="flex items-center gap-3">
-          <Calendar className="h-5 w-5 text-yellow-400" />
-          <span
-            className="font-medium"
-            style={{
-              fontFamily: 'Roboto Mono, monospace',
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '0.05em',
-            }}
-          >
+          <Calendar className="h-5 w-5 text-amber-400" />
+          <span className="font-medium font-mono tracking-wide bg-black/20 px-3 py-1 rounded">
             {date}
           </span>
         </div>
@@ -279,7 +242,7 @@ const TimeDisplay = () => {
   );
 };
 
-// مكون القائمة المحمولة المحسن
+// القائمة المحمولة
 const MobileMenu = ({ isOpen, onClose, userRole }: { isOpen: boolean; onClose: () => void; userRole: string | null }) => {
   const navigationItems = useMemo<NavigationItem[]>(() => [
     { href: '/', label: 'الصفحة الرئيسية', icon: Home },
@@ -290,20 +253,21 @@ const MobileMenu = ({ isOpen, onClose, userRole }: { isOpen: boolean; onClose: (
     { href: '/contact', label: 'اتصل بنا', icon: Phone },
   ], []);
 
-  const filteredItems = useMemo(() => {
-    return navigationItems.filter(item =>
-      !item.roles || item.roles.includes(userRole || '')
-    );
-  }, [navigationItems, userRole]);
+  const filteredItems = useMemo(() => 
+    navigationItems.filter(item => !item.roles || item.roles.includes(userRole || '')),
+    [navigationItems, userRole]
+  );
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed top-0 right-0 h-full w-80 bg-gradient-to-b from-gray-900 to-gray-800 shadow-2xl transform transition-transform duration-300 ease-in-out border-l border-yellow-500/30">
-        <div className="flex items-center justify-between p-6 border-b border-yellow-500/30 bg-black/20">
-          <h2 className="text-2xl font-bold text-yellow-400">القائمة الرئيسية</h2>
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed top-0 right-0 h-full w-80 bg-gradient-to-b from-gray-900 to-gray-800 shadow-2xl border-l border-amber-500/30">
+        <div className="flex items-center justify-between p-6 border-b border-amber-500/30 bg-gradient-to-r from-amber-900/20 to-transparent">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-amber-300 bg-clip-text text-transparent">
+            القائمة الرئيسية
+          </h2>
           <button
             onClick={onClose}
             className="p-2 rounded-xl hover:bg-red-500/20 transition-colors border border-red-500/30"
@@ -313,16 +277,18 @@ const MobileMenu = ({ isOpen, onClose, userRole }: { isOpen: boolean; onClose: (
           </button>
         </div>
         <nav className="p-4">
-          <ul className="space-y-3">
+          <ul className="space-y-2">
             {filteredItems.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   onClick={onClose}
-                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-yellow-500/10 transition-all duration-200 text-white border border-transparent hover:border-yellow-500/30 group"
+                  className="flex items-center gap-4 p-4 rounded-xl hover:bg-gradient-to-r hover:from-amber-500/10 hover:to-amber-600/10 transition-all duration-200 text-white border border-transparent hover:border-amber-500/30 group"
                 >
-                  <item.icon className="h-6 w-6 text-yellow-400 group-hover:text-yellow-300" />
-                  <span className="font-medium text-lg group-hover:text-yellow-100">{item.label}</span>
+                  <div className="p-2 bg-amber-500/10 rounded-lg group-hover:bg-amber-500/20">
+                    <item.icon className="h-5 w-5 text-amber-400 group-hover:text-amber-300" />
+                  </div>
+                  <span className="font-medium text-lg group-hover:text-amber-100">{item.label}</span>
                 </Link>
               </li>
             ))}
@@ -333,7 +299,7 @@ const MobileMenu = ({ isOpen, onClose, userRole }: { isOpen: boolean; onClose: (
   );
 };
 
-// مكون قائمة المستخدم المحسن
+// قائمة المستخدم
 const UserMenu = ({ userRole }: { userRole: string | null }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -347,69 +313,72 @@ const UserMenu = ({ userRole }: { userRole: string | null }) => {
     }
   };
 
-
-  // إخفاء القائمة تماماً للمالك والمهندس والادمن
-  if (!userRole) return null;
-  if (["OWNER", "ENGINEER", "ADMIN", "ADMN", "ADMINISTRATOR", "SUPERADMIN"].includes(userRole)) return null;
+  if (!userRole || ["OWNER", "ENGINEER", "ADMIN", "ADMN", "ADMINISTRATOR", "SUPERADMIN"].includes(userRole)) return null;
 
   const getRoleDisplay = (role: string) => {
-    switch (role) {
-      case 'ENGINEER': return 'مهندس';
-      case 'OWNER': return 'مالك';
-      default: return role;
-    }
+    const roles: Record<string, string> = {
+      'ENGINEER': 'مهندس',
+      'OWNER': 'مالك',
+      'ADMIN': 'مدير',
+      'USER': 'مستخدم'
+    };
+    return roles[role] || role;
   };
 
   return (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 px-4 py-2 rounded-xl transition-all duration-200 text-white shadow-lg hover:shadow-yellow-500/25 border border-yellow-400/30"
+        className="flex items-center gap-3 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 px-4 py-3 rounded-xl transition-all duration-200 text-white shadow-xl hover:shadow-amber-500/25 border border-amber-400/30 group"
         aria-label="قائمة المستخدم"
       >
         <div className="relative">
-          <User className="h-5 w-5" />
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
+          <div className="p-2 bg-amber-400/20 rounded-lg group-hover:bg-amber-300/30">
+            <User className="h-4 w-4" />
+          </div>
+          <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-gray-900 animate-pulse"></div>
         </div>
         <span className="hidden md:block font-medium">{getRoleDisplay(userRole)}</span>
         <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-56 bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl shadow-2xl border border-yellow-500/30 z-50 backdrop-blur-lg">
+        <div className="absolute top-full left-0 mt-2 w-56 bg-gradient-to-b from-gray-900 to-gray-800 rounded-xl shadow-2xl border border-amber-500/30 z-50 backdrop-blur-lg">
           <div className="p-2">
-            <div className="px-4 py-3 border-b border-yellow-500/30">
+            <div className="px-4 py-3 border-b border-amber-500/30 bg-gradient-to-r from-amber-900/10 to-transparent">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <User className="h-4 w-4 text-white" />
+                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600 rounded-full flex items-center justify-center shadow-lg">
+                  <User className="h-5 w-5 text-white" />
                 </div>
                 <div>
                   <p className="text-white font-medium">{getRoleDisplay(userRole)}</p>
-                  <p className="text-gray-400 text-sm">مرحباً بك</p>
+                  <p className="text-amber-300/70 text-sm">مرحباً بك</p>
                 </div>
               </div>
             </div>
-            <Link
-              href="/profile"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-yellow-500/10 transition-colors text-white border border-transparent hover:border-yellow-500/30 mt-2"
-            >
-              <User className="h-5 w-5 text-yellow-400" />
-              <span>الملف الشخصي</span>
-            </Link>
-            <Link
-              href="/settings"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-yellow-500/10 transition-colors text-white border border-transparent hover:border-yellow-500/30"
-            >
-              <Settings className="h-5 w-5 text-yellow-400" />
-              <span>الإعدادات</span>
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-red-500/10 transition-colors text-white w-full text-right border border-transparent hover:border-red-500/30 mt-2"
-            >
-              <LogOut className="h-5 w-5 text-red-400" />
-              <span>تسجيل الخروج</span>
-            </button>
+            <div className="space-y-1 mt-2">
+              <Link
+                href="/profile"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-gradient-to-r hover:from-amber-500/10 hover:to-amber-600/10 transition-colors text-white border border-transparent hover:border-amber-500/30"
+              >
+                <User className="h-5 w-5 text-amber-400" />
+                <span>الملف الشخصي</span>
+              </Link>
+              <Link
+                href="/settings"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-gradient-to-r hover:from-amber-500/10 hover:to-amber-600/10 transition-colors text-white border border-transparent hover:border-amber-500/30"
+              >
+                <Settings className="h-5 w-5 text-amber-400" />
+                <span>الإعدادات</span>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-gradient-to-r hover:from-red-500/10 hover:to-red-600/10 transition-colors text-white w-full text-right border border-transparent hover:border-red-500/30"
+              >
+                <LogOut className="h-5 w-5 text-red-400" />
+                <span>تسجيل الخروج</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -417,9 +386,8 @@ const UserMenu = ({ userRole }: { userRole: string | null }) => {
   );
 };
 
-// مكون الشريط العلوي المحسن
+// الشريط العلوي (روابط اجتماعية + آية + وقت)
 const SocialAndClock = () => {
-  // دالة لتحديد جزء الآية بناءً على اليوم
   const getDailyVerse = () => {
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
     return ayatAlKursiParts[dayOfYear % ayatAlKursiParts.length];
@@ -428,13 +396,13 @@ const SocialAndClock = () => {
   const dailyVerse = useMemo(() => getDailyVerse(), []);
 
   return (
-    <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white text-sm py-3 backdrop-blur-lg border-b border-yellow-500/30">
+    <div className="bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white py-3 backdrop-blur-lg border-b border-amber-500/30">
       <div className="container mx-auto flex justify-between items-center px-4">
         <div className="flex-1 flex justify-start">
           <SocialLinks />
         </div>
 
-        <div className="flex-shrink-0 text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 tracking-wider animate-pulse hidden lg:block">
+        <div className="flex-shrink-0 text-xl font-bold bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 bg-clip-text text-transparent tracking-wider animate-pulse hidden lg:block px-4 py-2 bg-black/30 rounded-lg border border-amber-500/20">
           {dailyVerse}
         </div>
 
@@ -446,84 +414,74 @@ const SocialAndClock = () => {
   );
 };
 
-// مكون الشعار والعنوان بتصميم توهج ذهبي
+// الشعار والعنوان مع تأثير توهج ذهبي
 const LogoAndTitle = () => {
   const { settings } = useSettings();
   const siteName = settings?.siteName || "المحترف لحساب الكميات";
 
+  const [glowIntensity, setGlowIntensity] = useState(0.5);
+
   return (
     <Link
       href="/"
-      className="flex items-center gap-4 text-right group transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 focus:ring-offset-transparent rounded-xl p-2"
+      className="flex items-center gap-6 text-right group transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-2xl p-3 hover:bg-gradient-to-r hover:from-amber-500/5 hover:to-amber-600/5"
       aria-label="الصفحة الرئيسية - المحترف لحساب الكميات"
+      onMouseEnter={() => setGlowIntensity(1)}
+      onMouseLeave={() => setGlowIntensity(0.5)}
     >
-      {/* حاوية الشعار بتأثير التوهج */}
-      <div className="relative rounded-2xl p-1 transition-all duration-500 group-hover:scale-105">
-        <Image
-          src={APP_LOGO_SRC}
-          unoptimized
-          alt="شعار الموقع"
-          width={96}
-          height={96}
-          className="relative rounded-xl border-2 border-gray-700 object-contain transition-all duration-500 group-hover:border-yellow-400/50"
-          data-ai-hint="logo construction"
-          priority
+      {/* حاوية الشعار بتأثير التوهج الذهبي */}
+      <div className="relative">
+        <div 
+          className="absolute inset-0 rounded-2xl blur-xl transition-all duration-500"
           style={{
-            // تأثير التوهج الذهبي
-            boxShadow: `
-              0 0 5px rgba(250, 204, 21, 0.5),
-              0 0 10px rgba(250, 204, 21, 0.4),
-              0 0 20px rgba(250, 204, 21, 0.3),
-              0 0 40px rgba(250, 204, 21, 0.2)
-            `,
-          }}
-          // زيادة قوة التوهج عند التمرير
-          onMouseEnter={(e) => {
-            e.currentTarget.style.boxShadow = `
-              0 0 10px rgba(250, 204, 21, 0.8),
-              0 0 20px rgba(250, 204, 21, 0.6),
-              0 0 40px rgba(250, 204, 21, 0.5),
-              0 0 80px rgba(250, 204, 21, 0.4)
-            `;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.boxShadow = `
-              0 0 5px rgba(250, 204, 21, 0.5),
-              0 0 10px rgba(250, 204, 21, 0.4),
-              0 0 20px rgba(250, 204, 21, 0.3),
-              0 0 40px rgba(250, 204, 21, 0.2)
-            `;
+            background: `radial-gradient(circle at center, 
+              rgba(251, 191, 36, ${glowIntensity}) 0%, 
+              rgba(251, 191, 36, ${glowIntensity * 0.5}) 25%,
+              rgba(251, 191, 36, ${glowIntensity * 0.2}) 50%,
+              transparent 70%)`,
+            transform: 'scale(1.1)',
           }}
         />
-
-        {/* مؤشر الحالة */}
-        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 rounded-full border-3 border-gray-900 flex items-center justify-center shadow-lg">
-          <Shield className="h-3 w-3 text-white" />
+        
+        <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 p-1.5 rounded-2xl border-2 border-amber-500/30 shadow-2xl group-hover:border-amber-400/50 transition-all duration-300">
+          <Image
+            src={APP_LOGO_SRC}
+            unoptimized
+            alt="شعار المحترف لحساب الكميات"
+            width={80}
+            height={80}
+            className="rounded-xl object-contain"
+            priority
+          />
+          
+          {/* مؤشر الحالة */}
+          <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-gradient-to-br from-emerald-400 to-emerald-500 rounded-full border-3 border-gray-900 flex items-center justify-center shadow-lg">
+            <Shield className="h-3 w-3 text-white" />
+          </div>
         </div>
       </div>
 
       {/* تفاصيل العنوان */}
       <div className="hidden md:block">
-        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 group-hover:from-yellow-300 group-hover:to-yellow-500 transition-all duration-300">
+        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 bg-clip-text text-transparent group-hover:from-amber-300 group-hover:to-amber-200 transition-all duration-500">
           {siteName}
         </h1>
-        <p className="text-lg text-gray-300 group-hover:text-yellow-100 transition-colors duration-300 font-medium">
+        <p className="text-lg text-gray-300 group-hover:text-amber-100 transition-colors duration-300 font-medium mt-1">
           للحديد والباطون والابنية الانشائية
         </p>
-        <div className="flex items-center gap-2 mt-1">
-          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-          <span className="text-sm text-gray-400 mr-2">خدمة متميزة</span>
+        <div className="flex items-center gap-1 mt-2">
+          {[...Array(5)].map((_, i) => (
+            <Star key={i} className="h-4 w-4 text-amber-400 fill-current" />
+          ))}
+          <span className="text-sm text-gray-400 mr-2 font-medium">خدمة متميزة</span>
+          <Award className="h-4 w-4 text-amber-400 ml-2" />
         </div>
       </div>
       <div className="md:hidden">
-        <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-300 group-hover:from-yellow-300 group-hover:to-yellow-500 transition-all duration-300">
+        <h1 className="text-2xl font-extrabold bg-gradient-to-r from-amber-400 to-amber-300 bg-clip-text text-transparent">
           {siteName.split(' ')[0] || "المحترف"}
         </h1>
-        <p className="text-sm text-gray-300 group-hover:text-yellow-100 transition-colors duration-300 font-medium">
+        <p className="text-sm text-gray-300 group-hover:text-amber-100 transition-colors duration-300 font-medium">
           لحساب الكميات
         </p>
       </div>
@@ -531,7 +489,7 @@ const LogoAndTitle = () => {
   );
 };
 
-// المكون الرئيسي للهيدر المحسن
+// ==================== المكون الرئيسي ====================
 export default function Header() {
   const { userRole, isLoading } = useUserRole();
   const { isOpen, toggleMenu, closeMenu } = useMobileMenu();
@@ -544,14 +502,30 @@ export default function Header() {
   return (
     <header className="shadow-2xl relative z-40">
       <SocialAndClock />
-      <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white backdrop-blur-lg relative overflow-hidden">
-        {/* تأثيرات الخلفية المتقدمة */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-400/10 via-transparent to-transparent"></div>
-        <div className="absolute inset-0 bg-[conic-gradient(from_0deg,_transparent_0deg,_rgba(255,215,0,0.1)_360deg)]"></div>
+      
+      <div className="bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white relative overflow-hidden">
+        {/* تأثيرات خلفية متقدمة */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-400/10 via-transparent to-transparent"></div>
+          <div className="absolute inset-0 bg-[conic-gradient(from_0deg,_transparent_0deg,_rgba(251,191,36,0.1)_360deg)] opacity-30"></div>
+          <div className="absolute top-0 left-1/3 w-32 h-32 bg-amber-400/5 rounded-full blur-3xl"></div>
+        </div>
 
-        <div className="container mx-auto flex h-24 items-center justify-between px-4 relative z-10">
+        <div className="container mx-auto flex h-28 items-center justify-between px-6 relative z-10">
           {/* الجانب الأيمن */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
+            {/* زر القائمة المحمولة */}
+            <button
+              onClick={toggleMenu}
+              className="lg:hidden p-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/10 hover:from-amber-500/20 hover:to-amber-600/20 transition-all duration-200 border border-amber-500/30"
+              aria-label="فتح القائمة الرئيسية"
+            >
+              <div className="space-y-1.5">
+                <div className="w-6 h-0.5 bg-amber-400 rounded-full"></div>
+                <div className="w-6 h-0.5 bg-amber-400 rounded-full"></div>
+                <div className="w-4 h-0.5 bg-amber-400 rounded-full ml-auto"></div>
+              </div>
+            </button>
 
             <LogoAndTitle />
           </div>
@@ -562,7 +536,7 @@ export default function Header() {
               <div className="animate-fade-in">
                 <div className="relative">
                   <NotificationsFixed />
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-red-500 to-red-600 rounded-full animate-pulse border border-white/50"></div>
                 </div>
               </div>
             )}
@@ -572,9 +546,9 @@ export default function Header() {
       </div>
 
       {/* خط ذهبي متحرك محسن */}
-      <div className="h-1 bg-gradient-to-r from-transparent via-yellow-400 to-transparent relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-300 animate-pulse"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer"></div>
+      <div className="h-1.5 bg-gradient-to-r from-transparent via-amber-400 to-transparent relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer"></div>
       </div>
 
       <MobileMenu isOpen={isOpen} onClose={closeMenu} userRole={userRole} />
@@ -582,7 +556,7 @@ export default function Header() {
   );
 }
 
-// تصدير الأنماط المخصصة المحسنة
+// ==================== الأنماط المخصصة ====================
 export const headerStyles = `
   @keyframes fade-in {
     from {
@@ -604,61 +578,81 @@ export const headerStyles = `
     }
   }
 
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
   .animate-fade-in {
     animation: fade-in 0.3s ease-out;
   }
 
   .animate-shimmer {
-    animation: shimmer 2s infinite;
+    animation: shimmer 3s infinite linear;
   }
 
-  /* تحسينات الأداء والتأثيرات */
-  .group:hover .group-hover\\:scale-110 {
-    transform: scale(1.1);
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
   }
 
-  .group:hover .group-hover\\:shadow-lg {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  /* تحسينات الأداء */
+  .backdrop-blur-lg {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 
-  /* تحسين الخلفيات المتدرجة */
-  .bg-gradient-to-r {
-    background-image: linear-gradient(to right, var(--tw-gradient-stops));
+  /* تدرجات ذهبية محسنة */
+  .bg-gradient-gold {
+    background: linear-gradient(135deg, 
+      #fbbf24 0%, 
+      #f59e0b 25%, 
+      #d97706 50%, 
+      #b45309 75%, 
+      #92400e 100%
+    );
   }
 
-  /* تحسين التوافق مع الأجهزة */
+  /* تأثيرات الظل المحسنة */
+  .shadow-gold {
+    box-shadow: 
+      0 10px 40px rgba(251, 191, 36, 0.15),
+      0 5px 20px rgba(251, 191, 36, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* تحسينات للهواتف */
   @media (max-width: 768px) {
     .container {
       padding-left: 1rem;
       padding-right: 1rem;
     }
+    
+    .text-balance {
+      text-wrap: balance;
+    }
   }
 
   /* تحسين الوصولية */
-  .focus\\:ring-yellow-400:focus {
-    --tw-ring-color: #facc15;
+  :focus-visible {
+    outline: 2px solid #fbbf24;
+    outline-offset: 2px;
   }
 
-  /* تحسين الشفافية */
-  .backdrop-blur-sm {
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-  }
-
-  .backdrop-blur-lg {
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-  }
-
-  /* تأثيرات النص المتدرج */
+  /* تحسينات التدرج النصي */
   .bg-clip-text {
     background-clip: text;
     -webkit-background-clip: text;
+    text-fill-color: transparent;
+    -webkit-text-fill-color: transparent;
   }
 
-  /* تحسين الحدود */
-  .border-3 {
-    border-width: 3px;
+  /* حدود ذهبية محسنة */
+  .border-gold-gradient {
+    border-image: linear-gradient(45deg, #fbbf24, #d97706, #fbbf24) 1;
   }
 `;
 

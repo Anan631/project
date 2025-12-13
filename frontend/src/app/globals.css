@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap');
 @import '../styles/WavySeparator.css';
 @tailwind base;
 @tailwind components;
@@ -24,7 +25,6 @@
   
   body {
     width: 100%; /* Change from 100vw to 100% to prevent horizontal overflow */
-    position: relative;
     background-color: #0f172a; /* Dark blue background for code effect */
   }
   
@@ -701,16 +701,7 @@ button {
   transform-origin: top right;
 }
 
-/* إصلاح خاص للـ Select components */
-.select-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 999;
-}
+
 
 /* منع الحركة الأفقية للمحتوى */
 .prevent-horizontal-shift {

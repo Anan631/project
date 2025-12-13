@@ -122,7 +122,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-xl border-b border-slate-700/50 sticky top-0 z-50 backdrop-blur-sm bg-slate-900/95">
+    <nav className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-xl border-b border-slate-700/50 sticky top-0 z-[200] backdrop-blur-sm bg-slate-900/95">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Left Side: User Menu or Empty */}
@@ -217,7 +217,7 @@ export default function Navbar() {
                     <DropdownMenuItem 
                       key={index} 
                       asChild 
-                      className="focus:bg-slate-700/70 rounded-lg my-0.5 transition-colors duration-200 p-0"
+                      className="focus:bg-slate-700/70 rounded-lg my-0.5 transition-colors duration-200 p-0 group"
                     >
                       <Link
                         href={item.href}
@@ -225,8 +225,8 @@ export default function Navbar() {
                       >
                         <div className="flex items-center gap-3">
                           <span className="text-sm font-medium text-white">{item.label}</span>
-                           <div className={`p-2 rounded-lg ${item.iconColor} bg-slate-700/50`}>
-                            <item.icon className="h-4 w-4" />
+                           <div className={`p-2 rounded-lg ${item.iconColor} bg-slate-700/50 group-hover:bg-slate-600/50 transition-colors`}>
+                            <item.icon className="h-5 w-5" />
                           </div>
                         </div>
                       </Link>
@@ -244,7 +244,7 @@ export default function Navbar() {
                           تسجيل الخروج
                       </span>
                       <div className="p-2 rounded-lg bg-red-900/20 group-hover:bg-red-800/30 transition-colors">
-                        <LogOut className="h-4 w-4 text-red-400 group-hover:text-red-300" />
+                        <LogOut className="h-5 w-5 text-red-400 group-hover:text-red-300" />
                       </div>
                     </div>
                   </DropdownMenuItem>
@@ -267,7 +267,7 @@ export default function Navbar() {
                   )}
                 >
                   <link.icon className={cn(
-                    "h-4.5 w-4.5 transition-transform duration-300",
+                    "h-5 w-5 transition-transform duration-300 group-hover:scale-110",
                     pathname === link.href 
                       ? "text-amber-400" 
                       : "text-slate-400 group-hover:text-amber-300"

@@ -2,9 +2,13 @@
 'use server';
 
 import { type LoginActionResponse } from '@/types/auth';
+
+interface ExtendedLoginActionResponse extends LoginActionResponse {
+  loginTime?: string;
+}
 import { loginUser, type LoginResult } from '@/lib/db';
 
-export async function adminLoginAction(data: { email: string; password_input: string; }): Promise<LoginActionResponse> {
+export async function adminLoginAction(data: { email: string; password_input: string; }): Promise<ExtendedLoginActionResponse> {
   console.log("[AdminLoginAction] Attempting admin login for email:", data.email);
 
   const result: LoginResult = await loginUser(data.email, data.password_input);
@@ -25,10 +29,14 @@ export async function adminLoginAction(data: { email: string; password_input: st
     };
   }
 
+  // حفظ وقت تسجيل الدخول
+  const loginTime = new Date().toISOString();
+  
   return {
     success: true,
     message: "تم تسجيل دخول المسؤول بنجاح!",
     redirectTo: "/admin",
+    loginTime: loginTime,
     user: {
       id: result.user.id,
       name: result.user.name,

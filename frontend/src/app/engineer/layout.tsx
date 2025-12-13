@@ -2,7 +2,9 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react'; // <-- تم تصحيح الاستيراد هنا
+import { usePathname } from 'next/navigation';
 import Header from '@/components/layout/Header';
+import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import EngineerSidebar from '@/components/engineer/EngineerSidebar';
 import { cn } from '@/lib/utils';
@@ -57,24 +59,39 @@ function SidebarProvider({ children }: { children: ReactNode }) {
 function EngineerLayoutContent({ children }: { children: ReactNode }) {
   // استخدام السياق بشكل آمن
   const { isOpen, toggleSidebar } = useSidebar();
+  const pathname = usePathname();
+  const hideSidebarForRoutes = pathname?.startsWith('/engineer/reset-password') || pathname?.startsWith('/engineer/forgot-password');
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header />
+      {hideSidebarForRoutes ? (
+        <>
+          <Header />
+          <Navbar />
+        </>
+      ) : (
+        <Header />
+      )}
       <div className="flex flex-1 relative" dir="rtl">
-        <EngineerSidebar isOpen={isOpen} onToggle={toggleSidebar} />
-        
-        {/* إضافة طبقة شبه شفافة للجوال عند فتح الشريط الجانبي */}
-        {isOpen && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-            onClick={toggleSidebar}
-          />
+        {!hideSidebarForRoutes && (
+          <>
+            <EngineerSidebar isOpen={isOpen} onToggle={toggleSidebar} />
+
+            {/* إضافة طبقة شبه شفافة للجوال عند فتح الشريط الجانبي */}
+            {isOpen && (
+              <div 
+                className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+                onClick={toggleSidebar}
+              />
+            )}
+          </>
         )}
-        
+
         <main
           className={cn(
-            "flex-grow p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900/50 overflow-y-auto transition-all duration-300 ease-in-out w-full"
+            hideSidebarForRoutes
+              ? "flex-grow p-6 sm:p-8 lg:p-12 bg-gray-50 dark:bg-gray-900/50 overflow-y-auto transition-all duration-300 ease-in-out w-full"
+              : "flex-grow p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900/50 overflow-y-auto transition-all duration-300 ease-in-out w-full"
           )}
         >
           {children}

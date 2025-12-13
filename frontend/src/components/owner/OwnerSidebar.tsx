@@ -25,7 +25,8 @@ import {
     Briefcase,
     PlayCircle,
     CheckCircle,
-    BarChartHorizontal
+    BarChartHorizontal,
+    UserCircle
 } from "lucide-react";
 import {
   Tooltip,
@@ -43,8 +44,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect, useState } from "react";
-import { getProjects, type Project } from '@/lib/db';
+import { useEffect, useState, useMemo } from "react";
+import { getProjects } from '@/lib/db';
 import { Skeleton } from "@/components/ui/skeleton";
 
 const mainLinks = [
@@ -156,14 +157,120 @@ export default function OwnerSidebar({ isOpen, onToggle }: OwnerSidebarProps) {
     router.push("/owner-login");
   };
 
+  // --- بداية التغيير ---
+  // دالة جديدة للتعامل مع النقر على زر الملف الشخصي
+  const handleProfileClick = () => {
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      // إذا كان المستخدم مسجل الدخول، انتقل إلى صفحة الملف الشخصي
+      router.push('/owner/profile');
+    } else {
+      // إذا لم يكن المستخدم مسجل الدخول، أظهر رسالة وانتقل إلى صفحة تسجيل الدخول
+      toast({
+        title: "غير مصرح",
+        description: "يجب تسجيل الدخول للوصول إلى الملف الشخصي.",
+        variant: "destructive",
+      });
+      router.push('/owner-login');
+    }
+  };
+  // --- نهاية التغيير ---
+
+
+  const memoizedMainLinks = useMemo(() => (
+    mainLinks.map((link) => {
+      const isActive = pathname === link.href;
+      return (
+        <Tooltip key={link.href}>
+          <TooltipTrigger asChild>
+            <Link
+              href={link.href}
+              className={cn(
+                "flex items-center gap-4 rounded-lg p-3 text-base font-medium transition-colors duration-200 group mb-2",
+                !isOpen && "justify-center",
+                isActive
+                  ? "bg-muted text-app-red"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <div className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-300",
+                isActive ? "bg-app-red/10" : "bg-gray-200 dark:bg-gray-700 group-hover:bg-gray-300 dark:group-hover:bg-gray-600"
+              )}>
+                <link.icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-app-red" : "")} />
+              </div>
+              {isOpen && <span className="font-semibold">{link.label}</span>}
+            </Link>
+          </TooltipTrigger>
+          {!isOpen && (
+            <TooltipContent side="left" align="center">
+              <p>{link.label}</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      );
+    })
+  ), [isOpen, pathname]);
+
+  const memoizedAccordionItems = useMemo(() => (
+    accordionItems.map((item) => {
+      const isAccordionActive = item.links.some(link => !link.isExternal && pathname.startsWith(link.href));
+      return (
+        <AccordionItem value={item.value} key={item.value} className="border-b-0">
+          <AccordionTrigger className={cn(
+            "hover:no-underline rounded-lg transition-colors duration-200 group p-3",
+            isAccordionActive ? "bg-muted" : "hover:bg-muted/50"
+          )}>
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-300",
+                "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900",
+                "group-hover:scale-105 group-hover:shadow-md",
+                isAccordionActive ? "shadow-inner" : ""
+              )}>
+                <item.icon className={cn("h-5 w-5 transition-colors", isAccordionActive ? "text-app-red" : item.color)} />
+              </div>
+              {isOpen && <span className="text-base font-semibold text-foreground">{item.title}</span>}
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pl-10 pr-2 pb-1 pt-1">
+            <ul className="space-y-1 border-r-2 border-dashed border-gray-200 dark:border-gray-700">
+              {item.links.map((link) => {
+                const LinkComponent = link.isExternal ? 'a' : Link;
+                const linkProps = link.isExternal ? { href: link.externalHref, target: '_blank', rel: 'noopener noreferrer' } : { href: link.href };
+                const isLinkActive = !link.isExternal && pathname === link.href;
+                return (
+                  <li key={link.label}>
+                    <LinkComponent
+                      {...linkProps}
+                      className={cn(
+                        "flex items-center gap-3 rounded-r-lg px-4 py-2 text-sm font-medium transition-colors duration-200 relative -right-px",
+                        isLinkActive
+                          ? "bg-app-red/10 text-app-red border-r-4 border-app-red"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      <link.icon className="h-4 w-4" />
+                      {link.label}
+                    </LinkComponent>
+                  </li>
+                );
+              })}
+            </ul>
+          </AccordionContent>
+        </AccordionItem>
+      )
+    })
+  ), [isOpen, pathname]);
+
+
   return (
     <TooltipProvider delayDuration={0}>
       <aside className={cn(
-        "bg-card text-card-foreground flex flex-col shadow-lg border-l transition-all duration-300 ease-in-out",
-        isOpen ? "w-72" : "w-20"
+        "bg-card text-card-foreground flex flex-col shadow-lg border-l z-50 transition-all duration-300 ease-in-out",
+        isOpen ? "w-80" : "w-24"
       )}>
-        <div className="p-4 flex items-center border-b h-[70px] flex-shrink-0">
-          
+        <div className="p-4 flex items-center justify-between border-b h-[70px] flex-shrink-0">
           {isOpen && (
             <div className="text-center flex-grow overflow-hidden px-2">
                 <h2 className="text-xl font-bold text-app-red truncate">لوحة تحكم المالك</h2>
@@ -173,18 +280,18 @@ export default function OwnerSidebar({ isOpen, onToggle }: OwnerSidebarProps) {
           <Button 
               variant="ghost"
               onClick={onToggle} 
-              className="p-1.5 text-muted-foreground hover:text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-app-gold"
+              className="p-2 text-muted-foreground hover:text-foreground rounded-full focus:outline-none focus:ring-2 focus:ring-app-gold"
               aria-label={isOpen ? "طي الشريط الجانبي" : "فتح الشريط الجانبي"}
           >
               {isOpen ? <ChevronLeft size={24} /> : <MenuIcon size={24} />}
           </Button>
         </div>
 
-        <nav className="flex-grow overflow-y-auto px-2 py-4">
+        <nav className="flex-grow overflow-y-auto px-4 py-4 space-y-4">
           
           {isOpen && (
-            <div className="mb-4 px-2">
-                <h3 className="px-1 py-2 text-xs font-semibold text-muted-foreground">نظرة عامة</h3>
+            <div className="mb-4 px-1">
+                <h3 className="px-3 py-2 text-xs font-bold uppercase text-muted-foreground">نظرة عامة</h3>
                 <div className="space-y-1.5 rounded-lg bg-muted/30 p-2 border">
                     {isLoadingStats ? (
                         Array.from({ length: 4 }).map((_, i) => (
@@ -210,120 +317,80 @@ export default function OwnerSidebar({ isOpen, onToggle }: OwnerSidebarProps) {
             </div>
           )}
           
-          <div className="border-t pt-2 mt-2">
-            {mainLinks.map((link) => (
-                <Tooltip key={link.href}>
-                <TooltipTrigger asChild>
-                    <Link href={link.href}
-                        className={cn(
-                            "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors mb-2",
-                            !isOpen && "justify-center",
-                            pathname === link.href
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                        )}>
-                        <link.icon className="h-5 w-5 flex-shrink-0" />
-                        {isOpen && <span>{link.label}</span>}
-                    </Link>
-                </TooltipTrigger>
-                {!isOpen && (
-                    <TooltipContent side="left" align="center">
-                    <p>{link.label}</p>
-                    </TooltipContent>
-                )}
-                </Tooltip>
-            ))}
+          <div>
+             <h3 className={cn("px-3 py-2 text-xs font-bold uppercase text-muted-foreground", isOpen ? "" : "text-center")}>
+              {isOpen ? "القائمة" : "..."}
+            </h3>
+            {memoizedMainLinks}
           </div>
 
           {isOpen ? (
-            <Accordion type="multiple" className="w-full">
-              {accordionItems.map((item) => (
-                <AccordionItem value={item.value} key={item.value}>
-                  <AccordionTrigger className="hover:no-underline text-base font-semibold text-foreground px-3 py-2.5 rounded-md hover:bg-muted">
-                    <div className="flex items-center gap-3">
-                      <item.icon className={cn("h-5 w-5", item.color)} />
-                      {item.title}
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pl-6 pr-2 pb-1 pt-1">
-                    <ul className="space-y-1">
-                      {item.links.map((link) => {
-                        const LinkComponent = link.isExternal ? 'a' : Link;
-                        const linkProps = link.isExternal ? { href: link.externalHref, target: '_blank', rel: 'noopener noreferrer' } : { href: link.href };
-                        return (
-                          <li key={link.label}>
-                            <LinkComponent
-                              {...linkProps}
-                              className={cn(
-                                "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                                pathname === link.href && !link.isExternal
-                                  ? "bg-app-red text-white"
-                                  : "text-muted-foreground hover:text-foreground"
-                              )}
-                            >
-                              <link.icon className="h-4 w-4" />
-                              {link.label}
-                            </LinkComponent>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
+            <Accordion type="multiple" defaultValue={accordionItems.filter(item => item.links.some(link => !link.isExternal && pathname.startsWith(link.href))).map(item => item.value)} className="w-full space-y-2">
+              {memoizedAccordionItems}
             </Accordion>
           ) : (
-            <div className="space-y-2 mt-2 border-t pt-2">
-              {accordionItems.map((item) => (
-                <DropdownMenu modal={false} key={item.value}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-center h-12">
-                          <item.icon className={cn("h-6 w-6", item.color)} />
-                        </Button>
-                      </DropdownMenuTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent side="left" align="center">
-                      <p>{item.title}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <DropdownMenuContent side="left" align="start" sideOffset={5}>
-                    <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {item.links.map((link) => {
-                      const LinkComponent = link.isExternal ? 'a' : Link;
-                      const linkProps = link.isExternal ? { href: link.externalHref, target: '_blank', rel: 'noopener noreferrer' } : { href: link.href };
-                      return (
-                        <DropdownMenuItem key={link.label} asChild>
-                          <LinkComponent {...linkProps} className="flex items-center gap-2 cursor-pointer w-full">
-                            <link.icon className="h-4 w-4" />
-                            <span>{link.label}</span>
-                          </LinkComponent>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ))}
+            <div className="space-y-2 mt-2 border-t pt-4">
+              {accordionItems.map((item) => {
+                  const isAccordionActive = item.links.some(link => !link.isExternal && pathname.startsWith(link.href));
+                  return (
+                    <DropdownMenu modal={false} key={item.value}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className={cn(
+                                    "w-full h-auto p-3 rounded-lg",
+                                    isAccordionActive ? "bg-muted" : ""
+                                )}
+                            >
+                                <item.icon className={cn("h-6 w-6", isAccordionActive ? "text-app-red" : item.color)} />
+                            </Button>
+                          </DropdownMenuTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" align="center">
+                          <p>{item.title}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <DropdownMenuContent side="left" align="start" sideOffset={5}>
+                        <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {item.links.map((link) => {
+                          const LinkComponent = link.isExternal ? 'a' : Link;
+                          const linkProps = link.isExternal ? { href: link.externalHref, target: '_blank', rel: 'noopener noreferrer' } : { href: link.href };
+                          return (
+                            <DropdownMenuItem key={link.label} asChild>
+                              <LinkComponent {...linkProps} className="flex items-center gap-2 cursor-pointer w-full">
+                                <link.icon className="h-4 w-4" />
+                                <span>{link.label}</span>
+                              </LinkComponent>
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )
+              })}
             </div>
           )}
         </nav>
 
         <div className="p-4 mt-auto border-t space-y-2">
+          {/* --- بداية التغيير --- */}
+          {/* تم استبدال Link بـ button مع استدعاء الدالة الجديدة */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Link
-                href="/profile"
+              <button
+                onClick={handleProfileClick}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 w-full",
+                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 w-full",
                   "bg-muted/50 text-foreground/80 hover:bg-muted/100 hover:text-foreground",
                   isOpen ? "justify-start text-left" : "justify-center"
                 )}
               >
-                <Settings size={isOpen ? 20 : 24} className="flex-shrink-0"/>
-                {isOpen && <span className="truncate">الملف الشخصي</span>}
-              </Link>
+                <UserCircle size={isOpen ? 22 : 26} className="flex-shrink-0"/>
+                {isOpen && <span className="truncate font-semibold">الملف الشخصي</span>}
+              </button>
             </TooltipTrigger>
             {!isOpen && (
                 <TooltipContent side="left" align="center">
@@ -331,19 +398,20 @@ export default function OwnerSidebar({ isOpen, onToggle }: OwnerSidebarProps) {
                 </TooltipContent>
             )}
           </Tooltip>
+          {/* --- نهاية التغيير --- */}
 
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={handleLogout}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 w-full text-left",
-                  "bg-red-700/10 text-red-600 hover:bg-red-700/20",
+                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 w-full text-left",
+                  "bg-red-500/10 text-red-500 hover:bg-red-500/20",
                   isOpen ? "justify-start text-left" : "justify-center"
                 )}
               >
-                <LogOut size={isOpen ? 20 : 24} className="flex-shrink-0"/>
-                {isOpen && <span className="truncate">تسجيل الخروج</span>}
+                <LogOut size={isOpen ? 22 : 26} className="flex-shrink-0"/>
+                {isOpen && <span className="truncate font-semibold">تسجيل الخروج</span>}
               </button>
             </TooltipTrigger>
             {!isOpen && (

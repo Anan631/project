@@ -6,10 +6,6 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-
   allowedDevOrigins: [
     'https://*.cloudworkstations.dev',
     'https://3000-firebase-studio-1749387595678.cluster-c3a7z3wnwzapkx3rfr5kz62dac.cloudworkstations.dev',
@@ -23,6 +19,8 @@ const nextConfig = {
       { protocol: 'https', hostname: 'i.imgur.com', pathname: '/**' },
       { protocol: 'https', hostname: 'imgur.com', pathname: '/**' },
       { protocol: 'https', hostname: 'upload.wikimedia.org', pathname: '/**' },
+      { protocol: 'https', hostname: 'ui-avatars.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'api.dicebear.com', pathname: '/**' },
     ],
   },
 
@@ -49,7 +47,7 @@ const nextConfig = {
               `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.cloudworkstations.dev; ` +
               `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com https://*.cloudworkstations.dev; ` +
               `font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; ` +
-              `img-src 'self' data: https://i.imgur.com https://imgur.com https://placehold.co https://upload.wikimedia.org; ` +
+              `img-src 'self' data: https://i.imgur.com https://imgur.com https://placehold.co https://upload.wikimedia.org https://ui-avatars.com https://api.dicebear.com; ` +
               `connect-src ${connectSrc};`,
           },
           { key: 'Set-Cookie', value: 'SameSite=Strict; Secure' },

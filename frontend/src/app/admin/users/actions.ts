@@ -36,3 +36,23 @@ export async function deleteUserAccountAction(userId: string): Promise<{ success
     };
   }
 }
+
+export async function adminCreateUserAction(data: { name: string; email: string; password: string }): Promise<{ success: boolean; message: string }> {
+  console.log("[AdminCreateUserAction] Creating user:", data);
+
+  // Placeholder implementation
+  return {
+    success: true,
+    message: "User created successfully.",
+  };
+}
+
+export async function adminResetPasswordAction(data: { userId: string; newPassword: string }): Promise<{ success: boolean; message: string }> {
+  console.log("[AdminResetPasswordAction] Resetting password for user:", data.userId);
+
+  // Placeholder implementation
+  return {
+    success: true,
+    message: "Password reset successfully.",
+  };
+}

@@ -52,3 +52,37 @@ export async function resetPasswordAction(
 
   return result;
 }
+
+// Schema for forgot password form
+export const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: "البريد الإلكتروني غير صالح." }),
+  phone: z.string().min(10, { message: "رقم الهاتف يجب أن يكون 10 أرقام على الأقل." }),
+});
+
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
+export async function forgotPasswordAction(
+  data: ForgotPasswordFormValues,
+): Promise<ResetPasswordActionResponse> {
+  const validation = forgotPasswordSchema.safeParse(data);
+
+  if (!validation.success) {
+    const fieldErrors = validation.error.flatten().fieldErrors;
+    return {
+      success: false,
+      message: "البيانات المدخلة غير صالحة.",
+      fieldErrors: {
+          email: fieldErrors.email,
+          phone: fieldErrors.phone,
+      }
+    };
+  }
+
+  // TODO: Implement actual forgot password logic
+  // This should send a reset token to the user via email or SMS
+  
+  return {
+    success: true,
+    message: "تم إرسال رمز إعادة التعيين إلى بريدك الإلكتروني ورقم هاتفك."
+  };
+}
