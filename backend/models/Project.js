@@ -69,6 +69,38 @@ const projectSchema = new mongoose.Schema(
     linkedOwnerEmail: String,
     hiddenForUserIds: { type: [String], default: [] },
     createdByUserId: String, // User ID of the creator
+    
+    // Concrete calculations data
+    concreteCalculations: {
+      foundation: {
+        // Inputs
+        foundationLength: Number,
+        foundationWidth: Number,
+        foundationHeight: Number,
+        numberOfFloors: Number,
+        slabArea: Number,
+        soilType: String,
+        buildingType: String,
+        baseHeight: Number, // 40-80 cm
+        
+        // Calculations
+        foundationVolume: Number, // m³
+        baseArea: Number, // m²
+        baseShape: String, // 'square' or 'rectangular'
+        baseLength: Number,
+        baseWidth: Number,
+        allBasesSimilar: Boolean,
+        totalNumberOfBases: Number,
+        individualBases: [{
+          length: Number,
+          width: Number,
+        }],
+        foundationsVolume: Number, // m³
+        
+        // Calculated at
+        calculatedAt: Date,
+      }
+    }
   },
   { timestamps: true }
 );

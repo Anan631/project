@@ -95,11 +95,7 @@ export default function SteelCalculationsPage() {
   };
 
   const isTabLocked = (tabId: string): boolean => {
-    const currentIndex = tabs.findIndex(t => t.id === tabId);
-    if (currentIndex === 0) return false;
-    
-    const previousTab = tabs[currentIndex - 1].id;
-    return !tabData[previousTab].completed;
+    return false; // Removed lock to allow engineers to calculate in any order
   };
 
   const getTotalWeight = (): number => {

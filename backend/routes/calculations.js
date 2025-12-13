@@ -1,202 +1,282 @@
 const express = require('express');
 const router = express.Router();
+const Project = require('../models/Project');
+const SoilType = require('../models/SoilType');
+const LiveLoad = require('../models/LiveLoad');
+const DeadLoad = require('../models/DeadLoad');
 
-// Concrete calculation endpoint
-router.post('/concrete', (req, res) => {
-  console.log('[POST /calculations/concrete] Received request:', req.body);
-  try {
-    const { projectArea, floors, foundationDepth, wallThickness, slabThickness } = req.body;
-
-    // Validate input
-    if (!projectArea || !floors || !foundationDepth || !wallThickness || !slabThickness) {
-      return res.status(400).json({
-        success: false,
-        message: 'جميع الحقول مطلوبة'
-      });
-    }
-
-    // Calculate foundation volume (assuming square foundation)
-    const foundationSide = Math.sqrt(projectArea);
-    const foundationVolume = foundationSide * foundationSide * foundationDepth;
-
-    // Calculate columns volume (assuming 4 columns per floor, 0.3x0.3m each, 3m height)
-    const columnVolumePerFloor = 4 * 0.3 * 0.3 * 3; // 4 columns, 0.3x0.3m, 3m height
-    const columnsVolume = columnVolumePerFloor * floors;
-
-    // Calculate slabs volume
-    const slabsVolume = projectArea * slabThickness * floors;
-
-    // Calculate beams volume (assuming perimeter beams, 0.3m width, 0.4m height)
-    const perimeter = 4 * foundationSide;
-    const beamVolumePerFloor = perimeter * 0.3 * 0.4;
-    const beamsVolume = beamVolumePerFloor * floors;
-
-    // Calculate stairs volume (assuming 1 stair per floor, 2m width, 3m length, 0.2m thickness)
-    const stairsVolumePerFloor = 2 * 3 * 0.2;
-    const stairsVolume = stairsVolumePerFloor * floors;
-
-    // Calculate walls volume (perimeter walls, excluding openings)
-    const wallHeight = 3; // 3 meters per floor
-    const wallsVolume = perimeter * wallThickness * wallHeight * floors;
-
-    // Total volume
-    const totalVolume = foundationVolume + columnsVolume + slabsVolume + beamsVolume + stairsVolume + wallsVolume;
-
-    return res.json({
-      success: true,
-      data: {
-        totalVolume: Math.round(totalVolume * 100) / 100,
-        foundationVolume: Math.round(foundationVolume * 100) / 100,
-        columnsVolume: Math.round(columnsVolume * 100) / 100,
-        slabsVolume: Math.round(slabsVolume * 100) / 100,
-        beamsVolume: Math.round(beamsVolume * 100) / 100,
-        stairsVolume: Math.round(stairsVolume * 100) / 100,
-        wallsVolume: Math.round(wallsVolume * 100) / 100
-      }
-    });
-  } catch (error) {
-    console.error('Concrete calculation error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'حدث خطأ في حساب كميات الباطون'
-    });
-  }
-});
-
-// Steel calculation endpoint
-router.post('/steel', (req, res) => {
-  console.log('[POST /calculations/steel] Received request:', req.body);
-  try {
-    const { concreteVolume, steelRatio } = req.body;
-
-    if (!concreteVolume) {
-      return res.status(400).json({
-        success: false,
-        message: 'حجم الباطون مطلوب'
-      });
-    }
-
-    // steelRatio can be:
-    // - A ratio (0.08 = 8%) - multiply by 7850 to get kg/m³
-    // - kg/m³ value (80 = 80 kg/m³) - use directly
-    // Default to 80 kg/m³ if not provided
-    let steelKgPerCubicMeter;
-    if (steelRatio === undefined || steelRatio === null) {
-      steelKgPerCubicMeter = 80; // Default 80 kg/m³
-    } else if (steelRatio < 1) {
-      // If less than 1, treat as ratio (e.g., 0.08 = 8%)
-      steelKgPerCubicMeter = steelRatio * 7850;
-    } else {
-      // If 1 or greater, treat as kg/m³ directly
-      steelKgPerCubicMeter = steelRatio;
-    }
-
-    // Calculate steel weight
-    const totalWeight = concreteVolume * steelKgPerCubicMeter;
-
-    // Distribute steel across different elements
-    const mainSteelWeight = totalWeight * 0.4;
-    const secondarySteelWeight = totalWeight * 0.6;
-    const columnsSteel = totalWeight * 0.3;
-    const beamsSteel = totalWeight * 0.25;
-    const slabsSteel = totalWeight * 0.25;
-    const foundationSteel = totalWeight * 0.2;
-
-    return res.json({
-      success: true,
-      data: {
-        totalWeight: Math.round(totalWeight * 100) / 100,
-        mainSteelWeight: Math.round(mainSteelWeight * 100) / 100,
-        secondarySteelWeight: Math.round(secondarySteelWeight * 100) / 100,
-        columnsSteel: Math.round(columnsSteel * 100) / 100,
-        beamsSteel: Math.round(beamsSteel * 100) / 100,
-        slabsSteel: Math.round(slabsSteel * 100) / 100,
-        foundationSteel: Math.round(foundationSteel * 100) / 100
-      }
-    });
-  } catch (error) {
-    console.error('Steel calculation error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'حدث خطأ في حساب كميات الحديد'
-    });
-  }
-});
-
-// Cost estimation endpoint
-router.post('/cost-estimation', (req, res) => {
+// Calculate base area only (for preview)
+router.post('/foundation-base/preview', async (req, res) => {
   try {
     const {
-      concreteVolume,
-      steelWeight,
-      concretePricePerCubicMeter,
-      steelPricePerKg
+      foundationLength,
+      foundationWidth,
+      foundationHeight,
+      numberOfFloors,
+      slabArea,
+      soilType,
+      buildingType,
     } = req.body;
 
-    if (!concreteVolume || !steelWeight || !concretePricePerCubicMeter || !steelPricePerKg) {
-      return res.status(400).json({
-        success: false,
-        message: 'جميع الحقول مطلوبة'
+    // Get soil type bearing capacity
+    const soil = await SoilType.findOne({ name: soilType });
+    if (!soil) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'نوع التربة غير موجود' 
+      });
+    }
+    const bearingCapacity = (soil.bearingCapacityMin + soil.bearingCapacityMax) / 2;
+
+    // Get dead load and live load
+    const liveLoadData = await LiveLoad.findOne({ buildingType });
+    const deadLoadData = await DeadLoad.findOne({ 
+      buildingType, 
+      elementType: 'إجمالي الحمل الميت' 
+    });
+
+    if (!liveLoadData) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `بيانات الحمولة الحية غير موجودة لنوع المبنى: ${buildingType}. يرجى التأكد من تشغيل seeding script (npm run seed:engineering)` 
       });
     }
 
-    const concreteCost = concreteVolume * concretePricePerCubicMeter;
-    const steelCost = steelWeight * steelPricePerKg;
-    const totalCost = concreteCost + steelCost;
+    if (!deadLoadData) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `بيانات الحمولة الميتة غير موجودة لنوع المبنى: ${buildingType}. يرجى التأكد من تشغيل seeding script (npm run seed:engineering)` 
+      });
+    }
 
-    // Cost breakdown (estimates)
-    const labor = totalCost * 0.25;
-    const equipment = totalCost * 0.15;
-    const overhead = totalCost * 0.1;
+    // Use common value if available, otherwise use minimum value
+    const liveLoad = liveLoadData.commonValue !== undefined && liveLoadData.commonValue !== null
+      ? liveLoadData.commonValue
+      : liveLoadData.minValue;
+    
+    // DeadLoad doesn't have commonValue, so always use minValue
+    const deadLoad = deadLoadData.minValue;
 
-    return res.json({
+    // Calculate base area
+    const totalLoad = deadLoad + liveLoad;
+    const baseArea = (slabArea * numberOfFloors * totalLoad) / (bearingCapacity * 1000);
+
+    res.json({
       success: true,
-      data: {
-        concreteCost: Math.round(concreteCost * 100) / 100,
-        steelCost: Math.round(steelCost * 100) / 100,
-        totalCost: Math.round(totalCost * 100) / 100,
-        costBreakdown: {
-          concrete: Math.round(concreteCost * 100) / 100,
-          steel: Math.round(steelCost * 100) / 100,
-          labor: Math.round(labor * 100) / 100,
-          equipment: Math.round(equipment * 100) / 100,
-          overhead: Math.round(overhead * 100) / 100
-        }
-      }
+      data: { baseArea: parseFloat(baseArea.toFixed(2)) }
     });
   } catch (error) {
-    console.error('Cost estimation error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'حدث خطأ في تقدير التكلفة'
+    res.status(500).json({ 
+      success: false, 
+      message: 'خطأ في الحساب', 
+      error: error.message 
     });
   }
 });
 
-// Generate cost report endpoint
-router.post('/generate-cost-report', (req, res) => {
+// Calculate foundation and base concrete quantities
+router.post('/foundation-base', async (req, res) => {
   try {
-    const { projectId, calculationType, input } = req.body;
+    const {
+      projectId,
+      foundationLength,
+      foundationWidth,
+      foundationHeight,
+      numberOfFloors,
+      slabArea,
+      soilType,
+      buildingType,
+      baseHeight,
+      baseShape,
+      allBasesSimilar,
+      totalNumberOfBases,
+      individualBases,
+    } = req.body;
 
-    // This endpoint can be extended to save reports to database
-    return res.json({
-      success: true,
-      message: 'تم إنشاء تقرير التكلفة بنجاح',
-      data: {
-        projectId,
-        calculationType,
-        input,
-        generatedAt: new Date().toISOString()
+    // Validation
+    if (!projectId || !foundationLength || !foundationWidth || !foundationHeight || 
+        !numberOfFloors || !slabArea || !soilType || !buildingType || !baseHeight) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'جميع الحقول مطلوبة' 
+      });
+    }
+
+    if (baseHeight < 40 || baseHeight > 80) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ارتفاع القاعدة يجب أن يكون بين 40-80 سم' 
+      });
+    }
+
+    // Get soil type bearing capacity
+    const soil = await SoilType.findOne({ name: soilType });
+    if (!soil) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'نوع التربة غير موجود' 
+      });
+    }
+    const bearingCapacity = (soil.bearingCapacityMin + soil.bearingCapacityMax) / 2; // Use average
+
+    // Get dead load and live load
+    const liveLoadData = await LiveLoad.findOne({ buildingType });
+    const deadLoadData = await DeadLoad.findOne({ 
+      buildingType, 
+      elementType: 'إجمالي الحمل الميت' 
+    });
+
+    if (!liveLoadData) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `بيانات الحمولة الحية غير موجودة لنوع المبنى: ${buildingType}. يرجى التأكد من تشغيل seeding script (npm run seed:engineering)` 
+      });
+    }
+
+    if (!deadLoadData) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `بيانات الحمولة الميتة غير موجودة لنوع المبنى: ${buildingType}. يرجى التأكد من تشغيل seeding script (npm run seed:engineering)` 
+      });
+    }
+
+    // Use common value if available, otherwise use minimum value
+    const liveLoad = liveLoadData.commonValue !== undefined && liveLoadData.commonValue !== null
+      ? liveLoadData.commonValue
+      : liveLoadData.minValue;
+    
+    // DeadLoad doesn't have commonValue, so always use minValue
+    const deadLoad = deadLoadData.minValue;
+
+    // Calculate foundation volume (صبة النظاف)
+    const foundationVolume = foundationLength * foundationWidth * foundationHeight;
+
+    // Calculate base area (مساحة القاعدة)
+    // bearingCapacity is in MPa, convert to kN/m²: 1 MPa = 1000 kN/m²
+    const bearingCapacityInKPa = bearingCapacity * 1000; // Convert MPa to kN/m²
+    const totalLoad = deadLoad + liveLoad;
+    const baseArea = (slabArea * numberOfFloors * totalLoad) / bearingCapacityInKPa;
+
+    // Calculate base dimensions
+    let baseLength, baseWidth;
+    if (baseShape === 'rectangular') {
+      baseWidth = Math.sqrt(baseArea / 1.2);
+      baseLength = baseWidth * 1.2;
+    } else {
+      baseLength = Math.sqrt(baseArea);
+      baseWidth = baseLength;
+    }
+
+    // Calculate foundations volume (كمية الخرسانة في القواعد)
+    // Use base dimensions (baseLength, baseWidth) minus 0.20m from each side
+    let foundationsVolume = 0;
+    const singleBaseArea = (baseLength - 0.20) * (baseWidth - 0.20);
+    const singleBaseVolume = singleBaseArea * (baseHeight / 100); // Convert cm to m
+
+    if (allBasesSimilar) {
+      if (!totalNumberOfBases || totalNumberOfBases <= 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'عدد القواعد مطلوب عندما تكون جميع القواعد متشابهة' 
+        });
       }
+      foundationsVolume = singleBaseVolume * totalNumberOfBases;
+    } else {
+      if (!individualBases || individualBases.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'بيانات القواعد الفردية مطلوبة عندما تكون القواعد غير متشابهة' 
+        });
+      }
+      // Sum all individual base volumes
+      // For individual bases, use the provided dimensions (should be base dimensions, not foundation)
+      foundationsVolume = individualBases.reduce((sum, base) => {
+        const area = (base.length - 0.20) * (base.width - 0.20);
+        const volume = area * (baseHeight / 100);
+        return sum + volume;
+      }, 0);
+    }
+
+    // Save to project
+    const project = await Project.findByIdAndUpdate(
+      projectId,
+      {
+        'concreteCalculations.foundation': {
+          foundationLength,
+          foundationWidth,
+          foundationHeight,
+          numberOfFloors,
+          slabArea,
+          soilType,
+          buildingType,
+          baseHeight,
+          foundationVolume: parseFloat(foundationVolume.toFixed(2)),
+          baseArea: parseFloat(baseArea.toFixed(2)),
+          baseShape,
+          baseLength: parseFloat(baseLength.toFixed(2)),
+          baseWidth: parseFloat(baseWidth.toFixed(2)),
+          allBasesSimilar,
+          totalNumberOfBases: allBasesSimilar ? totalNumberOfBases : individualBases?.length || 0,
+          individualBases: allBasesSimilar ? [] : (individualBases || []),
+          foundationsVolume: parseFloat(foundationsVolume.toFixed(2)),
+          calculatedAt: new Date(),
+        }
+      },
+      { new: true }
+    );
+
+    if (!project) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'المشروع غير موجود' 
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        foundationVolume: parseFloat(foundationVolume.toFixed(2)),
+        baseArea: parseFloat(baseArea.toFixed(2)),
+        baseLength: parseFloat(baseLength.toFixed(2)),
+        baseWidth: parseFloat(baseWidth.toFixed(2)),
+        foundationsVolume: parseFloat(foundationsVolume.toFixed(2)),
+        totalVolume: parseFloat((foundationVolume + foundationsVolume).toFixed(2)),
+      },
+      message: 'تم الحساب والحفظ بنجاح'
+    });
+
+  } catch (error) {
+    console.error('Calculation error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'خطأ في الحساب', 
+      error: error.message 
+    });
+  }
+});
+
+// Get project calculations
+router.get('/project/:projectId', async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.projectId);
+    if (!project) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'المشروع غير موجود' 
+      });
+    }
+
+    res.json({
+      success: true,
+      data: project.concreteCalculations || {}
     });
   } catch (error) {
-    console.error('Cost report generation error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'حدث خطأ في إنشاء تقرير التكلفة'
+    res.status(500).json({ 
+      success: false, 
+      message: 'خطأ في جلب البيانات', 
+      error: error.message 
     });
   }
 });
 
 module.exports = router;
-
