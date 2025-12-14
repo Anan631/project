@@ -13,15 +13,16 @@ import {
   Calendar,
   Blocks,
   CircleDot,
-  FileDown,
   CheckCircle2,
   AlertCircle,
+  Printer,
 } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
 
 interface QuantityReport {
   _id: string;
@@ -101,35 +102,286 @@ export default function ProjectReportsPage() {
   const downloadPDF = async (reportId: string, type: 'concrete' | 'steel') => {
     setDownloading(`${reportId}-${type}`);
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/quantity-reports/pdf/${type}/${reportId}`,
-        { method: 'GET' }
-      );
-      
-      if (!response.ok) throw new Error('Failed to download');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${type}-report-${projectId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
-      
+      // Find the report from the loaded reports
+      const report = reports.find(r => r._id === reportId);
+      if (!report) {
+        throw new Error('Report not found');
+      }
+
+      // Create HTML content for PDF
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              font-family: 'Arial', sans-serif;
+            }
+            body {
+              direction: rtl;
+              padding: 20mm;
+              background: white;
+            }
+            .container {
+              max-width: 100%;
+              background: white;
+            }
+            .header {
+              background: linear-gradient(135deg, #3f51b5 0%, #2196f3 100%);
+              color: white;
+              padding: 30px;
+              border-radius: 8px;
+              margin-bottom: 30px;
+              text-align: right;
+            }
+            .header h1 {
+              font-size: 28px;
+              margin-bottom: 5px;
+              font-weight: bold;
+            }
+            .header p {
+              font-size: 14px;
+              opacity: 0.9;
+            }
+            .project-name {
+              background: #f0f4f9;
+              border-right: 4px solid #3f51b5;
+              padding: 15px;
+              margin-bottom: 20px;
+              border-radius: 4px;
+              text-align: right;
+            }
+            .project-name h2 {
+              color: #1e293b;
+              font-size: 16px;
+              font-weight: bold;
+            }
+            .info-boxes {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 15px;
+              margin-bottom: 30px;
+            }
+            .info-box {
+              background: #f5f7fa;
+              border: 1px solid #3f51b5;
+              padding: 15px;
+              border-radius: 4px;
+              text-align: right;
+            }
+            .info-box label {
+              display: block;
+              font-size: 12px;
+              color: #6b7280;
+              margin-bottom: 5px;
+            }
+            .info-box .value {
+              font-size: 14px;
+              color: #1e293b;
+              font-weight: bold;
+            }
+            .date-info {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 20px;
+              font-size: 12px;
+              color: #6b7280;
+              text-align: right;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 30px;
+            }
+            thead {
+              background: #3f51b5;
+              color: white;
+            }
+            th {
+              padding: 12px;
+              text-align: right;
+              font-weight: bold;
+              font-size: 12px;
+            }
+            td {
+              padding: 12px;
+              text-align: right;
+              border-bottom: 1px solid #e5e7eb;
+              font-size: 12px;
+            }
+            tbody tr:nth-child(even) {
+              background: #f8fafb;
+            }
+            tbody tr:last-child {
+              font-weight: bold;
+              color: #3f51b5;
+            }
+            .total-box {
+              background: ${type === 'concrete' ? '#e8f5e9' : '#fff1e8'};
+              border: 2px solid ${type === 'concrete' ? '#4caf50' : '#e17055'};
+              border-radius: 4px;
+              padding: 20px;
+              margin-bottom: 30px;
+              text-align: right;
+            }
+            .total-box label {
+              display: block;
+              font-size: 14px;
+              color: #1e293b;
+              margin-bottom: 8px;
+            }
+            .total-box .value {
+              font-size: 24px;
+              font-weight: bold;
+              color: ${type === 'concrete' ? '#4caf50' : '#e17055'};
+            }
+            .footer {
+              border-top: 1px solid #d3d4d6;
+              padding-top: 15px;
+              text-align: center;
+              font-size: 10px;
+              color: #9ca3af;
+              margin-top: 30px;
+            }
+            @media print {
+              body {
+                padding: 0;
+                margin: 0;
+              }
+              .container {
+                page-break-inside: avoid;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>تقرير كميات ${type === 'concrete' ? 'الخرسانة' : 'الحديد'}</h1>
+              <p>تفصيل شامل لكميات المواد والمعدات</p>
+            </div>
+
+            <div class="project-name">
+              <h2>المشروع: ${report.projectName}</h2>
+            </div>
+
+            <div class="info-boxes">
+              <div class="info-box">
+                <label>المهندس المسؤول</label>
+                <div class="value">${report.engineerName}</div>
+              </div>
+              <div class="info-box">
+                <label>المالك / العميل</label>
+                <div class="value">${report.ownerName || 'غير محدد'}</div>
+              </div>
+            </div>
+
+            <div class="date-info">
+              <span>عدد البنود: 3</span>
+              <span>تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}</span>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>الإجمالي</th>
+                  <th>الكمية</th>
+                  <th>البند</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  type === 'concrete' && report.concreteData
+                    ? `
+                      <tr>
+                        <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
+                        <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
+                        <td>كمية خرسانة النظاف</td>
+                      </tr>
+                      <tr>
+                        <td>${report.concreteData.foundationsVolume?.toFixed(2) || 0} م³</td>
+                        <td>${report.concreteData.foundationsVolume?.toFixed(2) || 0} م³</td>
+                        <td>كمية خرسانة القواعد</td>
+                      </tr>
+                      <tr>
+                        <td>${(report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>${(report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>إجمالي الخرسانة</td>
+                      </tr>
+                    `
+                    : `
+                      <tr>
+                        <td>${report.steelData?.foundationSteel?.toFixed(2) || 0} كجم</td>
+                        <td>${report.steelData?.foundationSteel?.toFixed(2) || 0} كجم</td>
+                        <td>حديد القواعد</td>
+                      </tr>
+                      <tr>
+                        <td>${report.steelData?.columnSteel?.toFixed(2) || 0} كجم</td>
+                        <td>${report.steelData?.columnSteel?.toFixed(2) || 0} كجم</td>
+                        <td>حديد الأعمدة</td>
+                      </tr>
+                      <tr>
+                        <td>${(report.steelData?.totalSteelWeight || 0).toFixed(2)} كجم</td>
+                        <td>${(report.steelData?.totalSteelWeight || 0).toFixed(2)} كجم</td>
+                        <td>إجمالي الحديد</td>
+                      </tr>
+                    `
+                }
+              </tbody>
+            </table>
+
+            <div class="total-box">
+              <label>المجموع الكلي:</label>
+              <div class="value">
+                ${
+                  type === 'concrete' && report.concreteData
+                    ? `${(report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+                    : `${(report.steelData?.totalSteelWeight || 0).toFixed(2)} كجم`
+                }
+              </div>
+            </div>
+
+            <div class="footer">
+              <p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p>
+              <p>© 2025 جميع الحقوق محفوظة</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Create a new window and write the HTML content
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      if (!printWindow) {
+        throw new Error('Could not open print window');
+      }
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+
+      // Wait for the content to load and then trigger print
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 100);
+      };
+
       toast({
-        title: 'تم التحميل',
-        description: `تم تحميل تقرير ${type === 'concrete' ? 'الخرسانة' : 'الحديد'} بنجاح`,
+        title: 'تم فتح التقرير',
+        description: `تم فتح تقرير ${type === 'concrete' ? 'الخرسانة' : 'الحديد'} للطباعة`,
       });
+
+      setDownloading(null);
     } catch (error) {
-      console.error('Error downloading PDF:', error);
+      console.error('Error generating PDF:', error);
       toast({
-        title: 'خطأ في التحميل',
-        description: 'حدث خطأ أثناء تحميل التقرير',
+        title: 'خطأ في الطباعة',
+        description: 'حدث خطأ أثناء فتح التقرير للطباعة',
         variant: 'destructive'
       });
-    } finally {
       setDownloading(null);
     }
   };
@@ -265,9 +517,9 @@ export default function ProjectReportsPage() {
                     {downloading === `${latestReport._id}-concrete` ? (
                       <Loader2 className="w-5 h-5 animate-spin ml-2" />
                     ) : (
-                      <FileDown className="w-5 h-5 ml-2" />
+                      <Printer className="w-5 h-5 ml-2" />
                     )}
-                    تحميل تقرير الخرسانة PDF
+                    طباعة تقرير الخرسانة PDF
                   </Button>
                 </CardContent>
               </Card>
@@ -318,9 +570,9 @@ export default function ProjectReportsPage() {
                     {downloading === `${latestReport._id}-steel` ? (
                       <Loader2 className="w-5 h-5 animate-spin ml-2" />
                     ) : (
-                      <FileDown className="w-5 h-5 ml-2" />
+                      <Printer className="w-5 h-5 ml-2" />
                     )}
-                    تحميل تقرير الحديد PDF
+                    طباعة تقرير الحديد PDF
                   </Button>
                 </CardContent>
               </Card>

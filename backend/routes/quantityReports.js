@@ -112,22 +112,65 @@ router.get('/pdf/concrete/:reportId', async (req, res) => {
     }
 
     const reportId = req.params.reportId;
-    console.log('📄 Generating TEST concrete PDF for report:', reportId);
+    console.log('📄 Generating concrete PDF for report:', reportId);
+    
+    const report = await QuantityReport.findById(reportId);
+    if (!report) {
+      return res.status(404).json({ success: false, message: 'Report not found' });
+    }
     
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=test-report.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename=concrete-report-${reportId}.pdf`);
     
     doc.pipe(res);
     
-    doc.fontSize(25).text('Hello World', 100, 100);
+    // Header with border
+    doc.rect(50, 50, 495, 80).stroke();
+    doc.fontSize(24).text('تقرير كميات الخرسانة', 70, 80, { align: 'center' });
+    doc.fontSize(12).text('Concrete Quantity Report', 70, 110, { align: 'center' });
+    doc.moveDown(2);
+    
+    // Date
+    const currentDate = new Date().toLocaleDateString('ar-EG', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    doc.fontSize(12).text(`تاريخ الطباعة: ${currentDate}`, 50, 150);
+    doc.moveDown();
+    
+    // Owner and Engineer info in a box
+    doc.rect(50, 170, 495, 60).stroke();
+    doc.fontSize(14).text(`اسم المالك: ${report.ownerName || 'غير محدد'}`, 60, 185);
+    doc.text(`اسم المهندس: ${report.engineerName}`, 60, 205);
+    doc.moveDown(2);
+    
+    // Project info
+    doc.fontSize(14).text(`اسم المشروع: ${report.projectName}`, 50, 250);
+    doc.moveDown(2);
+    
+    // Concrete quantities section
+    doc.rect(50, 280, 495, 120).stroke();
+    doc.fontSize(16).text('كميات الخرسانة', 60, 295);
+    doc.moveDown();
+    
+    const concreteData = report.concreteData || {};
+    
+    doc.fontSize(12).text(`كمية خرسانة النظاف: ${concreteData.cleaningVolume?.toFixed(2) || 0} متر مكعب`, 60, 325);
+    doc.text(`كمية خرسانة القواعد: ${concreteData.foundationsVolume?.toFixed(2) || 0} متر مكعب`, 60, 345);
+    doc.moveDown();
+    doc.fontSize(14).text(`إجمالي الكمية: ${(concreteData.totalConcrete || 0).toFixed(2)} متر مكعب`, 60, 375);
+    
+    // Footer
+    doc.fontSize(10).text('تم إنشاء هذا التقرير بواسطة نظام إدارة المشاريع الهندسية', 50, 750, { align: 'center' });
     
     doc.end();
-    console.log('✅ Test PDF generated successfully');
+    console.log('✅ Concrete PDF generated successfully');
     
   } catch (err) {
-    console.error('❌ Error generating test PDF:', err);
+    console.error('❌ Error generating concrete PDF:', err);
     return res.status(500).json({ success: false, message: 'Failed to generate PDF', error: err.message });
   }
 });
