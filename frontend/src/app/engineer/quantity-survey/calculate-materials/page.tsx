@@ -135,11 +135,13 @@ export default function CalculateMaterialsPage() {
                   <CardContent>
                     <div className="grid grid-cols-2 gap-3">
                       <Button
-                        className="w-full bg-red-600/50 text-white font-bold h-12 cursor-not-allowed"
-                        disabled
+                        asChild
+                        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold h-12"
                       >
-                        <HardHat className="h-5 w-5 ml-2" />
-                        حساب كميات الباطون
+                        <Link href={`/engineer/projects/${project.id}/concrete-cards`}>
+                          <HardHat className="h-5 w-5 ml-2" />
+                          حساب كميات الباطون
+                        </Link>
                       </Button>
                       <Button
                         asChild
