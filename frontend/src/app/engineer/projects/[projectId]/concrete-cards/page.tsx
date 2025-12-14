@@ -32,6 +32,17 @@ export default function ConcreteCalculationsPage() {
       gradient: 'from-purple-500 to-indigo-600'
     },
     {
+      id: 'cleaning-slab',
+      title: 'صبة النظافة فقط',
+      description: 'حساب كمية الخرسانة لصبة النظافة بشكل منفصل',
+      icon: Layers,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
+      hoverBorder: 'hover:border-blue-500',
+      gradient: 'from-blue-500 to-cyan-600'
+    },
+    {
       id: 'column-base',
       title: 'شروش الأعمدة',
       description: 'حساب كميات الخرسانة لرقاب الأعمدة (الشروش)',
@@ -104,7 +115,7 @@ export default function ConcreteCalculationsPage() {
         </p>
 
         <Link href={`/engineer/projects/${projectId}`}>
-          <Button variant="outline" className="mt-6 gap-2 hover:bg-gray-100 transition-colors">
+          <Button className="mt-6 gap-2 bg-gray-900 text-white font-semibold hover:bg-green-600 transition-colors">
             <ArrowRight className="w-4 h-4 ml-2" />
             العودة للمشروع
           </Button>
@@ -114,13 +125,13 @@ export default function ConcreteCalculationsPage() {
       {/* Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
         {calculationCards.map((card, index) => (
-          <div
+          <Link
             key={card.id}
+            href={card.id === 'foundation' ? `/engineer/projects/${projectId}/concrete-cards/foundation` : card.id === 'cleaning-slab' ? `/engineer/projects/${projectId}/concrete-cards/cleaning-slab` : '#'}
             className={cn(
-              "group block h-full cursor-not-allowed",
-              "opacity-80"
+              "group block h-full",
+              card.id === 'foundation' || card.id === 'cleaning-slab' ? "cursor-pointer" : "cursor-not-allowed opacity-80"
             )}
-            aria-disabled
           >
             <div className={cn(
               "relative h-full rounded-2xl overflow-hidden",
@@ -246,7 +257,7 @@ export default function ConcreteCalculationsPage() {
               )} />
 
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

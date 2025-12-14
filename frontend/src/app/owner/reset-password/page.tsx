@@ -99,7 +99,7 @@ function OwnerResetPasswordForm() {
         description: result.message,
         variant: "default",
       });
-      setTimeout(() => router.push('/login'), 3000);
+      setTimeout(() => router.push('/owner-login'), 3000);
     } else {
       toast({
         title: "خطأ",
@@ -132,7 +132,7 @@ function OwnerResetPasswordForm() {
           <p className="text-gray-600 max-w-xs mx-auto">تم إعادة تعيين كلمة مرورك بنجاح. سيتم توجيهك إلى صفحة تسجيل الدخول.</p>
         </div>
         <Button asChild className="mt-4 bg-green-600 hover:bg-green-700">
-          <Link href="/login">تسجيل الدخول الآن</Link>
+          <Link href="/owner-login">تسجيل الدخول الآن</Link>
         </Button>
       </div>
     );
