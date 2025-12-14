@@ -15,26 +15,26 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
-export default function SteelCalculationsPage() {
+export default function ConcreteCalculationsPage() {
   const params = useParams();
   const projectId = params.projectId as string;
 
   const calculationCards = [
     {
       id: 'foundation',
-      title: 'القواعد',
-      description: 'حساب كميات الحديد للقواعد وفق المعايير الهندسية',
+      title: 'صبة النظافة والقواعد',
+      description: 'حساب كميات الخرسانة لصبة النظافة والقواعد وفق المعايير الهندسية',
       icon: Blocks,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200',
-      hoverBorder: 'hover:border-green-500',
-      gradient: 'from-green-500 to-emerald-600'
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
+      borderColor: 'border-purple-200',
+      hoverBorder: 'hover:border-purple-500',
+      gradient: 'from-purple-500 to-indigo-600'
     },
     {
       id: 'column-base',
       title: 'شروش الأعمدة',
-      description: 'حساب كميات الحديد لرقاب الأعمدة (الشروش)',
+      description: 'حساب كميات الخرسانة لرقاب الأعمدة (الشروش)',
       icon: Layers,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
@@ -45,7 +45,7 @@ export default function SteelCalculationsPage() {
     {
       id: 'ground-beams',
       title: 'الجسور الأرضية',
-      description: 'حساب كميات الحديد للجسور الأرضية (الميدات)',
+      description: 'حساب كميات الخرسانة للجسور الأرضية (الميدات)',
       icon: Component,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50',
@@ -56,7 +56,7 @@ export default function SteelCalculationsPage() {
     {
       id: 'ground-slab',
       title: 'أرضية المبنى (المدّة)',
-      description: 'حساب كميات الحديد لأرضية المبنى (Slab on Grade)',
+      description: 'حساب كميات الخرسانة لأرضية المبنى (Slab on Grade)',
       icon: Grid3x3,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
@@ -67,7 +67,7 @@ export default function SteelCalculationsPage() {
     {
       id: 'columns',
       title: 'الأعمدة',
-      description: 'حساب كميات الحديد للأعمدة الخرسانية',
+      description: 'حساب كميات الخرسانة للأعمدة الخرسانية',
       icon: Columns,
       color: 'text-pink-600',
       bgColor: 'bg-pink-50',
@@ -78,7 +78,7 @@ export default function SteelCalculationsPage() {
     {
       id: 'roof',
       title: 'السقف',
-      description: 'حساب كميات الحديد للأسقف والبلاطات الخرسانية',
+      description: 'حساب كميات الخرسانة للأسقف والبلاطات الخرسانية',
       icon: LayoutDashboard,
       color: 'text-cyan-600',
       bgColor: 'bg-cyan-50',
@@ -94,13 +94,13 @@ export default function SteelCalculationsPage() {
       {/* Header Section */}
       <div className="mb-12 text-center space-y-4">
         <div className="inline-block p-3 rounded-2xl bg-white shadow-sm mb-4">
-          <Building2 className="w-12 h-12 text-green-600" />
+          <Building2 className="w-12 h-12 text-purple-600" />
         </div>
         <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-          حاسبة كميات الحديد
+          حاسبة كميات الباطون
         </h1>
         <p className="max-w-2xl mx-auto text-lg text-gray-600">
-          اختر العنصر الإنشائي للبدء في حساب كميات الحديد بدقة وسهولة.
+          اختر العنصر الإنشائي للبدء في حساب كميات الخرسانة بدقة وسهولة.
         </p>
 
         <Link href={`/engineer/projects/${projectId}`}>

@@ -9,13 +9,14 @@ const RoofType = require('../models/RoofType');
 
 // البيانات
 const soilTypesData = [
+  // ✅ مطابق للجدو��: MPa
   { name: 'تربة رملية', nameEn: 'Sandy Soil', bearingCapacityMin: 0.10, bearingCapacityMax: 0.30 },
   { name: 'تربة طينية', nameEn: 'Clayey Soil', bearingCapacityMin: 0.05, bearingCapacityMax: 0.15 },
-  { name: 'تربة طينية رخوة', nameEn: 'Soft Clayey Soil', bearingCapacityMin: 0.025, bearingCapacityMax: 0.05 },
-  { name: 'تربة طميية أو طينية رخوة', nameEn: 'Loose Silty or Clayey Soil', bearingCapacityMin: 0.025, bearingCapacityMax: 0.10 },
-  { name: 'تربة طينية مخلوطة بالرمل', nameEn: 'Clayey Soil Mixed with Sand', bearingCapacityMin: 0.075, bearingCapacityMax: 0.20 },
+  { name: 'تربة طينية ناعمة', nameEn: 'Soft Clayey Soil', bearingCapacityMin: 0.025, bearingCapacityMax: 0.05 },
+  { name: 'تربة طميية أو طينية مفككة', nameEn: 'Loose Silty or Clayey Soil', bearingCapacityMin: 0.025, bearingCapacityMax: 0.10 },
+  { name: 'تربة طينية ممزوجة بالرمل', nameEn: 'Clayey Soil Mixed with Sand', bearingCapacityMin: 0.075, bearingCapacityMax: 0.20 },
   { name: 'تربة حصوية', nameEn: 'Gravelly Soil', bearingCapacityMin: 0.20, bearingCapacityMax: 0.40 },
-  { name: 'تربة صخرية', nameEn: 'Rocky Soil', bearingCapacityMin: 35.00, bearingCapacityMax: 35.00 },
+  { name: 'تربة صخرية', nameEn: 'Rocky Soil', bearingCapacityMin: 0.35, bearingCapacityMax: 0.50 },
 ];
 
 const liveLoadsData = [

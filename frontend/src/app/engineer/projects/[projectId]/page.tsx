@@ -1143,7 +1143,7 @@ export default function EngineerProjectDetailPage() {
                 className="w-full justify-start bg-red-500/20 text-red-100 border-red-500/30 hover:bg-red-500/30 h-14"
                 asChild
               >
-                <Link href={`/engineer/projects/${projectId}/concrete-calculations`}>
+                <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
                   <HardHat size={18} className="ms-2" /> حساب كميات الباطون
                 </Link>
               </Button>

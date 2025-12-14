@@ -34,6 +34,7 @@ app.use('/api/calculations', require('./routes/calculations')); // تم تصحي
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/contact', require('./routes/contact'));
 app.use('/api/engineering-data', require('./routes/engineering-data'));
+app.use('/api/concrete-calculation', require('./routes/concreteCalculationRoutes'));
 
 /* ------------------- Database Connection -------------------- */
 

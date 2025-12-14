@@ -86,14 +86,14 @@ const projectSchema = new mongoose.Schema(
         // Calculations
         foundationVolume: Number, // m³
         baseArea: Number, // m²
+        baseAreaTotal: Number, // m²
         baseShape: String, // 'square' or 'rectangular'
         baseLength: Number,
         baseWidth: Number,
         allBasesSimilar: Boolean,
         totalNumberOfBases: Number,
         individualBases: [{
-          length: Number,
-          width: Number,
+          height: Number,
         }],
         foundationsVolume: Number, // m³
         
