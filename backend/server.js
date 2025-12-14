@@ -35,6 +35,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/contact', require('./routes/contact'));
 app.use('/api/engineering-data', require('./routes/engineering-data'));
 app.use('/api/concrete-calculation', require('./routes/concreteCalculationRoutes'));
+app.use('/api/quantity-reports', require('./routes/quantityReports'));
 
 /* ------------------- Database Connection -------------------- */
 

@@ -14,10 +14,14 @@ import {
   AlertCircle,
   TrendingUp,
   Grid,
-  LayoutDashboard
+  LayoutDashboard,
+  Plus,
+  Trash2
 } from "lucide-react";
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,11 +32,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 export default function FoundationCalculationPage() {
   const params = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
   const projectId = params.projectId as string;
+  const [saving, setSaving] = useState(false);
 
   // State for all inputs
   const [inputs, setInputs] = useState({
-    // صبة النظافة
+    // صبة النظافة (عامة)
     cleaningLength: '',
     cleaningWidth: '',
     cleaningHeight: '',
@@ -44,19 +51,23 @@ export default function FoundationCalculationPage() {
     buildingType: '',
     
     // القواعد
-    foundationHeight: '',
-    numberOfFoundations: '',
-    foundationShape: '',
+    foundationHeight: '', // for similar foundations
+    numberOfFoundations: '', // for similar foundations
+    foundationShape: '', // for similar foundations
     foundationsSimilar: ''
   });
+
+  // State for individual (non-similar) foundations with their own dimensions
+  const [individualFoundations, setIndividualFoundations] = useState<Array<{id: number, cleaningLength: string, cleaningWidth: string, height: string}>>([]);
+  const [nextFoundationId, setNextFoundationId] = useState(1);
 
   // State for results and errors
   const [results, setResults] = useState<{
     cleaningVolume: number;
     totalLoad: number;
-    loadPerFoundation: number;
-    foundationArea: number;
-    foundationDimensions: string;
+    loadPerFoundation: number | null;
+    foundationArea: number | null;
+    foundationDimensions: string | null;
     foundationsVolume: number;
     totalConcrete: number;
     deadLoadPerSqm: number;
@@ -101,41 +112,52 @@ export default function FoundationCalculationPage() {
     return acc;
   }, {});
 
-  const formatLoad = (value: number) => parseFloat(value.toFixed(2)).toString();
-
   const handleInputChange = (field: string, value: string) => {
     setInputs(prev => ({ ...prev, [field]: value }));
     if (error) setError(null);
   };
 
+  // --- Functions for managing individual foundations ---
+  const addIndividualFoundation = () => {
+    setIndividualFoundations(prev => [...prev, { id: nextFoundationId, cleaningLength: '', cleaningWidth: '', height: '' }]);
+    setNextFoundationId(prev => prev + 1);
+  };
+
+  const updateIndividualFoundation = (id: number, field: 'cleaningLength' | 'cleaningWidth' | 'height', value: string) => {
+    setIndividualFoundations(prev => 
+      prev.map(f => (f.id === id ? { ...f, [field]: value } : f))
+    );
+  };
+
+  const removeIndividualFoundation = (id: number) => {
+    setIndividualFoundations(prev => prev.filter(f => f.id !== id));
+  };
+  // --- End of management functions ---
+
   const calculateResults = () => {
     try {
-      // Get numeric values
+      // Get numeric values for general cleaning concrete (if needed)
       const cleaningLength = parseFloat(inputs.cleaningLength);
       const cleaningWidth = parseFloat(inputs.cleaningWidth);
       const cleaningHeight = parseFloat(inputs.cleaningHeight);
       const numberOfFloors = parseFloat(inputs.numberOfFloors);
       const floorArea = parseFloat(inputs.floorArea);
-      const foundationHeight = parseFloat(inputs.foundationHeight);
-      const numberOfFoundations = parseFloat(inputs.numberOfFoundations);
 
-      // Validate inputs
+      // Validate common inputs
       if (isNaN(cleaningLength) || isNaN(cleaningWidth) || isNaN(cleaningHeight) ||
-          isNaN(numberOfFloors) || isNaN(floorArea) || isNaN(foundationHeight) ||
-          isNaN(numberOfFoundations) ||
-          !inputs.soilType || !inputs.buildingType || !inputs.foundationShape || !inputs.foundationsSimilar) {
+          isNaN(numberOfFloors) || isNaN(floorArea) ||
+          !inputs.soilType || !inputs.buildingType || !inputs.foundationsSimilar) {
         setError('يرجى ملء جميع الحقول المطلوبة بقيم صحيحة');
         return;
       }
 
       if (cleaningLength <= 0 || cleaningWidth <= 0 || cleaningHeight <= 0 ||
-          numberOfFloors <= 0 || floorArea <= 0 || foundationHeight <= 0 ||
-          numberOfFoundations <= 0) {
+          numberOfFloors <= 0 || floorArea <= 0) {
         setError('يجب أن تكون جميع القيم الرقمية موجبة');
         return;
       }
 
-      // أ. حجم صبة النظاف
+      // أ. حجم صبة النظافة (العامة)
       const cleaningVolume = cleaningLength * cleaningWidth * cleaningHeight;
 
       // ب. الحمل الكلي على المبنى
@@ -144,41 +166,74 @@ export default function FoundationCalculationPage() {
         setError('نوع المبنى غير معروف');
         return;
       }
-
       const deadLoadPerSqm = loads.dead;
       const liveLoadPerSqm = loads.live;
       const combinedLoadPerSqm = deadLoadPerSqm + liveLoadPerSqm;
       const totalLoad = floorArea * numberOfFloors * combinedLoadPerSqm;
 
-      // ج. الحمل على القاعدة الواحدة
-      const loadPerFoundation = totalLoad / numberOfFoundations;
+      let foundationsVolume = 0;
+      let loadPerFoundation = null;
+      let foundationArea = null;
+      let foundationDimensions = null;
 
-      // د. مساحة القاعدة
-      const soilCapacity = soilCapacities[inputs.soilType];
-      const foundationArea = loadPerFoundation / soilCapacity;
+      // --- Calculation Logic Split ---
+      if (inputs.foundationsSimilar === 'نعم') {
+        const foundationHeight = parseFloat(inputs.foundationHeight);
+        const numberOfFoundations = parseFloat(inputs.numberOfFoundations);
+        
+        if (isNaN(foundationHeight) || isNaN(numberOfFoundations) || foundationHeight <= 0 || numberOfFoundations <= 0 || !inputs.foundationShape) {
+          setError('يرجى ملء بيانات القواعد المتشابهة بشكل صحيح');
+          return;
+        }
 
-      // هـ. أبعاد القاعدة
-      let foundationLength: number, foundationWidth: number;
-      
-      if (inputs.foundationShape === 'مربع') {
-        foundationLength = foundationWidth = Math.sqrt(foundationArea);
-      } else {
-        foundationWidth = Math.sqrt(foundationArea / 1.2);
-        foundationLength = foundationWidth * 1.2;
+        // ج. الحمل على القاعدة الواحدة
+        loadPerFoundation = totalLoad / numberOfFoundations;
+
+        // د. مساحة القاعدة
+        const soilCapacity = soilCapacities[inputs.soilType];
+        foundationArea = loadPerFoundation / soilCapacity;
+
+        // هـ. أبعاد القاعدة
+        let foundationLength: number, foundationWidth: number;
+        if (inputs.foundationShape === 'مربع') {
+          foundationLength = foundationWidth = Math.sqrt(foundationArea);
+        } else {
+          foundationWidth = Math.sqrt(foundationArea / 1.2);
+          foundationLength = foundationWidth * 1.2;
+        }
+        foundationDimensions = `${foundationLength.toFixed(2)} × ${foundationWidth.toFixed(2)} متر`;
+
+        // و. حساب حجم الخرسانة الفعلي في القواعد (طريقة القواعد المتشابهة)
+        const actualLength = Math.max(0.3, foundationLength - (2 * CONCRETE_MARGIN));
+        const actualWidth = Math.max(0.3, foundationWidth - (2 * CONCRETE_MARGIN));
+        const foundationVolume = actualLength * actualWidth * foundationHeight;
+        foundationsVolume = foundationVolume * numberOfFoundations;
+
+      } else { // foundationsSimilar === 'لا'
+        if (individualFoundations.length === 0) {
+          setError('عند اختيار قواعد غير متشابهة، يجب إضافة قاعدة واحدة على الأقل');
+          return;
+        }
+        
+        // حساب حجم الخرسانة (طريقة القواعد غير المتشابهة)
+        // القانون: مجموع ((طول صبة نظافة القاعدة - 0.20) * (عرض صبة نظافة القاعدة - 0.20) * ارتفاع القاعدة)
+        foundationsVolume = 0; // Initialize total volume
+        for (const f of individualFoundations) {
+          const length = parseFloat(f.cleaningLength);
+          const width = parseFloat(f.cleaningWidth);
+          const height = parseFloat(f.height);
+
+          if (isNaN(length) || isNaN(width) || isNaN(height) || length <= 0 || width <= 0 || height <= 0) {
+            setError(`يرجى إدخال أبعاد صحيحة (طول، عرض، ارتفاع) لجميع القواعد`);
+            return;
+          }
+
+          // Volume for this single foundation
+          const singleFoundationVolume = (length - CONCRETE_MARGIN) * (width - CONCRETE_MARGIN) * height;
+          foundationsVolume += singleFoundationVolume;
+        }
       }
-
-      const dimensionsText = `${foundationLength.toFixed(2)} × ${foundationWidth.toFixed(2)} متر`;
-
-      // و. حساب حجم الخرسانة الفعلي في القواعد مع تطبيق حاشية الصب الثابتة
-      // حساب الأبعاد الفعلية للقاعدة بعد تطبيق الحاشية
-      const actualLength = Math.max(0.3, foundationLength - (2 * CONCRETE_MARGIN));
-      const actualWidth = Math.max(0.3, foundationWidth - (2 * CONCRETE_MARGIN));
-      
-      // حجم قاعدة واحدة = الطول الفعلي × العرض الفعلي × ارتفاع القاعدة
-      const foundationVolume = actualLength * actualWidth * foundationHeight;
-      
-      // حجم جميع القواعد = حجم قاعدة واحدة × عدد القواعد
-      const foundationsVolume = foundationVolume * numberOfFoundations;
+      // --- End of Calculation Logic Split ---
 
       // ز. إجمالي الخرسانة للمشروع
       const totalConcrete = cleaningVolume + foundationsVolume;
@@ -188,7 +243,7 @@ export default function FoundationCalculationPage() {
         totalLoad,
         loadPerFoundation,
         foundationArea,
-        foundationDimensions: dimensionsText,
+        foundationDimensions,
         foundationsVolume,
         totalConcrete,
         deadLoadPerSqm,
@@ -216,8 +271,105 @@ export default function FoundationCalculationPage() {
       foundationShape: '',
       foundationsSimilar: ''
     });
+    setIndividualFoundations([]);
+    setNextFoundationId(1);
     setResults(null);
     setError(null);
+  };
+
+  const saveToReports = async () => {
+    if (!results) {
+      toast({
+        title: 'لا توجد نتائج',
+        description: 'يرجى إجراء الحسابات أولاً',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const engineerId = localStorage.getItem('userId') || '';
+      const engineerName = localStorage.getItem('userName') || 'المهندس';
+      
+      // Fetch project details to get owner info
+      const projectRes = await fetch(`http://localhost:5000/api/projects/${projectId}`);
+      const projectData = await projectRes.json();
+      const project = projectData.project || projectData;
+      
+      const reportData = {
+        projectId,
+        projectName: project?.name || `مشروع #${projectId}`,
+        engineerId,
+        engineerName,
+        ownerName: project?.clientName || '',
+        ownerEmail: project?.linkedOwnerEmail || '',
+        calculationType: 'foundation',
+        concreteData: {
+          cleaningVolume: results.cleaningVolume,
+          foundationsVolume: results.foundationsVolume,
+          totalConcrete: results.totalConcrete,
+          cleaningLength: parseFloat(inputs.cleaningLength),
+          cleaningWidth: parseFloat(inputs.cleaningWidth),
+          cleaningHeight: parseFloat(inputs.cleaningHeight),
+          numberOfFloors: parseFloat(inputs.numberOfFloors),
+          floorArea: parseFloat(inputs.floorArea),
+          soilType: inputs.soilType,
+          buildingType: inputs.buildingType,
+          foundationsSimilar: inputs.foundationsSimilar === 'نعم',
+          numberOfFoundations: parseFloat(inputs.numberOfFoundations) || individualFoundations.length,
+          foundationHeight: parseFloat(inputs.foundationHeight),
+          foundationShape: inputs.foundationShape,
+          foundationDimensions: results.foundationDimensions,
+          foundationArea: results.foundationArea,
+          totalLoad: results.totalLoad,
+          loadPerFoundation: results.loadPerFoundation,
+          deadLoadPerSqm: results.deadLoadPerSqm,
+          liveLoadPerSqm: results.liveLoadPerSqm,
+          combinedLoadPerSqm: results.combinedLoadPerSqm,
+          individualFoundations: individualFoundations.map(f => ({
+            id: f.id,
+            cleaningLength: parseFloat(f.cleaningLength),
+            cleaningWidth: parseFloat(f.cleaningWidth),
+            height: parseFloat(f.height),
+            volume: (parseFloat(f.cleaningLength) - 0.20) * (parseFloat(f.cleaningWidth) - 0.20) * parseFloat(f.height)
+          }))
+        },
+        steelData: {
+          totalSteelWeight: results.totalConcrete * 80,
+          foundationSteel: results.foundationsVolume * 80
+        }
+      };
+
+      const response = await fetch('http://localhost:5000/api/quantity-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reportData)
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: 'تم الحفظ بنجاح',
+          description: 'تم ترحيل النتائج إلى صفحة تقارير الكميات',
+        });
+        
+        // Navigate to reports page
+        router.push(`/engineer/quantity-reports/${projectId}`);
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error('Error saving report:', error);
+      toast({
+        title: 'خطأ في الحفظ',
+        description: 'حدث خطأ أثناء حفظ التقرير',
+        variant: 'destructive'
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -301,9 +453,9 @@ export default function FoundationCalculationPage() {
                       <Layers className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl font-bold">صبة النظافة</CardTitle>
+                      <CardTitle className="text-xl font-bold">صبة النظافة العامة</CardTitle>
                       <CardDescription className="text-emerald-100 text-base">
-                        أبعاد الصبة الأساسية تحت المبنى
+                        أبعاد الصبة الأساسية تحت المبنى (إن وجدت)
                       </CardDescription>
                     </div>
                   </div>
@@ -406,61 +558,137 @@ export default function FoundationCalculationPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6 lg:p-8 pt-0 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <InputField
-                    id="foundationHeight"
-                    label="ارتفاع القاعدة"
-                    value={inputs.foundationHeight}
-                    onChange={(value) => handleInputChange('foundationHeight', value)}
-                    placeholder="0.60"
-                    step="0.05"
-                    unit="متر"
-                    icon={Ruler}
-                  />
-                  <InputField
-                    id="numberOfFoundations"
-                    label="عدد القواعد"
-                    value={inputs.numberOfFoundations}
-                    onChange={(value) => handleInputChange('numberOfFoundations', value)}
-                    placeholder="12"
-                    type="number"
-                    unit="قاعدة"
-                    icon={Grid}
-                  />
-                  <SelectField
-                    id="foundationShape"
-                    label="شكل القاعدة"
-                    value={inputs.foundationShape}
-                    onChange={(value) => handleInputChange('foundationShape', value)}
-                    options={[
-                      { value: 'مربع', label: 'مربع' },
-                      { value: 'مستطيل', label: 'مستطيل (نسبة 1.2:1)' }
-                    ]}
-                  />
+                <CardContent className="p-6 lg:p-8 pt-0 space-y-6">
                   <SelectField
                     id="foundationsSimilar"
-                    label="القواعد متشابهة؟"
+                    label="هل القواعد متشابهة؟"
                     value={inputs.foundationsSimilar}
                     onChange={(value) => handleInputChange('foundationsSimilar', value)}
                     options={[
-                      { value: 'نعم', label: 'نعم' },
-                      { value: 'لا', label: 'لا' }
+                      { value: 'نعم', label: 'نعم (جميع القواعد بنفس الأبعاد)' },
+                      { value: 'لا', label: 'لا (قواعد بأبعاد مختلفة)' }
                     ]}
                   />
-                  <div className="lg:col-span-2">
-                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-4">
-                      <div className="flex items-center gap-3 mb-2">
-                        <AlertCircle className="w-5 h-5 text-amber-600" />
-                        <h4 className="font-bold text-amber-900">حاشية الصب</h4>
+
+                  {/* --- Conditional Rendering for Foundation Inputs --- */}
+                  {inputs.foundationsSimilar === 'نعم' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <InputField
+                        id="foundationHeight"
+                        label="ارتفاع القاعدة"
+                        value={inputs.foundationHeight}
+                        onChange={(value) => handleInputChange('foundationHeight', value)}
+                        placeholder="0.60"
+                        step="0.05"
+                        unit="متر"
+                        icon={Ruler}
+                      />
+                      <InputField
+                        id="numberOfFoundations"
+                        label="عدد القواعد"
+                        value={inputs.numberOfFoundations}
+                        onChange={(value) => handleInputChange('numberOfFoundations', value)}
+                        placeholder="12"
+                        type="number"
+                        unit="قاعدة"
+                        icon={Grid}
+                      />
+                      <SelectField
+                        id="foundationShape"
+                        label="شكل القاعدة"
+                        value={inputs.foundationShape}
+                        onChange={(value) => handleInputChange('foundationShape', value)}
+                        options={[
+                          { value: 'مربع', label: 'مربع' },
+                          { value: 'مستطيل', label: 'مستطيل (نسبة 1.2:1)' }
+                        ]}
+                      />
+                       <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <AlertCircle className="w-5 h-5 text-amber-600" />
+                          <h4 className="font-bold text-amber-900">حاشية الصب</h4>
+                        </div>
+                        <p className="text-amber-800 font-medium">
+                          حاشية الصب ثابتة بقيمة <span className="font-bold text-lg">{CONCRETE_MARGIN} متر</span> من كل جهة
+                        </p>
                       </div>
-                      <p className="text-amber-800 font-medium">
-                        حاشية الصب ثابتة بقيمة <span className="font-bold text-lg">{CONCRETE_MARGIN} متر</span> من كل جهة
-                      </p>
-                      <p className="text-amber-700 text-sm mt-2">
-                        سيتم خصم هذه القيمة تلقائياً من جميع جوانب القاعدة عند حساب حجم الخرسانة
-                      </p>
                     </div>
-                  </div>
+                  )}
+
+                  {inputs.foundationsSimilar === 'لا' && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-lg font-bold text-slate-900">بيانات القواعد الفردية</Label>
+                        <Button onClick={addIndividualFoundation} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                          <Plus className="w-4 h-4 ml-2" />
+                          إضافة قاعدة
+                        </Button>
+                      </div>
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-4">
+                        <p className="text-blue-800 font-medium text-sm">
+                          لكل قاعدة، سيتم حساب الحجم بناءً على القانون: <br />
+                          <span className="font-bold">((طول صبة نظافة القاعدة - 0.20) × (عرض صبة نظافة القاعدة - 0.20) × ارتفاع القاعدة)</span>
+                        </p>
+                      </div>
+                      <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                        {individualFoundations.map((f) => (
+                          <Card key={f.id} className="border border-slate-200">
+                            <CardContent className="p-4 space-y-4">
+                              <div className="flex items-center justify-between">
+                                <Badge variant="outline" className="font-bold">قاعدة #{f.id}</Badge>
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  onClick={() => removeIndividualFoundation(f.id)}
+                                  className="shrink-0"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <InputField
+                                  id={`cleaningLength-${f.id}`}
+                                  label="طول صبة النظافة"
+                                  value={f.cleaningLength}
+                                  onChange={(value) => updateIndividualFoundation(f.id, 'cleaningLength', value)}
+                                  placeholder="2.0"
+                                  step="0.1"
+                                  unit="متر"
+                                  icon={Ruler}
+                                />
+                                <InputField
+                                  id={`cleaningWidth-${f.id}`}
+                                  label="عرض صبة النظافة"
+                                  value={f.cleaningWidth}
+                                  onChange={(value) => updateIndividualFoundation(f.id, 'cleaningWidth', value)}
+                                  placeholder="2.0"
+                                  step="0.1"
+                                  unit="متر"
+                                  icon={Ruler}
+                                />
+                                <InputField
+                                  id={`height-${f.id}`}
+                                  label="ارتفاع القاعدة"
+                                  value={f.height}
+                                  onChange={(value) => updateIndividualFoundation(f.id, 'height', value)}
+                                  placeholder="0.60"
+                                  step="0.05"
+                                  unit="متر"
+                                  icon={Ruler}
+                                />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                         {individualFoundations.length === 0 && (
+                          <div className="text-center py-8 text-slate-500">
+                            لم يتم إضافة أي قواعد بعد. اضغط على "إضافة قاعدة" للبدء.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {/* --- End of Conditional Rendering --- */}
                 </CardContent>
               </Card>
 
@@ -531,13 +759,19 @@ export default function FoundationCalculationPage() {
                             {[
                               { label: 'حجم صبة النظافة', value: `${results.cleaningVolume.toFixed(2)} م³`, color: 'from-emerald-400 to-teal-400', highlight: true },
                               { label: 'حجم القواعد', value: `${results.foundationsVolume.toFixed(2)} م³`, color: 'from-indigo-500 to-purple-500', highlight: true },
-                              { label: 'أبعاد القواعد', value: results.foundationDimensions, color: 'from-slate-900 to-slate-700', highlight: true },
+                              ...(results.foundationDimensions ? [{
+                                label: 'أبعاد القواعد', value: results.foundationDimensions, color: 'from-slate-900 to-slate-700', highlight: true
+                              }] : []),
                               { label: 'الحمل الميت لكل متر مربع', value: `${results.deadLoadPerSqm.toFixed(2)} كن/م²`, color: 'from-slate-600 to-slate-800' },
                               { label: 'الحمل الحي لكل متر مربع', value: `${results.liveLoadPerSqm.toFixed(2)} كن/م²`, color: 'from-emerald-500 to-teal-500' },
                               { label: 'الإجمالي لكل متر مربع', value: `${results.combinedLoadPerSqm.toFixed(2)} كن/م²`, color: 'from-blue-500 to-indigo-500' },
                               { label: 'الحمل الكلي', value: `${results.totalLoad.toLocaleString('ar-EG')} كن`, color: 'from-purple-500 to-pink-500' },
-                              { label: 'الحمل لكل قاعدة', value: `${results.loadPerFoundation.toLocaleString('ar-EG')} كن`, color: 'from-orange-500 to-amber-500' },
-                              { label: 'مساحة القاعدة', value: `${results.foundationArea.toFixed(2)} م²`, color: 'from-cyan-500 to-blue-500' }
+                              ...(results.loadPerFoundation !== null ? [{
+                                label: 'الحمل لكل قاعدة', value: `${results.loadPerFoundation.toLocaleString('ar-EG')} كن`, color: 'from-orange-500 to-amber-500'
+                              }] : []),
+                              ...(results.foundationArea !== null ? [{
+                                label: 'مساحة القاعدة', value: `${results.foundationArea.toFixed(2)} م²`, color: 'from-cyan-500 to-blue-500'
+                              }] : []),
                             ].map(({ label, value, color, highlight }, index) => (
                               <div key={index} className={`group p-6 bg-gradient-to-r ${highlight ? 'from-indigo-50 to-purple-50 border-2 border-indigo-200' : 'from-white/60 hover:from-white'} rounded-2xl ${highlight ? 'border-indigo-200' : 'border-slate-200 hover:border-indigo-300'} hover:shadow-lg transition-all duration-300 flex items-center justify-between`}>
                                 <span className={`font-bold ${highlight ? 'text-indigo-900 text-lg' : 'text-slate-800 text-base'}`}>{label}:</span>
@@ -549,6 +783,28 @@ export default function FoundationCalculationPage() {
                           </div>
                         </CardContent>
                       </Card>
+
+                      {/* Save to Reports Button */}
+                      <Button
+                        onClick={saveToReports}
+                        disabled={saving}
+                        className="w-full h-14 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-bold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl"
+                      >
+                        {saving ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            جاري الحفظ...
+                          </>
+                        ) : (
+                          <>
+                            <TrendingUp className="w-5 h-5 ml-2" />
+                            ترحيل إلى تقارير الكميات
+                          </>
+                        )}
+                      </Button>
                     </div>
                   ) : (
                     <div className="text-center py-16 px-4">
@@ -581,7 +837,8 @@ function InputField({
   step = "any", 
   unit, 
   icon: Icon, 
-  type = "number" 
+  type = "number",
+  containerClassName = ""
 }: {
   id: string;
   label: string;
@@ -592,9 +849,10 @@ function InputField({
   unit?: string;
   icon?: any;
   type?: string;
+  containerClassName?: string;
 }) {
   return (
-    <div className="group">
+    <div className={`group ${containerClassName}`}>
       <Label htmlFor={id} className="text-base font-bold text-slate-900 mb-4 block flex items-center gap-2">
         {label}
       </Label>
