@@ -54,7 +54,7 @@ export default function ConcreteCalculationsPage() {
       gradient: 'from-blue-500 to-cyan-600'
     },
     {
-      id: 'ground-beams',
+      id: 'ground-bridges',
       title: 'الجسور الأرضية',
       description: 'حساب كميات الخرسانة للجسور الأرضية (الميدات)',
       icon: Component,
@@ -127,10 +127,10 @@ export default function ConcreteCalculationsPage() {
         {calculationCards.map((card, index) => (
           <Link
             key={card.id}
-            href={card.id === 'foundation' ? `/engineer/projects/${projectId}/concrete-cards/foundation` : card.id === 'cleaning-slab' ? `/engineer/projects/${projectId}/concrete-cards/cleaning-slab` : card.id === 'column-base' ? `/engineer/projects/${projectId}/concrete-cards/column-footings` : '#'}
+            href={card.id === 'foundation' ? `/engineer/projects/${projectId}/concrete-cards/foundation` : card.id === 'cleaning-slab' ? `/engineer/projects/${projectId}/concrete-cards/cleaning-slab` : card.id === 'column-base' ? `/engineer/projects/${projectId}/concrete-cards/column-footings` : card.id === 'ground-bridges' ? `/engineer/projects/${projectId}/concrete-cards/ground-bridges` : '#'}
             className={cn(
               "group block h-full",
-              card.id === 'foundation' || card.id === 'cleaning-slab' || card.id === 'column-base' ? "cursor-pointer" : "cursor-not-allowed opacity-80"
+              card.id === 'foundation' || card.id === 'cleaning-slab' || card.id === 'column-base' || card.id === 'ground-bridges' ? "cursor-pointer" : "cursor-not-allowed opacity-80"
             )}
           >
             <div className={cn(
