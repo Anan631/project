@@ -771,17 +771,16 @@ export default function QuantityReportsPage() {
                                     <span>{formatDate(project.lastUpdated)}</span>
                                   </div>
                                   <div className="flex gap-2">
-                                    <Button
+                                    <Button asChild
                                       size="sm"
                                       className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 px-3"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        router.push(`/engineer/quantity-reports/${project.projectId}`);
-                                      }}
                                     >
-                                      <Eye className="w-4 h-4" />
-                                      عرض التقرير
+                                      <Link href={`/engineer/quantity-reports/${project.projectId}`} onClick={(e) => e.stopPropagation()}>
+                                        <span className="inline-flex items-center gap-2">
+                                          <Eye className="w-4 h-4" />
+                                          عرض التقرير
+                                        </span>
+                                      </Link>
                                     </Button>
                                     <div style={{ position: 'relative', zIndex: 10 }}>
                                       <Button
