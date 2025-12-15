@@ -3,5 +3,6 @@
     "IDX.aI.enableCodebaseIndexing": true,
     "files.exclude": {
         "-ms-high-contrast": true
-    }
+    },
+    "typescript.autoClosingTags": false
 }

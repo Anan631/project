@@ -99,6 +99,16 @@ const projectSchema = new mongoose.Schema(
         
         // Calculated at
         calculatedAt: Date,
+      },
+      
+      // Ground slab calculations (أرضية المبنى - المِدّة)
+      groundSlab: {
+        buildingArea: Number,        // مساحة المبنى الكلية (م²)
+        slabHeight: Number,          // ارتفاع الصبة الأرضية (بالمتر)
+        concreteVolume: Number,      // كمية الخرسانة المحسوبة (م³)
+        totalWithWastage: Number,    // الكمية الكلية مع الهدر (م³)
+        wastagePercentage: Number,   // نسبة الهدر (%)
+        calculatedAt: Date,          // تاريخ الحساب
       }
     }
   },

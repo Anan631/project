@@ -752,13 +752,24 @@ export default function QuantityReportsPage() {
                                     <div className="bg-emerald-50 rounded-lg p-2 text-center">
                                       <p className="text-xs text-emerald-600">الخرسانة</p>
                                       <p className="text-sm font-bold text-emerald-700">
-                                        {latestReport.concreteData.totalConcrete?.toFixed(2) || 0} م³
+                                        {(() => {
+                                          const cleaning = latestReport.concreteData.cleaningVolume || 0;
+                                          const foundations = latestReport.concreteData.foundationsVolume || 0;
+                                          const groundSlab = latestReport.concreteData.groundSlabVolume || 0;
+                                          return (cleaning + foundations + groundSlab).toFixed(2);
+                                        })()} م³
                                       </p>
                                     </div>
                                     <div className="bg-orange-50 rounded-lg p-2 text-center">
                                       <p className="text-xs text-orange-600">الحديد</p>
                                       <p className="text-sm font-bold text-orange-700">
-                                        {((latestReport.concreteData.totalConcrete || 0) * 80).toFixed(0)} كجم
+                                        {(() => {
+                                          const cleaning = latestReport.concreteData.cleaningVolume || 0;
+                                          const foundations = latestReport.concreteData.foundationsVolume || 0;
+                                          const groundSlab = latestReport.concreteData.groundSlabVolume || 0;
+                                          const totalConcrete = cleaning + foundations + groundSlab;
+                                          return (totalConcrete * 80).toFixed(0);
+                                        })()} كجم
                                       </p>
                                     </div>
                                   </div>

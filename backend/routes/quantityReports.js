@@ -152,7 +152,7 @@ router.get('/pdf/concrete/:reportId', async (req, res) => {
     doc.moveDown(2);
     
     // Concrete quantities section
-    doc.rect(50, 280, 495, 120).stroke();
+    doc.rect(50, 280, 495, 140).stroke();
     doc.fontSize(16).text('كميات الخرسانة', 60, 295);
     doc.moveDown();
     
@@ -160,8 +160,10 @@ router.get('/pdf/concrete/:reportId', async (req, res) => {
     
     doc.fontSize(12).text(`كمية خرسانة النظاف: ${concreteData.cleaningVolume?.toFixed(2) || 0} متر مكعب`, 60, 325);
     doc.text(`كمية خرسانة القواعد: ${concreteData.foundationsVolume?.toFixed(2) || 0} متر مكعب`, 60, 345);
+    doc.text(`كمية خرسانة أرضية المبنى: ${concreteData.groundSlabVolume?.toFixed(2) || 0} متر مكعب`, 60, 365);
     doc.moveDown();
-    doc.fontSize(14).text(`إجمالي الكمية: ${(concreteData.totalConcrete || 0).toFixed(2)} متر مكعب`, 60, 375);
+    const totalConcrete = (concreteData.cleaningVolume || 0) + (concreteData.foundationsVolume || 0) + (concreteData.groundSlabVolume || 0);
+    doc.fontSize(14).text(`إجمالي الكمية: ${totalConcrete.toFixed(2)} متر مكعب`, 60, 405);
     
     // Footer
     doc.fontSize(10).text('تم إنشاء هذا التقرير بواسطة نظام إدارة المشاريع الهندسية', 50, 750, { align: 'center' });

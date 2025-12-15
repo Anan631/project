@@ -48,6 +48,7 @@ interface QuantityReport {
   concreteData: {
     cleaningVolume: number;
     foundationsVolume: number;
+    groundSlabVolume?: number;
     totalConcrete: number;
     totalLoad: number;
     foundationDimensions: string;
@@ -483,8 +484,23 @@ export default function ProjectReportsPage() {
                         <td>كمية خرسانة القواعد</td>
                       </tr>
                       <tr>
-                        <td>${(report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
-                        <td>${(report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>${report.concreteData.groundSlabVolume?.toFixed(2) || 0} م³</td>
+                        <td>${report.concreteData.groundSlabVolume?.toFixed(2) || 0} م³</td>
+                        <td>كمية خرسانة أرضية المبنى</td>
+                      </tr>
+                      <tr>
+                        <td>${(() => {
+                          const cleaning = report.concreteData.cleaningVolume || 0;
+                          const foundations = report.concreteData.foundationsVolume || 0;
+                          const groundSlab = report.concreteData.groundSlabVolume || 0;
+                          return (cleaning + foundations + groundSlab).toFixed(2);
+                        })()} م³</td>
+                        <td>${(() => {
+                          const cleaning = report.concreteData.cleaningVolume || 0;
+                          const foundations = report.concreteData.foundationsVolume || 0;
+                          const groundSlab = report.concreteData.groundSlabVolume || 0;
+                          return (cleaning + foundations + groundSlab).toFixed(2);
+                        })()} م³</td>
                         <td>إجمالي الخرسانة</td>
                       </tr>
                     `
@@ -514,7 +530,12 @@ export default function ProjectReportsPage() {
               <div class="value">
                 ${
                   type === 'concrete' && report.concreteData
-                    ? `${(report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+                    ? `${(() => {
+                        const cleaning = report.concreteData.cleaningVolume || 0;
+                        const foundations = report.concreteData.foundationsVolume || 0;
+                        const groundSlab = report.concreteData.groundSlabVolume || 0;
+                        return (cleaning + foundations + groundSlab).toFixed(2);
+                      })()} م³`
                     : `${(report.steelData?.totalSteelWeight || 0).toFixed(2)} كجم`
                 }
               </div>
@@ -744,11 +765,23 @@ export default function ProjectReportsPage() {
                           {latestReport.concreteData.foundationsVolume?.toFixed(3) || 0} م³
                         </span>
                       </div>
+                      <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                        <span className="text-slate-600">حجم أرضية المبنى</span>
+                        <span className="font-bold text-emerald-600">
+                          {latestReport.concreteData.groundSlabVolume?.toFixed(3) || 0} م³
+                        </span>
+                      </div>
                       <Separator />
                       <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
                         <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
                         <span className="text-2xl font-black text-emerald-600">
-                          {latestReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                          {(() => {
+                            const cleaning = latestReport.concreteData.cleaningVolume || 0;
+                            const foundations = latestReport.concreteData.foundationsVolume || 0;
+                            const groundSlab = latestReport.concreteData.groundSlabVolume || 0;
+                            const total = cleaning + foundations + groundSlab;
+                            return total.toFixed(3);
+                          })()} م³
                         </span>
                       </div>
                     </div>
@@ -801,7 +834,13 @@ export default function ProjectReportsPage() {
                       <div className="flex justify-between items-center p-4 bg-orange-50 rounded-lg border-2 border-orange-200">
                         <span className="font-bold text-slate-800">إجمالي الحديد (تقديري)</span>
                         <span className="text-2xl font-black text-orange-600">
-                          {((latestReport.concreteData?.totalConcrete || 0) * 80).toFixed(2)} كجم
+                          {(() => {
+                            const cleaning = latestReport.concreteData?.cleaningVolume || 0;
+                            const foundations = latestReport.concreteData?.foundationsVolume || 0;
+                            const groundSlab = latestReport.concreteData?.groundSlabVolume || 0;
+                            const totalConcrete = cleaning + foundations + groundSlab;
+                            return (totalConcrete * 80).toFixed(2);
+                          })()} كجم
                         </span>
                       </div>
                     </div>
@@ -854,7 +893,12 @@ export default function ProjectReportsPage() {
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge variant="outline" className="bg-white">
-                          {report.concreteData?.totalConcrete?.toFixed(2) || 0} م³
+                          {(() => {
+                            const cleaning = report.concreteData?.cleaningVolume || 0;
+                            const foundations = report.concreteData?.foundationsVolume || 0;
+                            const groundSlab = report.concreteData?.groundSlabVolume || 0;
+                            return (cleaning + foundations + groundSlab).toFixed(2);
+                          })()} م³
                         </Badge>
                         <Button
                           variant="outline"

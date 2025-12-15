@@ -14,6 +14,7 @@ const quantityReportSchema = new Schema(
     concreteData: {
       cleaningVolume: { type: Number, default: 0 },
       foundationsVolume: { type: Number, default: 0 },
+      groundSlabVolume: { type: Number, default: 0 }, // أرضية المبنى (المِدّة)
       totalConcrete: { type: Number, default: 0 },
       cleaningLength: { type: Number },
       cleaningWidth: { type: Number },
@@ -39,7 +40,15 @@ const quantityReportSchema = new Schema(
         cleaningWidth: Number,
         height: Number,
         volume: Number
-      }]
+      }],
+      
+      // Ground slab data (أرضية المبنى - المِدّة)
+      groundSlabData: {
+        buildingArea: { type: Number }, // مساحة المبنى الكلية (م²)
+        slabHeight: { type: Number },   // ارتفاع الصبة الأرضية (بالمتر)
+        wastagePercentage: { type: Number }, // نسبة الهدر (%)
+        totalWithWastage: { type: Number }   // الكمية الكلية مع الهدر (م³)
+      }
     },
     
     // Steel calculations
@@ -54,7 +63,7 @@ const quantityReportSchema = new Schema(
     
     calculationType: { 
       type: String, 
-      enum: ['foundation', 'cleaning-slab', 'columns', 'beams', 'slabs', 'full'],
+      enum: ['foundation', 'cleaning-slab', 'ground-slab', 'columns', 'beams', 'slabs', 'full'],
       default: 'foundation'
     },
     

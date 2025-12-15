@@ -931,4 +931,116 @@ router.post('/column-calculations', async (req, res) => {
   }
 });
 
+// Calculate and save ground slab (أرضية المبنى - المِدّة) concrete quantities
+router.post('/ground-slab', async (req, res) => {
+  try {
+    const {
+      projectId,
+      buildingArea,        // مساحة المبنى الكلية (م²)
+      slabHeight,          // ارتفاع الصبة الأرضية (بالمتر)
+      concreteVolume,      // كمية الخرسانة المحسوبة
+      totalWithWastage,    // الكمية الكلية مع الهدر
+      wastagePercentage    // نسبة الهدر
+    } = req.body;
+
+    // Validation
+    if (!projectId || !buildingArea || !slabHeight || !concreteVolume) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'جميع الحقول مطلوبة (معرف المشروع، مساحة المبنى، ارتفاع الصبة، كمية الخرسانة)' 
+      });
+    }
+
+    // Validate numeric values
+    const numericFields = {
+      buildingArea: Number(buildingArea),
+      slabHeight: Number(slabHeight),
+      concreteVolume: Number(concreteVolume),
+      totalWithWastage: Number(totalWithWastage),
+      wastagePercentage: Number(wastagePercentage)
+    };
+
+    for (const [field, value] of Object.entries(numericFields)) {
+      if (!Number.isFinite(value) || value <= 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `قيمة ${field} غير صالحة` 
+        });
+      }
+    }
+
+    // Validate slab height (typically 10-30 cm = 0.10-0.30 m)
+    if (numericFields.slabHeight < 0.10 || numericFields.slabHeight > 0.30) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ارتفاع الصبة الأرضية يجب أن يكون بين 10 و 30 سم (0.10 - 0.30 متر)' 
+      });
+    }
+
+    // Validate building area (reasonable limits)
+    if (numericFields.buildingArea > 10000) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'مساحة المبنى كبيرة جداً، يرجى التحقق من القيمة' 
+      });
+    }
+
+    // Verify calculation: كمية خرسانة أرضية المبنى = مساحة المبنى × ارتفاع الصبة الأرضية
+    const expectedVolume = numericFields.buildingArea * numericFields.slabHeight;
+    const volumeDifference = Math.abs(expectedVolume - numericFields.concreteVolume);
+    
+    if (volumeDifference > 0.001) { // Allow small floating point differences
+      return res.status(400).json({ 
+        success: false, 
+        message: 'خطأ في حساب كمية الخرسانة. يرجى إعادة الحساب' 
+      });
+    }
+
+    // Save to project
+    const project = await Project.findByIdAndUpdate(
+      projectId,
+      {
+        'concreteCalculations.groundSlab': {
+          buildingArea: numericFields.buildingArea,
+          slabHeight: numericFields.slabHeight,
+          concreteVolume: numericFields.concreteVolume,
+          totalWithWastage: numericFields.totalWithWastage,
+          wastagePercentage: numericFields.wastagePercentage,
+          calculatedAt: new Date(),
+        }
+      },
+      { new: true }
+    );
+
+    if (!project) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'المشروع غير موجود' 
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        buildingArea: numericFields.buildingArea,
+        slabHeight: numericFields.slabHeight,
+        concreteVolume: numericFields.concreteVolume,
+        totalWithWastage: numericFields.totalWithWastage,
+        wastagePercentage: numericFields.wastagePercentage,
+        calculationFormula: 'كمية خرسانة أرضية المبنى = مساحة المبنى × ارتفاع الصبة الأرضية',
+        calculatedAt: new Date(),
+      },
+      message: 'تم حفظ حساب أرضية المبنى (المِدّة) بنجاح'
+    });
+
+  } catch (error) {
+    console.error('Ground slab calculation error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'خطأ في حفظ حساب أرضية المبنى', 
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router;

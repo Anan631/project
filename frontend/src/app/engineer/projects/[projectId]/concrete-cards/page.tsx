@@ -127,10 +127,10 @@ export default function ConcreteCalculationsPage() {
         {calculationCards.map((card, index) => (
           <Link
             key={card.id}
-            href={card.id === 'foundation' ? `/engineer/projects/${projectId}/concrete-cards/foundation` : card.id === 'cleaning-slab' ? `/engineer/projects/${projectId}/concrete-cards/cleaning-slab` : card.id === 'column-base' ? `/engineer/projects/${projectId}/concrete-cards/column-footings` : card.id === 'ground-bridges' ? `/engineer/projects/${projectId}/concrete-cards/ground-bridges` : '#'}
+            href={card.id === 'foundation' ? `/engineer/projects/${projectId}/concrete-cards/foundation` : card.id === 'cleaning-slab' ? `/engineer/projects/${projectId}/concrete-cards/cleaning-slab` : card.id === 'column-base' ? `/engineer/projects/${projectId}/concrete-cards/column-footings` : card.id === 'ground-bridges' ? `/engineer/projects/${projectId}/concrete-cards/ground-bridges` : card.id === 'ground-slab' ? `/engineer/projects/${projectId}/concrete-cards/ground-slab` : '#'}
             className={cn(
               "group block h-full",
-              card.id === 'foundation' || card.id === 'cleaning-slab' || card.id === 'column-base' || card.id === 'ground-bridges' ? "cursor-pointer" : "cursor-not-allowed opacity-80"
+              card.id === 'foundation' || card.id === 'cleaning-slab' || card.id === 'column-base' || card.id === 'ground-bridges' || card.id === 'ground-slab' ? "cursor-pointer" : "cursor-not-allowed opacity-80"
             )}
           >
             <div className={cn(
