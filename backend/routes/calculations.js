@@ -599,4 +599,211 @@ router.post('/concrete-algorithm', async (req, res) => {
   }
 });
 
+// Calculate column footings (شروش الأعمدة) concrete quantities
+router.post('/column-footings', async (req, res) => {
+  try {
+    const {
+      projectId,
+      numberOfColumns,      // عدد الأعمدة
+      footingHeight,        // ارتفاع الشرش (15-20 سم)
+      baseLength,           // طول القاعدة
+      baseWidth,            // عرض القاعدة
+      slabArea,             // مساحة البلاطة
+      numberOfFloors,       // عدد الطوابق
+      buildingType,         // نوع المبنى
+      columnShape,          // شكل العمود (مربع، دائري، مستطيل)
+    } = req.body;
+
+    // Validation
+    if (!projectId || !numberOfColumns || !footingHeight || !baseLength || !baseWidth || 
+        !slabArea || !numberOfFloors || !buildingType || !columnShape) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'جميع الحقول مطلوبة' 
+      });
+    }
+
+    // Validate footing height (15-20 cm = 0.15-0.20 m)
+    const footingHeightMeters = Number(footingHeight);
+    if (!Number.isFinite(footingHeightMeters) || footingHeightMeters < 0.15 || footingHeightMeters > 0.20) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'ارتفاع الشرش يجب أن يكون بين 15 و 20 سم (0.15 - 0.20 متر)' 
+      });
+    }
+
+    // Validate column shape
+    const validShapes = ['مربع', 'دائري', 'مستطيل'];
+    if (!validShapes.includes(columnShape)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'شكل العمود غير صالح. يجب أن يكون مربع، دائري، أو مستطيل' 
+      });
+    }
+
+    // Validate numeric values
+    const numericFields = {
+      numberOfColumns: Number(numberOfColumns),
+      baseLength: Number(baseLength),
+      baseWidth: Number(baseWidth),
+      slabArea: Number(slabArea),
+      numberOfFloors: Number(numberOfFloors)
+    };
+
+    for (const [field, value] of Object.entries(numericFields)) {
+      if (!Number.isFinite(value) || value <= 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `قيمة ${field} غير صالحة` 
+        });
+      }
+    }
+
+    // Get dead load and live load based on building type (same logic as foundation)
+    const liveLoadData = await LiveLoad.findOne({ buildingType });
+    const deadLoads = await DeadLoad.find({ buildingType });
+
+    if (!liveLoadData) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `بيانات الحمولة الحية غير موجودة لنوع المبنى: ${buildingType}. يرجى التأكد من تشغيل seeding script (npm run seed:engineering)` 
+      });
+    }
+
+    if (!deadLoads || deadLoads.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `بيانات الحمولة الميتة غير موجودة لنوع المبنى: ${buildingType}. يرجى التأكد من تشغيل seeding script (npm run seed:engineering)` 
+      });
+    }
+
+    // Use common value if available, otherwise use minimum value
+    const liveLoad = liveLoadData.commonValue !== undefined && liveLoadData.commonValue !== null
+      ? liveLoadData.commonValue
+      : liveLoadData.minValue;
+
+    const deadLoadTotalRow = deadLoads.find((d) => d.elementType === 'إجمالي الحمل الميت');
+    const deadLoad = deadLoadTotalRow
+      ? (deadLoadTotalRow.commonValue !== undefined && deadLoadTotalRow.commonValue !== null
+          ? deadLoadTotalRow.commonValue
+          : deadLoadTotalRow.minValue)
+      : deadLoads.reduce((sum, d) => {
+          const v = d.commonValue !== undefined && d.commonValue !== null ? d.commonValue : d.minValue;
+          return sum + (Number.isFinite(v) ? v : 0);
+        }, 0);
+
+    // Calculate loads
+    const totalLoad = deadLoad + liveLoad;
+
+    // Calculate concrete volume for column footings
+    // 1. Calculate volume for single column footing
+    const singleFootingVolume = baseLength * baseWidth * footingHeightMeters;
+    
+    // 2. Calculate total volume for all column footings
+    const totalFootingsVolume = singleFootingVolume * numericFields.numberOfColumns;
+
+    // Calculate Value A for column dimensions
+    const valueA = (slabArea * numberOfFloors * totalLoad) / 0.195;
+
+    // Calculate column dimensions based on shape
+    let columnDimensions = {};
+    
+    if (columnShape === 'مستطيل') {
+      // Calculate width (B)
+      const B = Math.sqrt(valueA / 2);
+      const width = B >= 25 ? B : 25;
+      
+      // Calculate length (C)
+      const C = width * 2;
+      const length = C >= 50 ? C : 50;
+      
+      columnDimensions = {
+        length: parseFloat(length.toFixed(1)),
+        width: parseFloat(width.toFixed(1)),
+        displayText: `${length.toFixed(1)} × ${width.toFixed(1)} سم`
+      };
+    } else if (columnShape === 'دائري') {
+      // Calculate diameter (D)
+      const D = Math.sqrt(valueA / Math.PI) * 2;
+      const diameter = D >= 30 ? D : 30;
+      
+      columnDimensions = {
+        diameter: parseFloat(diameter.toFixed(1)),
+        displayText: `${diameter.toFixed(1)} سم`
+      };
+    } else if (columnShape === 'مربع') {
+      // Calculate dimension (F)
+      const F = Math.sqrt(valueA / 2);
+      const dimension = F >= 35 ? F : 35;
+      
+      columnDimensions = {
+        length: parseFloat(dimension.toFixed(1)),
+        width: parseFloat(dimension.toFixed(1)),
+        displayText: `${dimension.toFixed(1)} × ${dimension.toFixed(1)} سم`
+      };
+    }
+
+    // Save to project
+    const project = await Project.findByIdAndUpdate(
+      projectId,
+      {
+        'concreteCalculations.columnFootings': {
+          numberOfColumns: numericFields.numberOfColumns,
+          footingHeight: footingHeightMeters,
+          baseLength: numericFields.baseLength,
+          baseWidth: numericFields.baseWidth,
+          slabArea: numericFields.slabArea,
+          numberOfFloors: numericFields.numberOfFloors,
+          buildingType,
+          columnShape,
+          valueA: parseFloat(valueA.toFixed(2)),
+          columnDimensions,
+          totalFootingsVolume: parseFloat(totalFootingsVolume.toFixed(2)),
+          deadLoad: parseFloat(deadLoad.toFixed(2)),
+          liveLoad: parseFloat(liveLoad.toFixed(2)),
+          totalLoad: parseFloat(totalLoad.toFixed(2)),
+          calculatedAt: new Date(),
+        }
+      },
+      { new: true }
+    );
+
+    if (!project) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'المشروع غير موجود' 
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        numberOfColumns: numericFields.numberOfColumns,
+        footingHeight: footingHeightMeters,
+        baseLength: numericFields.baseLength,
+        baseWidth: numericFields.baseWidth,
+        slabArea: numericFields.slabArea,
+        numberOfFloors: numericFields.numberOfFloors,
+        buildingType,
+        columnShape,
+        valueA: parseFloat(valueA.toFixed(2)),
+        columnDimensions,
+        totalFootingsVolume: parseFloat(totalFootingsVolume.toFixed(2)),
+        deadLoad: parseFloat(deadLoad.toFixed(2)),
+        liveLoad: parseFloat(liveLoad.toFixed(2)),
+        totalLoad: parseFloat(totalLoad.toFixed(2)),
+      },
+      message: 'تم حساب كميات شروش الأعمدة بنجاح'
+    });
+
+  } catch (error) {
+    console.error('Column footings calculation error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'خطأ في الحساب', 
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router;

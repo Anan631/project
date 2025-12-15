@@ -127,10 +127,10 @@ export default function ConcreteCalculationsPage() {
         {calculationCards.map((card, index) => (
           <Link
             key={card.id}
-            href={card.id === 'foundation' ? `/engineer/projects/${projectId}/concrete-cards/foundation` : card.id === 'cleaning-slab' ? `/engineer/projects/${projectId}/concrete-cards/cleaning-slab` : '#'}
+            href={card.id === 'foundation' ? `/engineer/projects/${projectId}/concrete-cards/foundation` : card.id === 'cleaning-slab' ? `/engineer/projects/${projectId}/concrete-cards/cleaning-slab` : card.id === 'column-base' ? `/engineer/projects/${projectId}/concrete-cards/column-footings` : '#'}
             className={cn(
               "group block h-full",
-              card.id === 'foundation' || card.id === 'cleaning-slab' ? "cursor-pointer" : "cursor-not-allowed opacity-80"
+              card.id === 'foundation' || card.id === 'cleaning-slab' || card.id === 'column-base' ? "cursor-pointer" : "cursor-not-allowed opacity-80"
             )}
           >
             <div className={cn(
