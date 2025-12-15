@@ -18,7 +18,7 @@ const Footer = () => {
   const quickLinks = [
     { key: 'home', href: '/', label: 'الرئيسية' },
     { key: 'about', href: '/about', label: 'عن الموقع' },
-    { key: 'contact', href: 'https://forms.gle/WaXPkD8BZMQ7pVev6', label: 'تواصل معنا' },
+    { key: 'contact', href: '/contact', label: 'تواصل معنا' },
     { key: 'help', href: '/help', label: 'مركز المساعدة' },
     {
       key: 'create-account',

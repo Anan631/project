@@ -42,6 +42,7 @@ interface QuantityReport {
   steelData: {
     totalSteelWeight: number;
     foundationSteel: number;
+    columnSteel?: number;
   };
   createdAt: string;
   updatedAt: string;
@@ -102,165 +103,315 @@ export default function ProjectReportsPage() {
   const downloadPDF = async (reportId: string, type: 'concrete' | 'steel') => {
     setDownloading(`${reportId}-${type}`);
     try {
-      // Find the report from the loaded reports
       const report = reports.find(r => r._id === reportId);
       if (!report) {
         throw new Error('Report not found');
       }
 
-      // Create HTML content for PDF
       const htmlContent = `
         <!DOCTYPE html>
         <html dir="rtl" lang="ar">
         <head>
           <meta charset="UTF-8">
           <style>
+            @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
+            
             * {
               margin: 0;
               padding: 0;
-              font-family: 'Arial', sans-serif;
+              box-sizing: border-box;
             }
+            
             body {
               direction: rtl;
-              padding: 20mm;
+              font-family: 'Tajawal', sans-serif;
+              font-size: 18px;
+              line-height: 1.8;
+              color: #1a1a1a;
               background: white;
+              padding: 25mm;
             }
+            
             .container {
               max-width: 100%;
               background: white;
             }
+            
             .header {
-              background: linear-gradient(135deg, #3f51b5 0%, #2196f3 100%);
+              background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
               color: white;
-              padding: 30px;
-              border-radius: 8px;
-              margin-bottom: 30px;
-              text-align: right;
+              padding: 40px 30px;
+              border-radius: 12px;
+              margin-bottom: 40px;
+              text-align: center;
+              box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+              position: relative;
             }
+            
+            .logo {
+              position: absolute;
+              top: 20px;
+              left: 20px;
+              width: 150px;
+              height: 150px;
+              object-fit: contain;
+              border: none;
+              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            }
+            
             .header h1 {
-              font-size: 28px;
-              margin-bottom: 5px;
-              font-weight: bold;
+              font-size: 36px;
+              margin-bottom: 10px;
+              font-weight: 900;
+              letter-spacing: 1px;
             }
+            
             .header p {
-              font-size: 14px;
-              opacity: 0.9;
+              font-size: 20px;
+              opacity: 0.95;
+              font-weight: 500;
             }
+            
             .project-name {
-              background: #f0f4f9;
-              border-right: 4px solid #3f51b5;
-              padding: 15px;
-              margin-bottom: 20px;
-              border-radius: 4px;
-              text-align: right;
+              background: linear-gradient(to right, #f8f9ff, #e8ecff);
+              border-right: 6px solid #2563eb;
+              padding: 25px 30px;
+              margin-bottom: 30px;
+              border-radius: 8px;
+              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
             }
+            
             .project-name h2 {
-              color: #1e293b;
-              font-size: 16px;
-              font-weight: bold;
+              color: #2d3748;
+              font-size: 24px;
+              font-weight: 700;
             }
+            
             .info-boxes {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 15px;
-              margin-bottom: 30px;
+              gap: 25px;
+              margin-bottom: 40px;
             }
+            
             .info-box {
-              background: #f5f7fa;
-              border: 1px solid #3f51b5;
-              padding: 15px;
-              border-radius: 4px;
-              text-align: right;
+              background: linear-gradient(135deg, #ffffff, #f7fafc);
+              border: 2px solid #e2e8f0;
+              padding: 25px;
+              border-radius: 10px;
+              text-align: center;
+              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+              transition: transform 0.3s ease;
             }
+            
+            .info-box:hover {
+              transform: translateY(-2px);
+            }
+            
             .info-box label {
               display: block;
-              font-size: 12px;
-              color: #6b7280;
-              margin-bottom: 5px;
+              font-size: 16px;
+              color: #718096;
+              margin-bottom: 8px;
+              font-weight: 500;
             }
+            
             .info-box .value {
-              font-size: 14px;
-              color: #1e293b;
-              font-weight: bold;
+              font-size: 20px;
+              color: #2d3748;
+              font-weight: 700;
             }
+            
             .date-info {
               display: flex;
               justify-content: space-between;
-              margin-bottom: 20px;
-              font-size: 12px;
-              color: #6b7280;
-              text-align: right;
+              margin-bottom: 30px;
+              font-size: 16px;
+              color: #718096;
+              text-align: center;
+              padding: 15px;
+              background: #f7fafc;
+              border-radius: 8px;
             }
+            
             table {
               width: 100%;
               border-collapse: collapse;
-              margin-bottom: 30px;
+              margin-bottom: 40px;
+              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+              border-radius: 10px;
+              overflow: hidden;
             }
+            
             thead {
-              background: #3f51b5;
+              background: linear-gradient(135deg, #2563eb, #1e40af);
               color: white;
             }
+            
             th {
-              padding: 12px;
+              padding: 20px 15px;
               text-align: right;
-              font-weight: bold;
-              font-size: 12px;
+              font-weight: 700;
+              font-size: 20px;
+              letter-spacing: 0.5px;
             }
+            
             td {
-              padding: 12px;
+              padding: 18px 15px;
               text-align: right;
-              border-bottom: 1px solid #e5e7eb;
-              font-size: 12px;
+              border-bottom: 1px solid #e2e8f0;
+              font-size: 18px;
+              font-weight: 500;
             }
+            
             tbody tr:nth-child(even) {
-              background: #f8fafb;
+              background: #f8f9ff;
             }
+            
             tbody tr:last-child {
-              font-weight: bold;
-              color: #3f51b5;
+              font-weight: 900;
+              color: #2563eb;
+              background: linear-gradient(to right, #f0f4ff, #e8ecff);
+              font-size: 20px;
             }
+            
             .total-box {
-              background: ${type === 'concrete' ? '#e8f5e9' : '#fff1e8'};
-              border: 2px solid ${type === 'concrete' ? '#4caf50' : '#e17055'};
-              border-radius: 4px;
-              padding: 20px;
-              margin-bottom: 30px;
-              text-align: right;
+              background: ${type === 'concrete' 
+                ? 'linear-gradient(135deg, #d4f4dd, #bbf7d0)' 
+                : 'linear-gradient(135deg, #2563eb, #1e40af)'};
+              border: 3px solid ${type === 'concrete' ? '#22c55e' : '#2563eb'};
+              border-radius: 12px;
+              padding: 30px;
+              margin-bottom: 40px;
+              text-align: center;
+              box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
             }
+            
             .total-box label {
               display: block;
+              font-size: 20px;
+              color: #2d3748;
+              margin-bottom: 12px;
+              font-weight: 600;
+            }
+            
+            .total-box .value {
+              font-size: 32px;
+              font-weight: 900;
+              color: ${type === 'concrete' ? '#16a34a' : '#2563eb'};
+              text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            
+            .footer {
+              border-top: 2px solid #e2e8f0;
+              padding-top: 25px;
+              text-align: center;
               font-size: 14px;
-              color: #1e293b;
+              color: #718096;
+              margin-top: 50px;
+            }
+            
+            .stamp-section {
+              text-align: center;
+              border: 2px dashed #718096;
+              border-radius: 50%;
+              width: 120px;
+              height: 120px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              opacity: 0.7;
+              margin: 20px auto;
+            }
+            
+            .stamp-text {
+              font-size: 14px;
+              color: #4a5568;
+              font-weight: 600;
+              line-height: 1.2;
+            }
+            
+            .signature-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-end;
+              margin-top: 100px;
+            }
+            
+            .signature-box {
+              text-align: center;
+              width: 45%;
+              padding: 20px;
+              background: #f8f9ff;
+              border-radius: 10px;
+              border: 2px solid #e2e8f0;
+            }
+            
+            .signature-line {
+              border-bottom: 3px solid #4a5568;
+              margin-bottom: 15px;
+              height: 70px;
+            }
+            
+            .signature-title {
+              font-size: 20px;
+              font-weight: 700;
+              color: #2d3748;
               margin-bottom: 8px;
             }
-            .total-box .value {
-              font-size: 24px;
-              font-weight: bold;
-              color: ${type === 'concrete' ? '#4caf50' : '#e17055'};
+            
+            .signature-name {
+              font-size: 18px;
+              color: #4a5568;
+              margin-bottom: 5px;
             }
-            .footer {
-              border-top: 1px solid #d3d4d6;
-              padding-top: 15px;
+            
+            .signature-label {
+              font-size: 16px;
+              color: #718096;
+            }
+            
+            .signature-date {
               text-align: center;
-              font-size: 10px;
-              color: #9ca3af;
-              margin-top: 30px;
+              margin-top: 40px;
+              font-size: 16px;
+              color: #4a5568;
+              font-weight: 500;
             }
+            
             @media print {
               body {
-                padding: 0;
-                margin: 0;
+                padding: 15mm;
+                font-size: 16px;
               }
               .container {
                 page-break-inside: avoid;
               }
+              .header {
+                page-break-after: avoid;
+              }
+              table {
+                page-break-inside: auto;
+              }
+              tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+              }
+            }
+            
+            @page {
+              margin: 20mm;
+              size: A4;
             }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <h1>تقرير كميات ${type === 'concrete' ? 'الخرسانة' : 'الحديد'}</h1>
+              <img src="/header-bg.jpg" alt="شعار الموقع" class="logo">
+              <h1>طلبية خرسانة</h1>
+              <p>تقرير كميات ${type === 'concrete' ? 'الخرسانة' : 'الحديد'}</p>
               <p>تفصيل شامل لكميات المواد والمعدات</p>
             </div>
 
@@ -299,7 +450,7 @@ export default function ProjectReportsPage() {
                       <tr>
                         <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
                         <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
-                        <td>كمية خرسانة النظاف</td>
+                        <td>كمية خرسانة النظافة</td>
                       </tr>
                       <tr>
                         <td>${report.concreteData.foundationsVolume?.toFixed(2) || 0} م³</td>
@@ -344,6 +495,30 @@ export default function ProjectReportsPage() {
               </div>
             </div>
 
+            <div class="signature-section">
+              <div class="signature-row">
+                <div class="signature-box">
+                  <div class="signature-line"></div>
+                  <div class="signature-title">المهندس المسؤول</div>
+                  <div class="signature-name">${report.engineerName}</div>
+                  <div class="signature-label">التوقيع</div>
+                </div>
+                <div class="signature-box">
+                  <div class="signature-line"></div>
+                  <div class="signature-title">المالك / العميل</div>
+                  <div class="signature-name">${report.ownerName || 'غير محدد'}</div>
+                  <div class="signature-label">التوقيع</div>
+                </div>
+              </div>
+              <div class="signature-date">
+                تاريخ التوقيع: _______________
+              </div>
+            </div>
+
+            <div class="stamp-section">
+              <div class="stamp-text">الختم<br/>إن وجد</div>
+            </div>
+
             <div class="footer">
               <p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p>
               <p>© 2025 جميع الحقوق محفوظة</p>
@@ -353,8 +528,7 @@ export default function ProjectReportsPage() {
         </html>
       `;
 
-      // Create a new window and write the HTML content
-      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      const printWindow = window.open('', '_blank', 'width=1000,height=800');
       if (!printWindow) {
         throw new Error('Could not open print window');
       }
@@ -362,11 +536,10 @@ export default function ProjectReportsPage() {
       printWindow.document.write(htmlContent);
       printWindow.document.close();
 
-      // Wait for the content to load and then trigger print
       printWindow.onload = () => {
         setTimeout(() => {
           printWindow.print();
-        }, 100);
+        }, 500);
       };
 
       toast({
@@ -410,7 +583,7 @@ export default function ProjectReportsPage() {
   const latestReport = reports[0];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl" style={{ fontSize: '16px' }}>
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         
         {/* Back Button */}
