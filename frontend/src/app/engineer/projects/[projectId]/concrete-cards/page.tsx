@@ -9,8 +9,7 @@ import {
   Component,
   Grid3x3,
   Columns,
-  LayoutDashboard,
-  Package
+  LayoutDashboard
 } from "lucide-react";
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -47,12 +46,12 @@ export default function ConcreteCalculationsPage() {
       id: 'column-base',
       title: 'شروش الأعمدة',
       description: 'حساب كميات الخرسانة لرقاب الأعمدة (الشروش)',
-      icon: Package,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-      borderColor: 'border-orange-200',
-      hoverBorder: 'hover:border-orange-500',
-      gradient: 'from-orange-500 to-amber-600'
+      icon: Layers,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
+      hoverBorder: 'hover:border-blue-500',
+      gradient: 'from-blue-500 to-cyan-600'
     },
     {
       id: 'ground-beams',
@@ -128,10 +127,10 @@ export default function ConcreteCalculationsPage() {
         {calculationCards.map((card, index) => (
           <Link
             key={card.id}
-            href={card.id === 'foundation' ? `/engineer/projects/${projectId}/concrete-cards/foundation` : card.id === 'cleaning-slab' ? `/engineer/projects/${projectId}/concrete-cards/cleaning-slab` : card.id === 'column-base' ? `/engineer/projects/${projectId}/concrete-cards/column-base` : '#'}
+            href={card.id === 'foundation' ? `/engineer/projects/${projectId}/concrete-cards/foundation` : card.id === 'cleaning-slab' ? `/engineer/projects/${projectId}/concrete-cards/cleaning-slab` : '#'}
             className={cn(
               "group block h-full",
-              card.id === 'foundation' || card.id === 'cleaning-slab' || card.id === 'column-base' ? "cursor-pointer" : "cursor-not-allowed opacity-80"
+              card.id === 'foundation' || card.id === 'cleaning-slab' ? "cursor-pointer" : "cursor-not-allowed opacity-80"
             )}
           >
             <div className={cn(
