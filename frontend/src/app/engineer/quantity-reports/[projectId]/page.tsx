@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Printer,
+  Trash2,
 } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,6 +58,7 @@ export default function ProjectReportsPage() {
   const [reports, setReports] = useState<QuantityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [projectInfo, setProjectInfo] = useState<{
     name: string;
     engineerName: string;
@@ -559,6 +561,40 @@ export default function ProjectReportsPage() {
     }
   };
 
+  const deleteReport = async (reportId: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا التقرير؟ لا يمكن التراجع عن هذا الإجراء.')) {
+      return;
+    }
+
+    setDeleting(reportId);
+    try {
+      const response = await fetch(`http://localhost:5000/api/quantity-reports/${reportId}`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setReports(prev => prev.filter(report => report._id !== reportId));
+        toast({
+          title: 'تم الحذف بنجاح',
+          description: 'تم حذف التقرير بنجاح',
+        });
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      toast({
+        title: 'خطأ في الحذف',
+        description: 'حدث خطأ أثناء حذف التقرير',
+        variant: 'destructive'
+      });
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ar-EG', {
       year: 'numeric',
@@ -770,7 +806,9 @@ export default function ProjectReportsPage() {
                         <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                         <div>
                           <p className="font-medium text-slate-800">
-                            تقرير {report.calculationType === 'foundation' ? 'القواعد وصبة النظافة' : report.calculationType}
+                            تقرير {report.calculationType === 'foundation' ? 'القواعد وصبة النظافة' : 
+                                   report.calculationType === 'column-footings' ? 'شروش الأعمدة' : 
+                                   report.calculationType}
                           </p>
                           <p className="text-sm text-slate-500 flex items-center gap-2">
                             <Calendar className="w-3 h-3" />
@@ -778,9 +816,24 @@ export default function ProjectReportsPage() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant="outline" className="bg-white">
-                        {report.concreteData?.totalConcrete?.toFixed(2) || 0} م³
-                      </Badge>
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="bg-white">
+                          {report.concreteData?.totalConcrete?.toFixed(2) || 0} م³
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteReport(report._id)}
+                          disabled={deleting === report._id}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300"
+                        >
+                          {deleting === report._id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

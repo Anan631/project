@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Building2,
   ArrowRight,
@@ -109,6 +109,11 @@ export default function ColumnFootingsCalculationPage() {
     columnShape: ''
   });
 
+  // State for foundation data source
+  const [useFoundationData, setUseFoundationData] = useState(false);
+  const [foundationData, setFoundationData] = useState(null);
+  const [serverAvailable, setServerAvailable] = useState(true);
+
   // State for results and errors
   const [results, setResults] = useState<{
     numberOfColumns: number;
@@ -158,6 +163,92 @@ export default function ColumnFootingsCalculationPage() {
   const handleInputChange = (field: string, value: string) => {
     setInputs(prev => ({ ...prev, [field]: value }));
     if (error) setError(null);
+  };
+
+  // Check server availability
+  const checkServerAvailability = async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch('http://localhost:5000/api/health', {
+        method: 'GET',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      setServerAvailable(response.ok);
+      return response.ok;
+    } catch (error) {
+      setServerAvailable(false);
+      return false;
+    }
+  };
+
+  // Check server on component mount
+  useEffect(() => {
+    checkServerAvailability();
+  }, []);
+
+  // Function to fetch foundation data
+  const fetchFoundationData = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/foundation-calculations/${projectId}`);
+      
+      // Check if response is ok and content-type is JSON
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح. تأكد من تشغيل الخادم الخلفي.');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setFoundationData(data.data);
+        // Auto-fill foundation dimensions if available
+        if (data.data.foundationLength && data.data.foundationWidth) {
+          setInputs(prev => ({
+            ...prev,
+            baseLength: data.data.foundationLength.toString(),
+            baseWidth: data.data.foundationWidth.toString()
+          }));
+        }
+        toast({
+          title: 'تم جلب البيانات',
+          description: 'تم جلب أبعاد القواعد من صفحة صبة النظافة والقواعد',
+        });
+      } else {
+        toast({
+          title: 'لا توجد بيانات',
+          description: 'لم يتم العثور على بيانات القواعد. يرجى إدخال الأبعاد يدوياً',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching foundation data:', error);
+      let errorMessage = 'حدث خطأ أثناء جلب بيانات القواعد';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي على المنفذ 5000';
+        } else if (error.message.includes('JSON')) {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast({
+        title: 'خطأ في الاتصال',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+      
+      // Reset to manual input mode
+      setUseFoundationData(false);
+    }
   };
 
   const calculateResults = async () => {
@@ -323,6 +414,16 @@ export default function ColumnFootingsCalculationPage() {
       
       // Fetch project details to get owner info
       const projectRes = await fetch(`http://localhost:5000/api/projects/${projectId}`);
+      
+      if (!projectRes.ok) {
+        throw new Error(`HTTP error! status: ${projectRes.status}`);
+      }
+      
+      const projectContentType = projectRes.headers.get('content-type');
+      if (!projectContentType || !projectContentType.includes('application/json')) {
+        throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح. تأكد من تشغيل الخادم الخلفي.');
+      }
+      
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
       
@@ -354,6 +455,15 @@ export default function ColumnFootingsCalculationPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportData)
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const responseContentType = response.headers.get('content-type');
+      if (!responseContentType || !responseContentType.includes('application/json')) {
+        throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح');
+      }
 
       const data = await response.json();
       
@@ -388,9 +498,22 @@ export default function ColumnFootingsCalculationPage() {
       }
     } catch (error) {
       console.error('Error saving report:', error);
+      
+      let errorMessage = 'حدث خطأ أثناء حفظ التقرير';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي على المنفذ 5000';
+        } else if (error.message.includes('JSON')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('HTTP error')) {
+          errorMessage = 'خطأ في الخادم. يرجى المحاولة مرة أخرى';
+        }
+      }
+      
       toast({
         title: 'خطأ في الحفظ',
-        description: 'حدث خطأ أثناء حفظ التقرير',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -456,6 +579,26 @@ export default function ColumnFootingsCalculationPage() {
             {/* Enhanced Input Sections */}
             <div className="xl:col-span-8 space-y-6 lg:space-y-8">
               
+              {/* Server Status Warning */}
+              {!serverAvailable && (
+                <div className="p-4 lg:p-6 bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-2xl shadow-xl">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <AlertCircle className="w-7 h-7 text-amber-500" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-amber-900 mb-2">تحذير: الخادم الخلفي غير متاح</p>
+                      <p className="text-amber-700">
+                        لا يمكن حفظ النتائج أو جلب البيانات من القواعد. يمكنك إجراء الحسابات لكن لن يتم حفظها.
+                      </p>
+                      <p className="text-amber-600 text-sm mt-2">
+                        تأكد من تشغيل الخادم الخلفي على المنفذ 5000
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Error Display */}
               {error && (
                 <div className="p-4 lg:p-6 bg-gradient-to-r from-rose-50 to-red-50 border-2 border-red-200 rounded-2xl shadow-xl">
@@ -541,27 +684,79 @@ export default function ColumnFootingsCalculationPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6 lg:p-8 pt-0 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <InputField
-                    id="baseLength"
-                    label="طول القاعدة"
-                    value={inputs.baseLength}
-                    onChange={(value) => handleInputChange('baseLength', value)}
-                    placeholder="1.20"
-                    step="0.1"
-                    unit="متر"
-                    icon={Ruler}
-                  />
-                  <InputField
-                    id="baseWidth"
-                    label="عرض القاعدة"
-                    value={inputs.baseWidth}
-                    onChange={(value) => handleInputChange('baseWidth', value)}
-                    placeholder="1.20"
-                    step="0.1"
-                    unit="متر"
-                    icon={Ruler}
-                  />
+                <CardContent className="p-6 lg:p-8 pt-0 space-y-6">
+                  {/* خيار مصدر البيانات */}
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-2xl p-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Building2 className="w-5 h-5 text-purple-600" />
+                      <h4 className="font-bold text-purple-900">مصدر بيانات القاعدة</h4>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        variant={!useFoundationData ? "default" : "outline"}
+                        onClick={() => setUseFoundationData(false)}
+                        className="flex-1 h-12 font-bold"
+                      >
+                        إدخال يدوي
+                      </Button>
+                      <Button
+                        variant={useFoundationData ? "default" : "outline"}
+                        onClick={async () => {
+                          const isServerAvailable = await checkServerAvailability();
+                          if (!isServerAvailable) {
+                            toast({
+                              title: 'الخادم غير متاح',
+                              description: 'لا يمكن الاتصال بالخادم الخلفي. تأكد من تشغيله على المنفذ 5000',
+                              variant: 'destructive'
+                            });
+                            return;
+                          }
+                          setUseFoundationData(true);
+                          fetchFoundationData();
+                        }}
+                        className="flex-1 h-12 font-bold"
+                      >
+                        جلب من صفحة القواعد
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* حقول الإدخال */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <InputField
+                      id="baseLength"
+                      label="طول القاعدة"
+                      value={inputs.baseLength}
+                      onChange={(value) => handleInputChange('baseLength', value)}
+                      placeholder="1.20"
+                      step="0.1"
+                      unit="متر"
+                      icon={Ruler}
+                    />
+                    <InputField
+                      id="baseWidth"
+                      label="عرض القاعدة"
+                      value={inputs.baseWidth}
+                      onChange={(value) => handleInputChange('baseWidth', value)}
+                      placeholder="1.20"
+                      step="0.1"
+                      unit="متر"
+                      icon={Ruler}
+                    />
+                  </div>
+
+                  {/* عرض بيانات القواعد المجلوبة */}
+                  {useFoundationData && foundationData && (
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <h4 className="font-bold text-green-900">بيانات مجلوبة من صفحة القواعد</h4>
+                      </div>
+                      <p className="text-green-800 font-medium text-sm">
+                        تم جلب أبعاد القواعد بنجاح من حسابات صبة النظافة والقواعد
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -725,11 +920,7 @@ export default function ColumnFootingsCalculationPage() {
                               <span className="text-purple-700">القيمة A:</span>
                               <span className="font-bold text-purple-900">{results.valueA.toFixed(2)}</span>
                             </div>
-                            <div className="bg-purple-100 rounded-lg p-2 mb-2">
-                              <p className="text-xs text-purple-800 font-medium">
-                                المعادلة: A = (مساحة البلاطة × عدد الطوابق × الأحمال) ÷ 0.195
-                              </p>
-                            </div>
+
                             <div className="flex justify-between">
                               <span className="text-purple-700">شكل العمود:</span>
                               <span className="font-bold text-purple-900">{results.columnShape}</span>
@@ -739,29 +930,7 @@ export default function ColumnFootingsCalculationPage() {
                               <span className="font-bold text-purple-900">{results.columnDimensions.displayText}</span>
                             </div>
                             
-                            {/* عرض تفاصيل الحسابات حسب الشكل */}
-                            {results.columnShape === 'مستطيل' && (
-                              <div className="bg-purple-100 rounded-lg p-2 mt-2">
-                                <p className="text-xs text-purple-800 font-medium mb-1">معادلات المستطيل:</p>
-                                <p className="text-xs text-purple-700">العرض = √(A ÷ 2) ≥ 25 سم</p>
-                                <p className="text-xs text-purple-700">الطول = العرض × 2 ≥ 50 سم</p>
-                              </div>
-                            )}
-                            
-                            {results.columnShape === 'دائري' && (
-                              <div className="bg-purple-100 rounded-lg p-2 mt-2">
-                                <p className="text-xs text-purple-800 font-medium mb-1">معادلة الدائري:</p>
-                                <p className="text-xs text-purple-700">القطر = √(A ÷ π) × 2 ≥ 30 سم</p>
-                              </div>
-                            )}
-                            
-                            {results.columnShape === 'مربع' && (
-                              <div className="bg-purple-100 rounded-lg p-2 mt-2">
-                                <p className="text-xs text-purple-800 font-medium mb-1">معادلة المربع:</p>
-                                <p className="text-xs text-purple-700">البعد = √(A ÷ 2) ≥ 35 سم</p>
-                                <p className="text-xs text-purple-700">الطول = العرض</p>
-                              </div>
-                            )}
+
 
                             {results.columnDimensions.diameter && (
                               <div className="flex justify-between">
@@ -790,11 +959,7 @@ export default function ColumnFootingsCalculationPage() {
                             تفاصيل حساب الخرسانة
                           </h4>
                           <div className="space-y-2 text-sm">
-                            <div className="bg-orange-100 rounded-lg p-2 mb-2">
-                              <p className="text-xs text-orange-800 font-medium mb-1">المعادلات المستخدمة:</p>
-                              <p className="text-xs text-orange-700">حجم شرش العمود الواحد = الطول × العرض × الارتفاع</p>
-                              <p className="text-xs text-orange-700">إجمالي الحجم = حجم الواحد × عدد الأعمدة</p>
-                            </div>
+
                             <div className="flex justify-between">
                               <span className="text-orange-700">حجم الشرش الواحد:</span>
                               <span className="font-bold text-orange-900">
@@ -818,11 +983,7 @@ export default function ColumnFootingsCalculationPage() {
                             الأحمال المستخدمة
                           </h4>
                           <div className="space-y-2 text-sm">
-                            <div className="bg-emerald-100 rounded-lg p-2 mb-2">
-                              <p className="text-xs text-emerald-800 font-medium">
-                                الأحمال مجلوبة تلقائياً من نوع المبنى: {results.buildingType}
-                              </p>
-                            </div>
+
                             <div className="flex justify-between">
                               <span className="text-emerald-700">الحمل الميت:</span>
                               <span className="font-bold text-emerald-900">{results.deadLoad.toFixed(2)} كن/م²</span>
@@ -841,7 +1002,23 @@ export default function ColumnFootingsCalculationPage() {
 
                       {/* Save Button */}
                       <Button 
-                        onClick={saveToReports} 
+                        onClick={async () => {
+                          if (!serverAvailable) {
+                            // Save locally if server is not available
+                            const localData = {
+                              projectId,
+                              results,
+                              timestamp: new Date().toISOString()
+                            };
+                            localStorage.setItem(`column-footings-${projectId}`, JSON.stringify(localData));
+                            toast({
+                              title: 'تم الحفظ محلياً',
+                              description: 'تم حفظ النتائج في المتصفح. ستحتاج لإعادة الحفظ عند توفر الخادم',
+                            });
+                            return;
+                          }
+                          await saveToReports();
+                        }} 
                         disabled={saving}
                         className="w-full h-12 font-bold shadow-lg hover:shadow-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 transform hover:-translate-y-0.5 transition-all duration-300 rounded-xl border-0"
                       >
@@ -853,7 +1030,7 @@ export default function ColumnFootingsCalculationPage() {
                         ) : (
                           <>
                             <CheckCircle2 className="w-4 h-4 ml-2" />
-                            حفظ في التقارير
+                            {serverAvailable ? 'حفظ في التقارير' : 'حفظ محلي'}
                           </>
                         )}
                       </Button>
