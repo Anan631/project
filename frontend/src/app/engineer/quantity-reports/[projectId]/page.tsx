@@ -17,11 +17,23 @@ import {
   AlertCircle,
   Printer,
   Trash2,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 
@@ -64,6 +76,17 @@ export default function ProjectReportsPage() {
     engineerName: string;
     ownerName: string;
   } | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    reportId: string | null;
+    reportType: string | null;
+    reportDate: string | null;
+  }>({
+    open: false,
+    reportId: null,
+    reportType: null,
+    reportDate: null,
+  });
 
   useEffect(() => {
     fetchReports();
@@ -561,24 +584,36 @@ export default function ProjectReportsPage() {
     }
   };
 
-  const deleteReport = async (reportId: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا التقرير؟ لا يمكن التراجع عن هذا الإجراء.')) {
-      return;
-    }
+  const handleDeleteReport = (reportId: string) => {
+    const report = reports.find(r => r._id === reportId);
+    if (!report) return;
 
-    setDeleting(reportId);
+    setDeleteDialog({
+      open: true,
+      reportId,
+      reportType: report.calculationType === 'foundation' ? 'القواعد وصبة النظافة' : 
+                 report.calculationType === 'column-footings' ? 'شروش الأعمدة' : 
+                 report.calculationType,
+      reportDate: formatDate(report.updatedAt),
+    });
+  };
+
+  const confirmDeleteReport = async () => {
+    if (!deleteDialog.reportId) return;
+    
+    setDeleting(deleteDialog.reportId);
     try {
-      const response = await fetch(`http://localhost:5000/api/quantity-reports/${reportId}`, {
+      const response = await fetch(`http://localhost:5000/api/quantity-reports/${deleteDialog.reportId}`, {
         method: 'DELETE'
       });
 
       const data = await response.json();
       
       if (data.success) {
-        setReports(prev => prev.filter(report => report._id !== reportId));
+        setReports(prev => prev.filter(report => report._id !== deleteDialog.reportId));
         toast({
           title: 'تم الحذف بنجاح',
-          description: 'تم حذف التقرير بنجاح',
+          description: `تم حذف تقرير ${deleteDialog.reportType} بنجاح`,
         });
       } else {
         throw new Error(data.message);
@@ -592,6 +627,7 @@ export default function ProjectReportsPage() {
       });
     } finally {
       setDeleting(null);
+      setDeleteDialog({ open: false, reportId: null, reportType: null, reportDate: null });
     }
   };
 
@@ -823,7 +859,7 @@ export default function ProjectReportsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => deleteReport(report._id)}
+                          onClick={() => handleDeleteReport(report._id)}
                           disabled={deleting === report._id}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300"
                         >
@@ -842,6 +878,77 @@ export default function ProjectReportsPage() {
           </>
         )}
       </div>
+
+      {/* Enhanced Delete Report Dialog */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => 
+        setDeleteDialog(prev => ({ ...prev, open }))
+      }>
+        <AlertDialogContent className="max-w-lg" dir="rtl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center animate-pulse">
+                <AlertTriangle className="w-7 h-7 text-red-600" />
+              </div>
+              <AlertDialogTitle className="text-right text-xl font-bold">
+                تأكيد حذف التقرير
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-right text-base leading-relaxed">
+              <div className="space-y-3">
+                <div>
+                  هل أنت متأكد من حذف تقرير:
+                </div>
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                  <div className="font-bold text-amber-800 text-lg mb-2">
+                    {deleteDialog.reportType}
+                  </div>
+                  <div className="text-amber-700 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>التاريخ: {deleteDialog.reportDate}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <FileText className="w-4 h-4" />
+                      <span>المشروع: {projectInfo?.name}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="text-red-800 font-medium flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    هذا الإجراء لا يمكن التراجع عنه
+                  </div>
+                  <div className="text-red-700 text-sm mt-1">
+                    سيتم حذف جميع البيانات المتعلقة بهذا التقرير بشكل دائم
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3 mt-6">
+            <AlertDialogCancel className="flex-1 h-12 text-base font-medium">
+              <X className="w-4 h-4 ml-2" />
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteReport}
+              className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white text-base font-medium"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  جاري الحذف...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 ml-2" />
+                  حذف التقرير
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

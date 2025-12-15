@@ -599,6 +599,64 @@ router.post('/concrete-algorithm', async (req, res) => {
   }
 });
 
+// Get foundation data for column footings page
+router.get('/foundation-calculations/:projectId', async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    if (!projectId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'معرف المشروع مطلوب' 
+      });
+    }
+
+    // Fetch project with foundation calculations
+    const project = await Project.findById(projectId);
+    
+    if (!project) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'المشروع غير موجود' 
+      });
+    }
+
+    // Get foundation calculations from project
+    const foundationData = project.concreteCalculations?.foundation;
+    
+    if (!foundationData) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'لم يتم العثور على بيانات حسابات القواعد لهذا المشروع' 
+      });
+    }
+
+    // Extract relevant foundation dimensions
+    const foundationDimensions = {
+      foundationLength: foundationData.baseLength || foundationData.foundationLength,
+      foundationWidth: foundationData.baseWidth || foundationData.foundationWidth,
+      numberOfFoundations: foundationData.numberOfFoundations,
+      foundationHeight: foundationData.foundationHeight,
+      foundationShape: foundationData.foundationShape,
+      calculatedAt: foundationData.calculatedAt
+    };
+
+    res.json({
+      success: true,
+      data: foundationDimensions,
+      message: 'تم جلب بيانات القواعد بنجاح'
+    });
+
+  } catch (error) {
+    console.error('Error fetching foundation calculations:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'خطأ في جلب بيانات القواعد', 
+      error: error.message 
+    });
+  }
+});
+
 // Calculate column footings (شروش الأعمدة) concrete quantities
 router.post('/column-footings', async (req, res) => {
   try {
@@ -801,6 +859,73 @@ router.post('/column-footings', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'خطأ في الحساب', 
+      error: error.message 
+    });
+  }
+});
+
+// Save column calculations data
+router.post('/column-calculations', async (req, res) => {
+  try {
+    const {
+      projectId,
+      columnShape,
+      columnDimensions,
+      valueA,
+      totalFootingsVolume,
+      numberOfColumns,
+      calculationDate
+    } = req.body;
+
+    // Validation
+    if (!projectId || !columnShape || !columnDimensions || !valueA || !totalFootingsVolume || !numberOfColumns) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'جميع الحقول المطلوبة يجب ملؤها' 
+      });
+    }
+
+    // Verify project exists
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'المشروع غير موجود' 
+      });
+    }
+
+    // Save column calculations to project (could also be saved to a separate collection)
+    const columnCalculationData = {
+      projectId,
+      columnShape,
+      columnDimensions,
+      valueA,
+      totalFootingsVolume,
+      numberOfColumns,
+      calculationDate: calculationDate || new Date(),
+      savedAt: new Date()
+    };
+
+    // Update project with column calculations data
+    await Project.findByIdAndUpdate(
+      projectId,
+      {
+        'concreteCalculations.columnFootingsDetails': columnCalculationData
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      data: columnCalculationData,
+      message: 'تم حفظ بيانات حسابات الأعمدة بنجاح'
+    });
+
+  } catch (error) {
+    console.error('Error saving column calculations:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'خطأ في حفظ بيانات حسابات الأعمدة', 
       error: error.message 
     });
   }

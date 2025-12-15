@@ -28,7 +28,19 @@ import {
   Trash,
   MoreVertical,
   Share2,
+  AlertTriangle,
+  X,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -99,6 +111,24 @@ export default function QuantityReportsPage() {
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    projectId: string | null;
+    projectName: string | null;
+  }>({
+    open: false,
+    projectId: null,
+    projectName: null,
+  });
+  const [deleteAllDialog, setDeleteAllDialog] = useState(false);
+  // Single report delete dialog/state
+  const [singleDelete, setSingleDelete] = useState<{
+    open: boolean;
+    projectId: string | null;
+    reportId: string | null;
+    calculationType: string | null;
+  }>({ open: false, projectId: null, reportId: null, calculationType: null });
+  const [isDeletingReport, setIsDeletingReport] = useState<string | null>(null);
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
@@ -154,63 +184,118 @@ export default function QuantityReportsPage() {
     }
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    setIsDeleting(projectId);
+  const handleDeleteProject = async (projectId: string, projectName: string) => {
+    console.log('Delete button clicked for project:', projectId, projectName);
+    setDeleteDialog({
+      open: true,
+      projectId,
+      projectName,
+    });
+  };
+
+  const confirmDeleteProject = async () => {
+    if (!deleteDialog.projectId) return;
+    
+    setIsDeleting(deleteDialog.projectId);
     try {
-      const response = await fetch(`http://localhost:5000/api/quantity-reports/project/${projectId}`, {
-        method: 'DELETE'
+      // احذف جميع تقارير المشروع الواحد عبر حذف كل تقرير بالمعرف
+      const project = projects.find(p => p.projectId === deleteDialog.projectId);
+      const reportIds = project?.reports.map(r => r._id) || [];
+
+      await Promise.allSettled(
+        reportIds.map(id => fetch(`http://localhost:5000/api/quantity-reports/${id}`, { method: 'DELETE' }))
+      );
+
+      setProjects(prev => prev.filter(p => p.projectId !== deleteDialog.projectId));
+      toast({
+        title: "تم الحذف",
+        description: `تم حذف جميع تقارير مشروع "${deleteDialog.projectName}" بنجاح`,
+        variant: "default"
       });
-      
-      if (response.ok) {
-        setProjects(prev => prev.filter(p => p.projectId !== projectId));
-        toast({
-          title: "تم الحذف",
-          description: "تم حذف جميع تقارير المشروع بنجاح"
-        });
-      } else {
-        throw new Error('Failed to delete project reports');
-      }
     } catch (error) {
       console.error('Error deleting project reports:', error);
       toast({
-        title: 'خطأ',
+        title: 'خطأ في الحذف',
         description: 'حدث خطأ أثناء حذف تقارير المشروع',
         variant: 'destructive'
       });
     } finally {
       setIsDeleting(null);
+      setDeleteDialog({ open: false, projectId: null, projectName: null });
     }
   };
 
   const handleDeleteAllReports = async () => {
-    if (!confirm('هل أنت متأكد من حذف جميع التقارير؟ لا يمكن التراجع عن هذا الإجراء.')) {
-      return;
-    }
+    setDeleteAllDialog(true);
+  };
+
+  const confirmDeleteAllReports = async () => {
+    if (!engineerId) return;
     
     setIsDeletingAll(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/quantity-reports/engineer/${engineerId}`, {
-        method: 'DELETE'
+      // احذف كل التقارير لكل المشاريع عبر endpoint حذف تقرير واحد
+      const allReportIds = projects.flatMap(p => p.reports.map(r => r._id));
+      await Promise.allSettled(
+        allReportIds.map(id => fetch(`http://localhost:5000/api/quantity-reports/${id}`, { method: 'DELETE' }))
+      );
+
+      setProjects([]);
+      toast({
+        title: "تم الحذف الشامل",
+        description: "تم حذف جميع التقارير بنجاح",
+        variant: "default"
       });
-      
-      if (response.ok) {
-        setProjects([]);
-        toast({
-          title: "تم الحذف",
-          description: "تم حذف جميع التقارير بنجاح"
-        });
-      } else {
-        throw new Error('Failed to delete all reports');
-      }
     } catch (error) {
       console.error('Error deleting all reports:', error);
       toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حذف التقارير',
+        title: 'خطأ في الحذف الشامل',
+        description: 'حدث خطأ أثناء حذف جميع التقارير',
         variant: 'destructive'
       });
     } finally {
       setIsDeletingAll(false);
+      setDeleteAllDialog(false);
+    }
+  };
+
+  // فتح نافذة حذف تقرير محدد
+  const handleDeleteReport = (projectId: string, reportId: string, calculationType: string) => {
+    setSingleDelete({ open: true, projectId, reportId, calculationType });
+  };
+
+  // تأكيد حذف تقرير محدد
+  const confirmDeleteReport = async () => {
+    if (!singleDelete.reportId || !singleDelete.projectId) return;
+    setIsDeletingReport(singleDelete.reportId);
+    try {
+      const res = await fetch(`http://localhost:5000/api/quantity-reports/${singleDelete.reportId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('failed');
+
+      // حدّث الحالة محلياً
+      setProjects(prev => {
+        return prev
+          .map(p => {
+            if (p.projectId !== singleDelete.projectId) return p;
+            const newReports = p.reports.filter(r => r._id !== singleDelete.reportId);
+            return { ...p, reports: newReports } as ProjectReport;
+          })
+          .filter(p => p.reports.length > 0);
+      });
+
+      toast({
+        title: 'تم الحذف',
+        description: 'تم حذف التقرير بنجاح',
+      });
+    } catch (e) {
+      toast({
+        title: 'خطأ',
+        description: 'فشل حذف التقرير',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsDeletingReport(null);
+      setSingleDelete({ open: false, projectId: null, reportId: null, calculationType: null });
     }
   };
 
@@ -585,11 +670,10 @@ export default function QuantityReportsPage() {
                         whileHover={{ y: -5 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group cursor-pointer"
-                              onClick={() => router.push(`/engineer/quantity-reports/${project.projectId}`)}>
+                        <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
                           <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            <CardHeader className="pb-4">
+                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                            <CardHeader className="pb-4 cursor-pointer" onClick={(e) => { e.stopPropagation(); router.push(`/engineer/quantity-reports/${project.projectId}`); }}>
                               <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-3 mb-2">
@@ -609,7 +693,10 @@ export default function QuantityReportsPage() {
                                     <span>{project.reports.length} تقرير</span>
                                   </div>
                                 </div>
-                                <div className="flex flex-col gap-2">
+                                <div className="flex flex-col gap-2" onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/engineer/quantity-reports/${project.projectId}`);
+                                  }}>
                                   <Badge className={cn(getPriorityBadge(project.priority || 'medium'), "text-xs")}>
                                     {getPriorityBadge(project.priority || 'medium').label}
                                   </Badge>
@@ -633,13 +720,21 @@ export default function QuantityReportsPage() {
                                       {project.reports.slice(0, 3).map((report) => {
                                         const badge = getReportTypeBadge(report.calculationType);
                                         return (
-                                          <Badge 
-                                            key={report._id}
-                                            className={`${badge.color} text-white text-xs flex items-center gap-1`}
-                                          >
-                                            <badge.icon className="w-3 h-3 text-white" />
-                                            {badge.label}
-                                          </Badge>
+                                          <div key={report._id} className="relative group/badge">
+                                            <Badge 
+                                              className={`${badge.color} text-white text-xs flex items-center gap-1 pr-6`}
+                                            >
+                                              <badge.icon className="w-3 h-3 text-white" />
+                                              {badge.label}
+                                            </Badge>
+                                            <button
+                                              title="حذف التقرير"
+                                              onClick={(e) => { e.stopPropagation(); handleDeleteReport(project.projectId, report._id, report.calculationType); }}
+                                              className="absolute -right-1 -top-1 hidden group-hover/badge:flex items-center justify-center w-5 h-5 rounded-full bg-white text-red-600 shadow hover:bg-red-50"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          </div>
                                         );
                                       })}
                                       {project.reports.length > 3 && (
@@ -680,6 +775,7 @@ export default function QuantityReportsPage() {
                                       size="sm"
                                       className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 px-3"
                                       onClick={(e) => {
+                                        e.preventDefault();
                                         e.stopPropagation();
                                         router.push(`/engineer/quantity-reports/${project.projectId}`);
                                       }}
@@ -687,22 +783,27 @@ export default function QuantityReportsPage() {
                                       <Eye className="w-4 h-4" />
                                       عرض التقرير
                                     </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteProject(project.projectId);
-                                      }}
-                                      disabled={isDeleting === project.projectId}
-                                    >
-                                      {isDeleting === project.projectId ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                      ) : (
-                                        <Trash2 className="w-4 h-4" />
-                                      )}
-                                    </Button>
+                                    <div style={{ position: 'relative', zIndex: 10 }}>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
+                                        onClick={(e) => {
+                                          console.log('Delete button onClick triggered');
+                                          e.stopPropagation();
+                                          e.preventDefault();
+                                          handleDeleteProject(project.projectId, project.projectName);
+                                        }}
+                                        disabled={isDeleting === project.projectId && deleteDialog.open}
+                                        style={{ pointerEvents: 'auto' }}
+                                      >
+                                        {isDeleting === project.projectId ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <Trash2 className="w-4 h-4" />
+                                        )}
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -778,13 +879,21 @@ export default function QuantityReportsPage() {
                                   {project.reports.slice(0, 2).map((report) => {
                                     const badge = getReportTypeBadge(report.calculationType);
                                     return (
-                                      <Badge 
-                                        key={report._id}
-                                        className={`${badge.color} text-white text-xs flex items-center gap-1`}
-                                      >
-                                        <badge.icon className="w-3 h-3 text-white" />
-                                        {badge.label}
-                                      </Badge>
+                                      <div key={report._id} className="relative group/badge">
+                                        <Badge 
+                                          className={`${badge.color} text-white text-xs flex items-center gap-1 pr-6`}
+                                        >
+                                          <badge.icon className="w-3 h-3 text-white" />
+                                          {badge.label}
+                                        </Badge>
+                                        <button
+                                          title="حذف التقرير"
+                                          onClick={(e) => { e.stopPropagation(); handleDeleteReport(project.projectId, report._id, report.calculationType); }}
+                                          className="absolute -right-1 -top-1 hidden group-hover/badge:flex items-center justify-center w-5 h-5 rounded-full bg-white text-red-600 shadow hover:bg-red-50"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
                                     );
                                   })}
                                   {project.reports.length > 2 && (
@@ -812,18 +921,36 @@ export default function QuantityReportsPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  router.push(`/engineer/quantity-reports/${project.projectId}`);
-                                }}
-                              >
-                                <Eye className="w-4 h-4" />
-                                عرض التقرير
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/engineer/quantity-reports/${project.projectId}`);
+                                  }}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  عرض التقرير
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteProject(project.projectId, project.projectName);
+                                  }}
+                                  disabled={isDeleting === project.projectId && deleteDialog.open}
+                                >
+                                  {isDeleting === project.projectId ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -836,6 +963,128 @@ export default function QuantityReportsPage() {
           </>
         )}
       </div>
+      
+      {/* Delete Single Report Dialog */}
+      <AlertDialog open={singleDelete.open} onOpenChange={(open) => setSingleDelete(prev => ({ ...prev, open }))}>
+        <AlertDialogContent className="max-w-md" dir="rtl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <AlertDialogTitle className="text-right text-lg">تأكيد حذف التقرير</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-right text-base">
+              هل أنت متأكد من حذف هذا التقرير؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3">
+            <AlertDialogCancel className="flex-1">إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteReport}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeletingReport ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  جاري الحذف...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 ml-2" />
+                  حذف التقرير
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Project Dialog */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => 
+        setDeleteDialog(prev => ({ ...prev, open }))
+      }>
+        <AlertDialogContent className="max-w-md" dir="rtl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <AlertDialogTitle className="text-right text-lg">تأكيد حذف التقارير</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-right text-base">
+              هل أنت متأكد من حذف جميع تقارير المشروع: 
+              <span className="font-bold text-slate-900"> {deleteDialog.projectName} </span>
+              ؟
+              <br /><br />
+              <span className="text-amber-600 font-medium">
+                ⚠️ هذا الإجراء لا يمكن التراجع عنه وسيمحو جميع البيانات بشكل دائم
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3">
+            <AlertDialogCancel className="flex-1">إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteProject}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  جاري الحذف...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 ml-2" />
+                  حذف التقرير
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Delete All Dialog */}
+      <AlertDialog open={deleteAllDialog} onOpenChange={setDeleteAllDialog}>
+        <AlertDialogContent className="max-w-md" dir="rtl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <AlertDialogTitle className="text-right text-lg">تأكيد الحذف الشامل</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-right text-base">
+              هل أنت متأكد من حذف <span className="font-bold text-red-600">جميع التقارير</span>؟
+              <br /><br />
+              سيتم حذف <span className="font-bold">{projects.length}</span> مشروع وكل تقاريرهم
+              <br /><br />
+              <span className="text-amber-600 font-medium">
+                ⚠️ هذا الإجراء لا يمكن التراجع عنه وسيمحو جميع البيانات بشكل دائم
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3">
+            <AlertDialogCancel className="flex-1">إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteAllReports}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeletingAll ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  جاري الحذف الشامل...
+                </>
+              ) : (
+                <>
+                  <Trash className="w-4 h-4 ml-2" />
+                  حذف الكل
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

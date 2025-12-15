@@ -37,6 +37,11 @@ app.use('/api/engineering-data', require('./routes/engineering-data'));
 app.use('/api/concrete-calculation', require('./routes/concreteCalculationRoutes'));
 app.use('/api/quantity-reports', require('./routes/quantityReports'));
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ success: true, message: 'Server is running', timestamp: new Date() });
+});
+
 /* ------------------- Database Connection -------------------- */
 
 if (!process.env.MONGO_URI) {
