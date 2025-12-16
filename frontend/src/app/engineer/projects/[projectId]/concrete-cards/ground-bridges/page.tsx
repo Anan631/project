@@ -28,14 +28,13 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Helper component for input fields
-function InputField({ id, label, value, onChange, placeholder, type = "number", step = "0.1", unit, icon: Icon }: {
+function InputField({ id, label, value, onChange, type = "number", unit, icon: Icon }: {
   id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder?: string;
+  
   type?: string;
-  step?: string;
   unit: string;
   icon: any;
 }) {
@@ -49,8 +48,7 @@ function InputField({ id, label, value, onChange, placeholder, type = "number", 
         <Input
           id={id}
           type={type}
-          step={step}
-          placeholder={placeholder}
+          
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="pr-12 pl-3 h-12 text-right border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors rounded-xl"
@@ -354,9 +352,7 @@ export default function GroundBridgesCalculationPage() {
                   <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-blue-800 bg-clip-text text-transparent leading-tight mb-4">
                     حساب الجسور الأرضية
                   </h1>
-                  <p className="text-lg lg:text-xl text-slate-600 font-semibold leading-relaxed max-w-2xl">
-                    حساب دقيق لكميات الخرسانة في الجسور الأرضية وفق المعايير الهندسية
-                  </p>
+                  
                 </div>
               </div>
               <div className="absolute -inset-4 bg-gradient-to-r from-blue-400/20 via-indigo-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
@@ -413,9 +409,7 @@ export default function GroundBridgesCalculationPage() {
                       </div>
                       <div>
                         <CardTitle className="text-xl font-bold">بيانات الجسور الأرضية</CardTitle>
-                        <CardDescription className="text-blue-100 text-base">
-                          أبعاد الجسور الأرضية لحساب كمية الخرسانة
-                        </CardDescription>
+                        
                       </div>
                     </div>
                     <Button
@@ -428,19 +422,7 @@ export default function GroundBridgesCalculationPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-6 lg:p-8 pt-0 space-y-6">
-                  {/* معلومات المعادلة */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Calculator className="w-5 h-5 text-blue-600" />
-                      <h4 className="font-bold text-blue-900">معادلة الحساب</h4>
-                    </div>
-                    <p className="text-blue-800 font-medium">
-                      حجم خرسانة الجسر الأرضي = <span className="font-bold">الطول × السمك × الارتفاع</span>
-                    </p>
-                    <p className="text-blue-700 text-sm mt-1">
-                      إجمالي الحجم = مجموع أحجام جميع الجسور
-                    </p>
-                  </div>
+                  
 
                   {/* قائمة الجسور */}
                   <div className="space-y-4">
@@ -468,8 +450,7 @@ export default function GroundBridgesCalculationPage() {
                             label="طول الجسر"
                             value={bridge.length}
                             onChange={(value) => updateBridge(bridge.id, 'length', value)}
-                            placeholder="5.0"
-                            step="0.1"
+                            
                             unit="متر"
                             icon={Ruler}
                           />
@@ -478,8 +459,7 @@ export default function GroundBridgesCalculationPage() {
                             label="سمك الجسر"
                             value={bridge.width}
                             onChange={(value) => updateBridge(bridge.id, 'width', value)}
-                            placeholder="0.3"
-                            step="0.1"
+                            
                             unit="متر"
                             icon={Ruler}
                           />
@@ -488,8 +468,7 @@ export default function GroundBridgesCalculationPage() {
                             label="ارتفاع الجسر"
                             value={bridge.height}
                             onChange={(value) => updateBridge(bridge.id, 'height', value)}
-                            placeholder="0.5"
-                            step="0.1"
+                            
                             unit="متر"
                             icon={Ruler}
                           />
