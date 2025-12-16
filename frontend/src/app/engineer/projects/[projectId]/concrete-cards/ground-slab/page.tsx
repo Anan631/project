@@ -230,8 +230,7 @@ export default function GroundSlabPage() {
                     label="مساحة الأرضية"
                     value={inputs.slabArea}
                     onChange={(v) => handleInputChange('slabArea', v)}
-                    placeholder="180"
-                    step="0.1"
+                    
                     unit="م²"
                     icon={Grid}
                   />
@@ -240,8 +239,7 @@ export default function GroundSlabPage() {
                     label="سماكة الخرسانة (الارتفاع)"
                     value={inputs.slabThickness}
                     onChange={(v) => handleInputChange('slabThickness', v)}
-                    placeholder="0.12"
-                    step="0.01"
+                    
                     unit="متر"
                     icon={Ruler}
                   />
@@ -283,9 +281,7 @@ export default function GroundSlabPage() {
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold">النتائج</CardTitle>
-                    <CardDescription className="text-indigo-100 text-base">
-                      حسابات دقيقة وفق المعايير الفنية
-                    </CardDescription>
+                    
                   </div>
                 </div>
               </CardHeader>
@@ -374,8 +370,7 @@ function InputField({
   label, 
   value, 
   onChange, 
-  placeholder, 
-  step = "any", 
+ 
   unit, 
   icon: Icon, 
   type = "number",
@@ -385,8 +380,7 @@ function InputField({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
-  step?: string;
+ 
   unit?: string;
   icon?: any;
   type?: string;
@@ -402,8 +396,7 @@ function InputField({
         <Input
           id={id}
           type={type}
-          step={step}
-          placeholder={placeholder}
+          
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="h-16 text-lg font-bold text-right pr-14 bg-gradient-to-r from-white/80 to-slate-50/80 hover:from-white hover:to-slate-50 border-2 border-slate-200 hover:border-emerald-300 focus:border-emerald-500 shadow-xl focus:shadow-emerald-200/50 transition-all duration-400 rounded-3xl backdrop-blur-sm"
