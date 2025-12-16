@@ -87,6 +87,7 @@ interface ProjectReport {
       totalConcrete: number;
       foundationsVolume: number;
       cleaningVolume: number;
+      groundSlabVolume: number;
     };
     steelData?: {
       totalSteelWeight: number;
