@@ -341,9 +341,7 @@ export default function RoofConcretePage() {
                   العودة للمشاريع
                 </Button>
               </Link>
-              <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg border-0 px-6 py-2.5 font-bold text-lg">
-                حساب خرسانة السقف
-              </Badge>
+              
             </div>
 
           </div>
@@ -359,9 +357,7 @@ export default function RoofConcretePage() {
                 <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-emerald-800 bg-clip-text text-transparent leading-tight mb-4">
                   حساب كمية الخرسانة في السقف 
                 </h1>
-                <p className="text-lg lg:text-xl text-slate-600 font-semibold leading-relaxed max-w-2xl">
-                  يدعم حالتي وجود رِبس أو عدم وجوده، مع خيار مبنى متعدد الطوابق
-                </p>
+                
               </div>
             </div>
             <div className="absolute -inset-4 bg-gradient-to-r from-emerald-400/20 via-blue-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
@@ -408,10 +404,10 @@ export default function RoofConcretePage() {
 
                   {/* مدخلات عامة */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <InputField id="area" label="مساحة السقف" value={A} onChange={setA} placeholder="مثال: 120" unit="م²" icon={Ruler} step="0.01" />
-                    <InputField id="thickness" label="سمك السقف" value={T} onChange={setT} placeholder="مثال: 0.20" unit="م" icon={Ruler} step="0.01" />
+                    <InputField id="area" label="مساحة السقف" value={A} onChange={setA}  unit="م²" icon={Ruler} />
+                    <InputField id="thickness" label="سمك السقف" value={T} onChange={setT}  unit="م" icon={Ruler}  />
                     {roofType === 'with-ribs' && (
-                      <InputField id="vslab" label="حجم السقف" value={Vslab} onChange={setVslab} placeholder="مثال: 24" unit="م³" icon={Ruler} step="0.01" />
+                      <InputField id="vslab" label="حجم السقف" value={Vslab} onChange={setVslab}  unit="م³" icon={Ruler} />
                     )}
                   </div>
 
@@ -420,9 +416,9 @@ export default function RoofConcretePage() {
                       <Separator className="my-2" />
                       {/* مدخلات الربس */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <InputField id="lr" label="طول الربس" value={Lr} onChange={setLr} placeholder="مثال: 3.0" unit="م" icon={Ruler} step="0.01" />
-                        <InputField id="wr" label="عرض الربس" value={Wr} onChange={setWr} placeholder="مثال: 0.1" unit="م" icon={Ruler} step="0.01" />
-                        <InputField id="hr" label="ارتفاع الربس" value={Hr} onChange={setHr} placeholder="مثال: 0.12" unit="م" icon={Ruler} step="0.01" />
+                        <InputField id="lr" label="طول الربس" value={Lr} onChange={setLr}  unit="م" icon={Ruler} />
+                        <InputField id="wr" label="عرض الربس" value={Wr} onChange={setWr}  unit="م" icon={Ruler} />
+                        <InputField id="hr" label="ارتفاع الربس" value={Hr} onChange={setHr} unit="م" icon={Ruler} />
                       </div>
 
                       {/* نتائج الربس */}
@@ -475,7 +471,7 @@ export default function RoofConcretePage() {
 
                         {floorMode === 'multi' && (
                           <div className="space-y-4">
-                            <InputField id="floors" label="عدد الطوابق" value={floorsCount} onChange={setFloorsCount} placeholder="مثال: 3" unit="طابق" icon={Ruler} step="1" />
+                            <InputField id="floors" label="عدد الطوابق" value={floorsCount} onChange={setFloorsCount}  unit="طابق" icon={Ruler}  />
                           </div>
                         )}
                       </div>
@@ -541,10 +537,8 @@ export default function RoofConcretePage() {
                     <TrendingUp className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold">النتائج الهندسية</CardTitle>
-                    <CardDescription className="text-indigo-100 text-base">
-                      حسابات دقيقة وفق المعايير الفنية
-                    </CardDescription>
+                    <CardTitle className="text-xl font-bold">النتائج </CardTitle>
+                    
                   </div>
                 </div>
               </CardHeader>
