@@ -35,7 +35,7 @@ export default function CleaningSlabCalculationPage() {
   const [inputs, setInputs] = useState({
     length: '',
     width: '',
-    height: '0.10' // قيمة افتراضية لسمك صبة النظافة
+    height: '' // قيمة افتراضية لسمك صبة النظافة
   });
 
   // State for results
@@ -97,7 +97,7 @@ export default function CleaningSlabCalculationPage() {
     setInputs({
       length: '',
       width: '',
-      height: '0.10'
+      height: ''
     });
     setResult(null);
     setError(null);
@@ -201,10 +201,10 @@ export default function CleaningSlabCalculationPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8" onKeyDown={handleKeyPress}>
                         {[
-                          { id: 'length', label: 'الطول', unit: 'متر', placeholder: '1.5', icon: Ruler },
-                          { id: 'width', label: 'العرض', unit: 'متر', placeholder: '1.0', icon: Ruler },
-                          { id: 'height', label: 'الارتفاع (السمك)', unit: 'متر', placeholder: '0.10', icon: Ruler }
-                        ].map(({ id, label, unit, placeholder, icon: Icon }) => (
+                          { id: 'length', label: 'الطول', unit: 'متر', icon: Ruler },
+                          { id: 'width', label: 'العرض', unit: 'متر', icon: Ruler },
+                          { id: 'height', label: 'الارتفاع (السمك)', unit: 'متر', icon: Ruler }
+                        ].map(({ id, label, unit, icon: Icon }) => (
                           <div key={id} className="group">
                             <Label htmlFor={id} className="text-base font-bold text-gray-900 mb-2 block flex items-center gap-2">
                               {label}
@@ -226,7 +226,7 @@ export default function CleaningSlabCalculationPage() {
                                 type="number"
                                 step={id === 'height' ? "0.01" : "0.1"}
 
-                                placeholder={placeholder}
+                                
                                 value={inputs[id as keyof typeof inputs] as string}
                                 onChange={(e) => handleInputChange(id, e.target.value)}
                                 className="pr-10 pl-3 h-14 text-lg font-bold text-right bg-gradient-to-r from-white/70 to-blue-50/70 hover:from-white hover:to-blue-50 border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 shadow-inner focus:shadow-xl transition-all duration-300 rounded-2xl backdrop-blur-sm"
