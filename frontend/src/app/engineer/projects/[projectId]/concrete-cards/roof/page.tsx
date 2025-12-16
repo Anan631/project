@@ -345,10 +345,7 @@ export default function RoofConcretePage() {
                 حساب خرسانة السقف
               </Badge>
             </div>
-            <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
-              <LayoutDashboard className="w-4 h-4" />
-              <span>حساب خرسانة السقف - مشروع #{projectId}</span>
-            </div>
+
           </div>
 
           <div className="relative group">
@@ -360,7 +357,7 @@ export default function RoofConcretePage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-emerald-800 bg-clip-text text-transparent leading-tight mb-4">
-                  حساب كمية الخرسانة في السقف (بلاطة)
+                  حساب كمية الخرسانة في السقف 
                 </h1>
                 <p className="text-lg lg:text-xl text-slate-600 font-semibold leading-relaxed max-w-2xl">
                   يدعم حالتي وجود رِبس أو عدم وجوده، مع خيار مبنى متعدد الطوابق
@@ -411,8 +408,8 @@ export default function RoofConcretePage() {
 
                   {/* مدخلات عامة */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <InputField id="area" label="مساحة السقف (A)" value={A} onChange={setA} placeholder="مثال: 120" unit="م²" icon={Ruler} step="0.01" />
-                    <InputField id="thickness" label="سمك السقف (T)" value={T} onChange={setT} placeholder="مثال: 0.20" unit="م" icon={Ruler} step="0.01" />
+                    <InputField id="area" label="مساحة السقف" value={A} onChange={setA} placeholder="مثال: 120" unit="م²" icon={Ruler} step="0.01" />
+                    <InputField id="thickness" label="سمك السقف" value={T} onChange={setT} placeholder="مثال: 0.20" unit="م" icon={Ruler} step="0.01" />
                     {roofType === 'with-ribs' && (
                       <InputField id="vslab" label="حجم السقف (إلزامي مع الربس)" value={Vslab} onChange={setVslab} placeholder="مثال: 24" unit="م³" icon={Ruler} step="0.01" />
                     )}
@@ -423,9 +420,9 @@ export default function RoofConcretePage() {
                       <Separator className="my-2" />
                       {/* مدخلات الربس */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <InputField id="lr" label="طول الربس (L_r)" value={Lr} onChange={setLr} placeholder="مثال: 3.0" unit="م" icon={Ruler} step="0.01" />
-                        <InputField id="wr" label="عرض الربس (W_r)" value={Wr} onChange={setWr} placeholder="مثال: 0.1" unit="م" icon={Ruler} step="0.01" />
-                        <InputField id="hr" label="ارتفاع الربس (H_r)" value={Hr} onChange={setHr} placeholder="مثال: 0.12" unit="م" icon={Ruler} step="0.01" />
+                        <InputField id="lr" label="طول الربس" value={Lr} onChange={setLr} placeholder="مثال: 3.0" unit="م" icon={Ruler} step="0.01" />
+                        <InputField id="wr" label="عرض الربس" value={Wr} onChange={setWr} placeholder="مثال: 0.1" unit="م" icon={Ruler} step="0.01" />
+                        <InputField id="hr" label="ارتفاع الربس" value={Hr} onChange={setHr} placeholder="مثال: 0.12" unit="م" icon={Ruler} step="0.01" />
                       </div>
 
                       {/* نتائج الربس */}
@@ -489,9 +486,9 @@ export default function RoofConcretePage() {
 
                       {floorMode === 'multi' && (
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <ResultBox label="الحمل الميت (محسوب)" value={deadLoad.toFixed(3)} suffix="طن" color="from-orange-500 to-amber-500" />
-                          <ResultBox label="الحمل الحي (محسوب)" value={liveLoad.toFixed(3)} suffix="طن" color="from-green-500 to-emerald-500" />
-                          <ResultBox label="الحمل الكلي" value={totalLoad.toFixed(3)} suffix="طن" color="from-cyan-500 to-blue-500" />
+                          <ResultBox label="الحمل الميت (محسوب)" value={deadLoad.toFixed(3)} suffix="ك ن /م²" color="from-orange-500 to-amber-500" />
+                          <ResultBox label="الحمل الحي (محسوب)" value={liveLoad.toFixed(3)} suffix="ك ن /م²" color="from-green-500 to-emerald-500" />
+                          <ResultBox label="الحمل الكلي" value={totalLoad.toFixed(3)} suffix="ك ن /م²" color="from-cyan-500 to-blue-500" />
                           <ResultBox label="الكمية النهائية" value={finalConcreteMulti.toFixed(3)} suffix="م³" color="from-indigo-500 to-purple-500" />
                         </div>
                       )}
@@ -574,34 +571,7 @@ export default function RoofConcretePage() {
                   </div>
                 </div>
 
-                {/* قوانين الحساب */}
-                <Card className="border-0 bg-gradient-to-r from-emerald-50/80 to-teal-50/80 backdrop-blur-sm">
-                  <CardContent className="p-6">
-                    <h4 className="font-bold text-emerald-900 mb-3 flex items-center gap-2">
-                      <Calculator className="w-5 h-5" />
-                      قوانين الحساب
-                    </h4>
-                    <div className="space-y-2 text-sm text-emerald-800">
-                      <div className="p-3 bg-white/50 rounded-xl">
-                        <p className="font-bold">سقف بدون رِبس (طابق واحد):</p>
-                        <p>كمية الخرسانة = مساحة السقف × سمك السقف</p>
-                      </div>
-                      <div className="p-3 bg-white/50 rounded-xl">
-                        <p className="font-bold">سقف مع رِبس (طابق واحد):</p>
-                        <p>عدد الربس = مساحة السقف × 5</p>
-                        <p>حجم الربس الكلي = طول الربس × عرض الربس × ارتفاع الربس × عدد الربس</p>
-                        <p>كمية الخرسانة = حجم السقف − حجم الربس الكلي</p>
-                      </div>
-                      <div className="p-3 bg-white/50 rounded-xl">
-                        <p className="font-bold">سقف مع رِبس (متعدد الطوابق):</p>
-                        <p>الحمل الميت = مساحة السقف × سمك السقف × 25</p>
-                        <p>الحمل الحي = مساحة السقف × الحمولة الحية للمتر المربع (بوحدة كيلو نيوتن/م²)</p>
-                        <p>الحمل الكلي = الحمل الميت + الحمل الحي</p>
-                        <p>كمية الخرسانة = (مساحة السقف × سمك السقف) + (عدد الطوابق × الحمل الكلي)</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+
               </CardContent>
             </Card>
           </div>
