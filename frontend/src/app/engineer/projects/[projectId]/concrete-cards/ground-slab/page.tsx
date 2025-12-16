@@ -162,14 +162,9 @@ export default function GroundSlabPage() {
                   العودة للمشاريع
                 </Button>
               </Link>
-              <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg border-0 px-6 py-2.5 font-bold text-lg">
-                أرضية المبنى (المده)
-              </Badge>
+              
             </div>
-            <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
-              <LayoutDashboard className="w-4 h-4" />
-              <span>حساب أرضية المبنى - مشروع #{projectId}</span>
-            </div>
+            
           </div>
 
           <div className="relative group">
@@ -187,7 +182,7 @@ export default function GroundSlabPage() {
                   حساب أرضية المبنى (المده)
                 </h1>
                 <p className="text-lg lg:text-xl text-slate-600 font-semibold leading-relaxed max-w-2xl">
-                  حساب حجم الخرسانة لأرضية المبنى بناءً على المساحة والارتفاع
+                  حساب حجم الخرسانة لأرضية المبنى    
                 </p>
               </div>
             </div>
@@ -251,18 +246,7 @@ export default function GroundSlabPage() {
                     icon={Ruler}
                   />
                 </div>
-                <div className="mt-6 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl border-2 border-emerald-200">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Calculator className="w-5 h-5 text-emerald-600" />
-                    <h4 className="font-bold text-emerald-900">قانون الحساب</h4>
-                  </div>
-                  <p className="text-emerald-800 font-medium">
-                    حجم الخرسانة = المساحة × السماكة
-                  </p>
-                  <p className="text-emerald-700 text-sm mt-1">
-                    معدل الحديد التقديري: 80 كجم/م³ (ثابت)
-                  </p>
-                </div>
+                
               </CardContent>
             </Card>
 

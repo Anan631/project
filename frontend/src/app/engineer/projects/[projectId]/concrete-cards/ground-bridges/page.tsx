@@ -335,14 +335,9 @@ export default function GroundBridgesCalculationPage() {
                     العودة للمشاريع
                   </Button>
                 </Link>
-                <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg border-0 px-6 py-2.5 font-bold text-lg">
-                  حساب الخرسانة المتقدم
-                </Badge>
+                
               </div>
-              <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
-                <LayoutDashboard className="w-4 h-4" />
-                <span>حساب الجسور الأرضية - مشروع #{projectId}</span>
-              </div>
+              
             </div>
             
             <div className="relative group">
@@ -668,15 +663,7 @@ export default function GroundBridgesCalculationPage() {
                       <p className="text-gray-600 mb-6">
                         أدخل أبعاد الجسور الأرضية واضغط على "حساب كميات الخرسانة" لعرض النتائج
                       </p>
-                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4 text-right">
-                        <h4 className="font-bold text-blue-900 mb-2">خطوات الحساب:</h4>
-                        <ol className="text-blue-800 text-sm space-y-1">
-                          <li>1. أدخل أبعاد الجسر الأول (الطول، السمك، الارتفاع)</li>
-                          <li>2. أضف جسور إضافية إذا لزم الأمر</li>
-                          <li>3. اضغط على "حساب كميات الخرسانة"</li>
-                          <li>4. احفظ النتائج في التقارير</li>
-                        </ol>
-                      </div>
+                      
                     </div>
                   )}
                 </CardContent>

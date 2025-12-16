@@ -396,10 +396,7 @@ export default function FoundationCalculationPage() {
                   حساب الخرسانة المتقدم
                 </Badge>
               </div>
-              <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
-                <LayoutDashboard className="w-4 h-4" />
-                <span>حساب صبة النظافة + القواعد - مشروع #{projectId}</span>
-              </div>
+              
             </div>
             
             <div className="relative group">

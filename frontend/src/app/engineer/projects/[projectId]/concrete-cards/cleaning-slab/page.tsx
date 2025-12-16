@@ -42,7 +42,6 @@ export default function CleaningSlabCalculationPage() {
   const [result, setResult] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [wastagePercentage, setWastagePercentage] = useState(10);
   const [activeTab, setActiveTab] = useState('calculate');
 
   const handleInputChange = (field: string, value: string) => {
@@ -102,7 +101,6 @@ export default function CleaningSlabCalculationPage() {
     });
     setResult(null);
     setError(null);
-    setWastagePercentage(10);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -111,7 +109,6 @@ export default function CleaningSlabCalculationPage() {
     }
   };
 
-  const totalWithWastage = result ? result * (1 + wastagePercentage/100) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50" dir="rtl">
@@ -128,20 +125,9 @@ export default function CleaningSlabCalculationPage() {
                     العودة للمشاريع
                   </Button>
                 </Link>
-                <div className="flex gap-2">
-                  <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg border-0 px-4 py-1.5 font-semibold">
-                    حساب الخرسانة
-                  </Badge>
-                  <Badge variant="outline" className="border-blue-200 text-blue-700">
-                    <Sparkles className="w-3 h-3 ml-1" />
-                    ذكي
-                  </Badge>
-                </div>
+                
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Building2 className="w-4 h-4" />
-                <span>صبة النظافة - مشروع #{projectId}</span>
-              </div>
+              
             </div>
             
             <div className="relative group">
@@ -251,33 +237,7 @@ export default function CleaningSlabCalculationPage() {
                         ))}
                       </div>
 
-                      {/* Wastage Slider */}
-                      <div className="mb-6">
-                        <div className="flex items-center justify-between mb-3">
-                          <Label className="text-base font-bold text-gray-900 flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4 text-amber-500" />
-                            نسبة الهدر والرفض
-                          </Label>
-                          <span className="text-lg font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full">
-                            {wastagePercentage}%
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <Progress 
-                            value={wastagePercentage} 
-                            className="h-3 bg-gray-100"
-                            indicatorColor="bg-gradient-to-r from-amber-400 to-orange-500"
-                          />
-                          <div className="flex justify-between text-sm text-gray-500">
-                            <span>قليل (5%)</span>
-                            <span>متوسط (10%)</span>
-                            <span>كثير (15%)</span>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-2">
-                          تختلف نسبة الهدر حسب ظروف الموقع وجودة التنفيذ
-                        </p>
-                      </div>
+                    
 
                       <Separator className="my-6 bg-gradient-to-r from-blue-200 to-transparent" />
                       <div className="flex flex-col sm:flex-row gap-3">
@@ -360,15 +320,9 @@ export default function CleaningSlabCalculationPage() {
                                 <span className="font-semibold text-amber-900">الحجم الصافي:</span>
                                 <span className="font-bold text-xl text-amber-700">{result.toFixed(3)} م³</span>
                               </div>
-                              <div className="flex justify-between items-center">
-                                <span className="font-semibold text-amber-900">نسبة الهدر:</span>
-                                <span className="font-bold text-xl text-amber-700">{wastagePercentage}%</span>
-                              </div>
+                              
                               <Separator className="bg-amber-200" />
-                              <div className="flex justify-between items-center">
-                                <span className="font-bold text-lg text-amber-900">الحجم الكلي:</span>
-                                <span className="font-black text-2xl text-amber-900">{totalWithWastage.toFixed(3)} م³</span>
-                              </div>
+                              
                             </CardContent>
                           </Card>
 
