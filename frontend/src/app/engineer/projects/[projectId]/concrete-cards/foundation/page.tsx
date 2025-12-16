@@ -392,9 +392,7 @@ export default function FoundationCalculationPage() {
                     العودة للمشاريع
                   </Button>
                 </Link>
-                <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg border-0 px-6 py-2.5 font-bold text-lg">
-                  حساب الخرسانة المتقدم
-                </Badge>
+                
               </div>
               
             </div>
@@ -460,18 +458,16 @@ export default function FoundationCalculationPage() {
                 <CardContent className="p-6 lg:p-8 pt-0">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {[
-                      { id: 'cleaningLength', label: 'الطول', placeholder: '20.0', step: '0.1' },
-                      { id: 'cleaningWidth', label: 'العرض', placeholder: '15.0', step: '0.1' },
-                      { id: 'cleaningHeight', label: 'الارتفاع', placeholder: '0.10', step: '0.01' }
-                    ].map(({ id, label, placeholder, step }) => (
+                      { id: 'cleaningLength', label: 'الطول'},
+                      { id: 'cleaningWidth', label: 'العرض'},
+                      { id: 'cleaningHeight', label: 'الارتفاع'}
+                    ].map(({ id, label}) => (
                       <InputField
                         key={id}
                         id={id}
                         label={label}
                         value={inputs[id as keyof typeof inputs] as string}
                         onChange={(value) => handleInputChange(id, value)}
-                        placeholder={placeholder}
-                        step={step}
                         unit="متر"
                         icon={Ruler}
                       />
@@ -501,7 +497,7 @@ export default function FoundationCalculationPage() {
                     label="عدد الطوابق"
                     value={inputs.numberOfFloors}
                     onChange={(value) => handleInputChange('numberOfFloors', value)}
-                    placeholder="4"
+                    
                     type="number"
                     unit="طابق"
                     icon={Layers}
@@ -511,8 +507,8 @@ export default function FoundationCalculationPage() {
                     label="مساحة كل طابق"
                     value={inputs.floorArea}
                     onChange={(value) => handleInputChange('floorArea', value)}
-                    placeholder="150"
-                    step="0.1"
+                    
+                   
                     unit="م²"
                     icon={Grid}
                   />
@@ -575,8 +571,7 @@ export default function FoundationCalculationPage() {
                         label="ارتفاع القاعدة"
                         value={inputs.foundationHeight}
                         onChange={(value) => handleInputChange('foundationHeight', value)}
-                        placeholder="0.60"
-                        step="0.05"
+                      
                         unit="متر"
                         icon={Ruler}
                       />
@@ -585,7 +580,7 @@ export default function FoundationCalculationPage() {
                         label="عدد القواعد"
                         value={inputs.numberOfFoundations}
                         onChange={(value) => handleInputChange('numberOfFoundations', value)}
-                        placeholder="12"
+                        
                         type="number"
                         unit="قاعدة"
                         icon={Grid}
@@ -621,12 +616,7 @@ export default function FoundationCalculationPage() {
                           إضافة قاعدة
                         </Button>
                       </div>
-                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-4">
-                        <p className="text-blue-800 font-medium text-sm">
-                          لكل قاعدة، سيتم حساب الحجم بناءً على القانون: <br />
-                          <span className="font-bold">((طول صبة نظافة القاعدة - 0.20) × (عرض صبة نظافة القاعدة - 0.20) × ارتفاع القاعدة)</span>
-                        </p>
-                      </div>
+                      
                       <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                         {individualFoundations.map((f) => (
                           <Card key={f.id} className="border border-slate-200">
@@ -648,8 +638,7 @@ export default function FoundationCalculationPage() {
                                   label="طول صبة النظافة"
                                   value={f.cleaningLength}
                                   onChange={(value) => updateIndividualFoundation(f.id, 'cleaningLength', value)}
-                                  placeholder="2.0"
-                                  step="0.1"
+                                 
                                   unit="متر"
                                   icon={Ruler}
                                 />
@@ -658,8 +647,7 @@ export default function FoundationCalculationPage() {
                                   label="عرض صبة النظافة"
                                   value={f.cleaningWidth}
                                   onChange={(value) => updateIndividualFoundation(f.id, 'cleaningWidth', value)}
-                                  placeholder="2.0"
-                                  step="0.1"
+                                  
                                   unit="متر"
                                   icon={Ruler}
                                 />
@@ -668,8 +656,7 @@ export default function FoundationCalculationPage() {
                                   label="ارتفاع القاعدة"
                                   value={f.height}
                                   onChange={(value) => updateIndividualFoundation(f.id, 'height', value)}
-                                  placeholder="0.60"
-                                  step="0.05"
+                                  
                                   unit="متر"
                                   icon={Ruler}
                                 />
@@ -830,8 +817,7 @@ function InputField({
   label, 
   value, 
   onChange, 
-  placeholder, 
-  step = "any", 
+  
   unit, 
   icon: Icon, 
   type = "number",
@@ -841,8 +827,7 @@ function InputField({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
-  step?: string;
+
   unit?: string;
   icon?: any;
   type?: string;
@@ -858,8 +843,8 @@ function InputField({
         <Input
           id={id}
           type={type}
-          step={step}
-          placeholder={placeholder}
+          
+          
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="h-16 text-lg font-bold text-right pr-14 bg-gradient-to-r from-white/80 to-slate-50/80 hover:from-white hover:to-slate-50 border-2 border-slate-200 hover:border-emerald-300 focus:border-emerald-500 shadow-xl focus:shadow-emerald-200/50 transition-all duration-400 rounded-3xl backdrop-blur-sm"
