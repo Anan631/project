@@ -411,7 +411,7 @@ export default function RoofConcretePage() {
                     <InputField id="area" label="مساحة السقف" value={A} onChange={setA} placeholder="مثال: 120" unit="م²" icon={Ruler} step="0.01" />
                     <InputField id="thickness" label="سمك السقف" value={T} onChange={setT} placeholder="مثال: 0.20" unit="م" icon={Ruler} step="0.01" />
                     {roofType === 'with-ribs' && (
-                      <InputField id="vslab" label="حجم السقف (إلزامي مع الربس)" value={Vslab} onChange={setVslab} placeholder="مثال: 24" unit="م³" icon={Ruler} step="0.01" />
+                      <InputField id="vslab" label="حجم السقف" value={Vslab} onChange={setVslab} placeholder="مثال: 24" unit="م³" icon={Ruler} step="0.01" />
                     )}
                   </div>
 
@@ -476,10 +476,6 @@ export default function RoofConcretePage() {
                         {floorMode === 'multi' && (
                           <div className="space-y-4">
                             <InputField id="floors" label="عدد الطوابق" value={floorsCount} onChange={setFloorsCount} placeholder="مثال: 3" unit="طابق" icon={Ruler} step="1" />
-                            <InputField id="liveLoad" label="الحمولة الحية للمتر المربع" value={liveLoadPerM2} onChange={() => {}} placeholder="مثال: 2.4" unit="كيلو نيوتن/م²" icon={Ruler} step="0.1" disabled={true} readOnly={true} />
-                            <div className="text-sm text-gray-500 mt-1">
-                              {loadingLiveLoad ? "جاري جلب البيانات..." : "القيمة محددة من قاعدة البيانات"}
-                            </div>
                           </div>
                         )}
                       </div>
