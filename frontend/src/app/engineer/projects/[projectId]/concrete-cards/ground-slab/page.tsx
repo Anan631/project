@@ -159,7 +159,7 @@ export default function GroundSlabPage() {
               <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
                 <Button variant="ghost" size="sm" className="border-2 border-emerald-200/50 bg-white/80 backdrop-blur-sm hover:border-emerald-300 hover:bg-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-emerald-800 hover:text-emerald-900">
                   <ArrowRight className="w-4 h-4 rotate-180" />
-                  العودة للمشاريع
+                  العودة إلى صفحة كروت الباطون
                 </Button>
               </Link>
               

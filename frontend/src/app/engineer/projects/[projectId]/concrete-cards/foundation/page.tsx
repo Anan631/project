@@ -112,6 +112,8 @@ export default function FoundationCalculationPage() {
     return acc;
   }, {});
 
+  // إلغاء المزامنة مع الخادم: سيتم التخزين محلياً فقط في LocalStorage
+
   const handleInputChange = (field: string, value: string) => {
     setInputs(prev => ({ ...prev, [field]: value }));
     if (error) setError(null);
@@ -134,7 +136,7 @@ export default function FoundationCalculationPage() {
   };
   // --- End of management functions ---
 
-  const calculateResults = () => {
+  const calculateResults = async () => {
     try {
       // Get numeric values for general cleaning concrete (if needed)
       const cleaningLength = parseFloat(inputs.cleaningLength);
@@ -203,6 +205,22 @@ export default function FoundationCalculationPage() {
         }
         foundationDimensions = `${foundationLength.toFixed(2)} × ${foundationWidth.toFixed(2)} متر`;
 
+        // تخزين الأبعاد محلياً ليتم جلبها من صفحة الشروش عند الحاجة
+        try {
+          localStorage.setItem(`foundationDimensions-${projectId}`, JSON.stringify({
+            baseLength: foundationLength,
+            baseWidth: foundationWidth,
+            updatedAt: new Date().toISOString()
+          }));
+          // إشعار المستخدم بأن الأبعاد أصبحت متاحة في صفحة شروش الأعمدة
+          toast({
+            title: 'تم حفظ الأبعاد',
+            description: 'تم إرسال أبعاد القواعد إلى صفحة شروش الأعمدة (محلياً)'
+          });
+        } catch (e) {
+          console.warn('تعذر حفظ أبعاد القواعد محلياً:', e);
+        }
+
         // و. حساب حجم الخرسانة الفعلي في القواعد (طريقة القواعد المتشابهة)
         const actualLength = Math.max(0.3, foundationLength - (2 * CONCRETE_MARGIN));
         const actualWidth = Math.max(0.3, foundationWidth - (2 * CONCRETE_MARGIN));
@@ -251,6 +269,8 @@ export default function FoundationCalculationPage() {
         combinedLoadPerSqm
       });
       setError(null);
+
+      // لا إرسال للخادم بناءً على المتطلب: التخزين محلي فقط
 
     } catch (error) {
       setError('حدث خطأ في الحساب. يرجى التحقق من المدخلات.');
@@ -389,7 +409,7 @@ export default function FoundationCalculationPage() {
                 <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
                   <Button variant="ghost" size="sm" className="border-2 border-emerald-200/50 bg-white/80 backdrop-blur-sm hover:border-emerald-300 hover:bg-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-emerald-800 hover:text-emerald-900">
                     <ArrowRight className="w-4 h-4 rotate-180" />
-                    العودة للمشاريع
+                    العودة إلى صفحة كروت الباطون
                   </Button>
                 </Link>
                 

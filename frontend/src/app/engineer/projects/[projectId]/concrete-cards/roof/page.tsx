@@ -136,22 +136,44 @@ export default function RoofConcretePage() {
   const ql = numeric(liveLoadPerM2);
 
   // عدد الربس = A * 5 (فقط عند وجود ربس)
-  const ribsCount = useMemo(() => (roofType === 'with-ribs' ? a * 5 : 0), [roofType, a]);
+  const ribsCount = useMemo(() => {
+    if (roofType === 'with-ribs' && a > 0) {
+      return a * 5;
+    }
+    return 0;
+  }, [roofType, a]);
 
   // حجم الربس الكلي = Lr * Wr * Hr * ribsCount (فقط عند وجود ربس)
-  const ribsVolume = useMemo(() => (roofType === 'with-ribs' ? lr * wr * hr * ribsCount : 0), [roofType, lr, wr, hr, ribsCount]);
+  const ribsVolume = useMemo(() => {
+    if (roofType === 'with-ribs' && lr > 0 && wr > 0 && hr > 0 && ribsCount > 0) {
+      return lr * wr * hr * ribsCount;
+    }
+    return 0;
+  }, [roofType, lr, wr, hr, ribsCount]);
 
-  // كمية الخرسانة (مع الربس) = V_slab - حجم الربس الكلي
-  // ملاحظة: عند وجود رِبس يصبح V_slab إلزامياً
+  // حساب حجم السقف
+  // حجم السقف = مساحة السقف × سمك السقف (محسوب تلقائياً)
   const baseSlabVolume = useMemo(() => {
-    if (roofType === 'with-ribs') return vslab; // إلزامي عند وجود ربس
-    const direct = vslab > 0 ? vslab : a * t;
-    return direct;
-  }, [roofType, vslab, a, t]);
+    // حجم السقف = A × T (محسوب تلقائياً)
+    if (a > 0 && t > 0) {
+      return a * t;
+    }
+    return 0;
+  }, [a, t]);
 
+  // كمية الخرسانة (مع الربس) = حجم السقف - حجم الربس الكلي
+  // عند طابق واحد: كمية الخرسانة = (A * T) - حجم الربسات
   const concreteWithRibs = useMemo(() => {
     if (roofType === 'with-ribs') {
-      return Math.max(0, baseSlabVolume - ribsVolume);
+      // حساب كمية الخرسانة: حجم السقف - حجم الربسات
+      // حتى لو كانت أبعاد الربس غير مدخلة، نعرض حجم السقف كحد أدنى
+      if (baseSlabVolume > 0) {
+        const result = baseSlabVolume - ribsVolume;
+        // إذا كانت النتيجة سالبة (حجم الربسات أكبر من حجم السقف)، نرجع 0
+        // وإلا نرجع النتيجة
+        return Math.max(0, result);
+      }
+      return 0;
     }
     return 0;
   }, [roofType, baseSlabVolume, ribsVolume]);
@@ -160,14 +182,20 @@ export default function RoofConcretePage() {
   const concreteNoRibsSingle = useMemo(() => a * t, [a, t]);
 
   // حسابات متعددة الطوابق (تُستخدم فقط إذا floorMode === 'multi' وفقط مع الربس)
-  // الحمل الميت = A * T * 25 (محسوب تلقائياً)
+  // الحمل الميت = مساحة السقف × سمك السقف × كثافة الخرسانة (25 كيلو نيوتن/م³)
   const deadLoad = useMemo(() => (roofType === 'with-ribs' && floorMode === 'multi' ? a * t * 25 : 0), [roofType, floorMode, a, t]);
   // الحمل الحي = مساحة السقف × الحمولة الحية للمتر المربع (بوحدة كيلو نيوتن/م²)
   const liveLoad = useMemo(() => (roofType === 'with-ribs' && floorMode === 'multi' ? a * ql : 0), [roofType, floorMode, a, ql]);
   // الحمل الكلي = الحمل الميت + الحمل الحي
   const totalLoad = useMemo(() => (roofType === 'with-ribs' && floorMode === 'multi' ? deadLoad + liveLoad : 0), [roofType, floorMode, deadLoad, liveLoad]);
-  // كمية الخرسانة النهائية = (A*T) + (عدد الطوابق * الحمل الكلي)
-  const finalConcreteMulti = useMemo(() => (roofType === 'with-ribs' && floorMode === 'multi' ? (a * t) + (nFloors * totalLoad) : 0), [roofType, floorMode, a, t, nFloors, totalLoad]);
+  // كمية الخرسانة النهائية عند أكثر من طابق = (مساحة السقف × سمك السقف) + (عدد الطوابق × الحمل الكلي)
+  const finalConcreteMulti = useMemo(() => {
+    if (roofType === 'with-ribs' && floorMode === 'multi') {
+      // كمية الخرسانة = (مساحة السقف × سمك السقف) + (عدد الطوابق × الحمل الكلي)
+      return (a * t) + (nFloors * totalLoad);
+    }
+    return 0;
+  }, [roofType, floorMode, a, t, nFloors, totalLoad]);
 
   // الإجمالي المعروض حسب الحالة
   const computedTotalConcrete = useMemo(() => {
@@ -193,10 +221,6 @@ export default function RoofConcretePage() {
     
     // التحقق من حالة السقف مع الربس
     if (roofType === 'with-ribs') {
-      if (vslab <= 0) {
-        toast({ title: 'حجم السقف مطلوب', description: 'عند وجود رِبس يجب إدخال حجم السقف', variant: 'destructive' });
-        return;
-      }
       if (lr <= 0 || wr <= 0 || hr <= 0) {
         toast({ title: 'أبعاد الربس مطلوبة', description: 'يرجى إدخال L_r و W_r و H_r بشكل صحيح', variant: 'destructive' });
         return;
@@ -218,16 +242,16 @@ export default function RoofConcretePage() {
     
     if (roofType === 'with-ribs') {
       // مع الربس
-      if (vslab <= 0) return false; // حجم السقف مطلوب عند وجود رِبس
       if (lr <= 0 || wr <= 0 || hr <= 0) return false;
       // إذا كان متعدد الطوابق
       if (floorMode === 'multi') {
         if (nFloors <= 0) return false;
       }
     }
+    // بدون ربس: كمية الخرسانة = A * T
     
     return computedTotalConcrete > 0;
-  }, [a, t, roofType, vslab, lr, wr, hr, floorMode, nFloors, computedTotalConcrete]);
+  }, [a, t, roofType, lr, wr, hr, floorMode, nFloors, computedTotalConcrete]);
 
   const saveToReports = async () => {
     if (!canSave) {
@@ -257,7 +281,7 @@ export default function RoofConcretePage() {
             roofType: roofType, // نوع السقف: with-ribs أو without-ribs
             area: a,
             thickness: t,
-            inputSlabVolume: roofType === 'with-ribs' && vslab > 0 ? vslab : null,
+            calculatedSlabVolume: baseSlabVolume, // حجم السقف المحسوب تلقائياً = A × T
             ribs: roofType === 'with-ribs' ? {
               length: lr,
               width: wr,
@@ -338,7 +362,7 @@ export default function RoofConcretePage() {
                   className="border-2 border-emerald-200/50 bg-white/80 backdrop-blur-sm hover:border-emerald-300 hover:bg-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-emerald-800 hover:text-emerald-900"
                 >
                   <ArrowRight className="w-4 h-4 rotate-180" />
-                  العودة للمشاريع
+                  العودة إلى صفحة كروت الباطون
                 </Button>
               </Link>
               
@@ -403,12 +427,9 @@ export default function RoofConcretePage() {
                   <Separator className="my-2" />
 
                   {/* مدخلات عامة */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField id="area" label="مساحة السقف" value={A} onChange={setA}  unit="م²" icon={Ruler} />
                     <InputField id="thickness" label="سمك السقف" value={T} onChange={setT}  unit="م" icon={Ruler}  />
-                    {roofType === 'with-ribs' && (
-                      <InputField id="vslab" label="حجم السقف" value={Vslab} onChange={setVslab}  unit="م³" icon={Ruler} />
-                    )}
                   </div>
 
                   {roofType === 'with-ribs' && (
@@ -422,8 +443,9 @@ export default function RoofConcretePage() {
                       </div>
 
                       {/* نتائج الربس */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <ResultBox label="عدد الربس" value={ribsCount.toFixed(0)} suffix="" color="from-emerald-500 to-teal-500" />
+                        <ResultBox label="حجم السقف (محسوب)" value={baseSlabVolume.toFixed(3)} suffix="م³" color="from-blue-500 to-indigo-500" />
                         <ResultBox label="حجم الربس الكلي" value={ribsVolume.toFixed(3)} suffix="م³" color="from-cyan-500 to-blue-500" />
                         <ResultBox label="كمية الخرسانة (مع الربس)" value={concreteWithRibs.toFixed(3)} suffix="م³" color="from-indigo-500 to-purple-500" />
                       </div>
@@ -477,10 +499,7 @@ export default function RoofConcretePage() {
                       </div>
 
                       {floorMode === 'multi' && (
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <ResultBox label="الحمل الميت (محسوب)" value={deadLoad.toFixed(3)} suffix="ك ن /م²" color="from-orange-500 to-amber-500" />
-                          <ResultBox label="الحمل الحي (محسوب)" value={liveLoad.toFixed(3)} suffix="ك ن /م²" color="from-green-500 to-emerald-500" />
-                          <ResultBox label="الحمل الكلي" value={totalLoad.toFixed(3)} suffix="ك ن /م²" color="from-cyan-500 to-blue-500" />
+                        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                           <ResultBox label="الكمية النهائية" value={finalConcreteMulti.toFixed(3)} suffix="م³" color="from-indigo-500 to-purple-500" />
                         </div>
                       )}
@@ -576,7 +595,7 @@ function InputField({
   label, 
   value, 
   onChange, 
-  placeholder, 
+  placeholder = "", 
   step = "any", 
   unit, 
   icon: Icon, 
@@ -587,7 +606,7 @@ function InputField({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
+  placeholder?: string;
   step?: string;
   unit?: string;
   icon?: any;

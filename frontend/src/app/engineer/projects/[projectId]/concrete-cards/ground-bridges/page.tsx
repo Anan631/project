@@ -330,7 +330,7 @@ export default function GroundBridgesCalculationPage() {
                 <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
                   <Button variant="ghost" size="sm" className="border-2 border-blue-200/50 bg-white/80 backdrop-blur-sm hover:border-blue-300 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-blue-800 hover:text-blue-900">
                     <ArrowRight className="w-4 h-4 rotate-180" />
-                    العودة للمشاريع
+                    العودة إلى صفحة كروت الباطون
                   </Button>
                 </Link>
                 

@@ -122,7 +122,7 @@ export default function CleaningSlabCalculationPage() {
                 <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
                   <Button variant="ghost" size="sm" className="border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-200 gap-2 group">
                     <ArrowRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
-                    العودة للمشاريع
+                    العودة إلى صفحة كروت الباطون
                   </Button>
                 </Link>
                 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Building2,
   ArrowRight,
@@ -29,7 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Helper component for input fields
-function InputField({ id, label, value, onChange, placeholder, type = "number", step = "0.1", unit, icon: Icon }: {
+function InputField({ id, label, value, onChange, placeholder, type = "number", step = "0.1", unit, icon: Icon, inputMode = "text", lang, dir }: {
   id: string;
   label: string;
   value: string;
@@ -39,6 +39,9 @@ function InputField({ id, label, value, onChange, placeholder, type = "number", 
   step?: string;
   unit: string;
   icon: any;
+  inputMode?: React.ComponentProps<'input'>['inputMode'];
+  lang?: string;
+  dir?: "ltr" | "rtl" | "auto";
 }) {
   return (
     <div className="space-y-2">
@@ -54,6 +57,9 @@ function InputField({ id, label, value, onChange, placeholder, type = "number", 
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          inputMode={inputMode}
+          lang={lang}
+          dir={dir as any}
           className="pr-12 pl-3 h-12 text-right border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors rounded-xl"
         />
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-sm">{unit}</span>
@@ -89,6 +95,22 @@ function SelectField({ id, label, value, onChange, options, placeholder = "اخ�
     </div>
   );
 }
+
+// Helper: normalize Arabic-Indic digits to English ASCII digits
+function toEnglishDigits(val: any): string {
+  const str = String(val ?? '').trim();
+  const map: Record<string, string> = {
+    '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+    '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9'
+  };
+  return str
+    .replace(/[٠-٩۰-۹]/g, d => map[d] || d)
+    .replace(/[٬،]/g, '') // remove Arabic thousands separator if present
+    .replace('٫', '.'); // Arabic decimal separator
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const ESTIMATED_STEEL_WEIGHT_PER_M3 = 80; // kg/m³ for footings
 
 export default function ColumnFootingsCalculationPage() {
   const params = useParams();
@@ -170,12 +192,12 @@ export default function ColumnFootingsCalculationPage() {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch('http://localhost:5000/api/health', {
+
+      const response = await fetch(`${API_BASE_URL}/api/health`, {
         method: 'GET',
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
       setServerAvailable(response.ok);
       return response.ok;
@@ -193,20 +215,20 @@ export default function ColumnFootingsCalculationPage() {
   // Function to fetch foundation data
   const fetchFoundationData = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/foundation-calculations/${projectId}`);
-      
+      const response = await fetch(`${API_BASE_URL}/api/foundation-calculations/${projectId}`);
+
       // Check if response is ok and content-type is JSON
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح. تأكد من تشغيل الخادم الخلفي.');
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         setFoundationData(data.data);
         // Auto-fill foundation dimensions if available
@@ -231,7 +253,7 @@ export default function ColumnFootingsCalculationPage() {
     } catch (error) {
       console.error('Error fetching foundation data:', error);
       let errorMessage = 'حدث خطأ أثناء جلب بيانات القواعد';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('Failed to fetch')) {
           errorMessage = 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي على المنفذ 5000';
@@ -239,13 +261,13 @@ export default function ColumnFootingsCalculationPage() {
           errorMessage = error.message;
         }
       }
-      
+
       toast({
         title: 'خطأ في الاتصال',
         description: errorMessage,
         variant: 'destructive'
       });
-      
+
       // Reset to manual input mode
       setUseFoundationData(false);
     }
@@ -319,11 +341,11 @@ export default function ColumnFootingsCalculationPage() {
         // حساب العرض: B = √(A ÷ 2)
         const B = Math.sqrt(valueA / 2);
         const width = B >= 25 ? B : 25; // إذا كانت قيمة B < 25 سم → العرض = 25 سم
-        
+
         // حساب الطول: C = B × 2
         const C = width * 2;
         const length = C >= 50 ? C : 50; // إذا كانت قيمة C < 50 سم → الطول = 50 سم
-        
+
         columnDimensions.length = parseFloat(length.toFixed(1));
         columnDimensions.width = parseFloat(width.toFixed(1));
         columnDimensions.displayText = `${columnDimensions.length} × ${columnDimensions.width} سم`;
@@ -331,17 +353,17 @@ export default function ColumnFootingsCalculationPage() {
         // حساب القطر: D = √(A ÷ π) × 2
         const D = Math.sqrt(valueA / Math.PI) * 2;
         const diameter = D >= 30 ? D : 30; // إذا كانت قيمة D < 30 سم → القطر = 30 سم
-        
+
         columnDimensions.diameter = parseFloat(diameter.toFixed(1));
         columnDimensions.displayText = `${columnDimensions.diameter} سم (قطر)`;
       } else if (shape === 'مربع') {
         // حساب البعد: F = √(A ÷ 2)
         const F = Math.sqrt(valueA / 2);
         const width = F >= 35 ? F : 35; // إذا كانت قيمة F < 35 سم → العرض = 35 سم
-        
+
         // تحديد الأبعاد: الطول = العرض
         const length = width;
-        
+
         columnDimensions.length = parseFloat(length.toFixed(1));
         columnDimensions.width = parseFloat(width.toFixed(1));
         columnDimensions.displayText = `${columnDimensions.length} × ${columnDimensions.width} سم`;
@@ -370,6 +392,39 @@ export default function ColumnFootingsCalculationPage() {
       } as typeof results extends infer T ? T extends object ? any : any : any;
 
       setResults(computedResults);
+
+      // حفظ أبعاد العمود في Local Storage للاستيراد في صفحة الأعمدة
+      // نحفظ فقط الأبعاد المناسبة للشكل المختار
+      const columnDimensionsData: {
+        shape: string;
+        length?: number;
+        width?: number;
+        diameter?: number;
+        displayText: string;
+      } = {
+        shape: inputs.columnShape,
+        displayText: columnDimensions.displayText
+      };
+
+      // حفظ الأبعاد حسب الشكل
+      if (inputs.columnShape === 'مربع' || inputs.columnShape === 'مستطيل') {
+        if (columnDimensions.length !== undefined) {
+          columnDimensionsData.length = columnDimensions.length; // بالسم
+        }
+        if (inputs.columnShape === 'مستطيل' && columnDimensions.width !== undefined) {
+          columnDimensionsData.width = columnDimensions.width; // بالسم
+        } else if (inputs.columnShape === 'مربع' && columnDimensions.width !== undefined) {
+          // للمربع، نحفظ width أيضاً (لكن في صفحة الأعمدة سنستخدم length فقط)
+          columnDimensionsData.width = columnDimensions.width; // بالسم
+        }
+      } else if (inputs.columnShape === 'دائري') {
+        if (columnDimensions.diameter !== undefined) {
+          columnDimensionsData.diameter = columnDimensions.diameter; // بالسم
+        }
+      }
+
+      localStorage.setItem('columnDimensionsFromFootings', JSON.stringify(columnDimensionsData));
+
       toast({
         title: 'تم الحساب بنجاح',
         description: 'تم حساب كميات شروش الأعمدة وتحديد أبعاد الأعمدة',
@@ -411,22 +466,22 @@ export default function ColumnFootingsCalculationPage() {
     try {
       const engineerId = localStorage.getItem('userId') || '';
       const engineerName = localStorage.getItem('userName') || 'المهندس';
-      
+
       // Fetch project details to get owner info
-      const projectRes = await fetch(`http://localhost:5000/api/projects/${projectId}`);
-      
+      const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+
       if (!projectRes.ok) {
         throw new Error(`HTTP error! status: ${projectRes.status}`);
       }
-      
+
       const projectContentType = projectRes.headers.get('content-type');
       if (!projectContentType || !projectContentType.includes('application/json')) {
         throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح. تأكد من تشغيل الخادم الخلفي.');
       }
-      
+
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
-      
+
       // تحضير البيانات للحفظ في قاعدة البيانات
       const reportData = {
         projectId,
@@ -445,12 +500,12 @@ export default function ColumnFootingsCalculationPage() {
           calculatedValueA: results.valueA
         },
         steelData: {
-          totalSteelWeight: results.totalFootingsVolume * 80, // 80 kg/m³ for footings
+          totalSteelWeight: results.totalFootingsVolume * ESTIMATED_STEEL_WEIGHT_PER_M3,
         }
       };
 
       // حفظ النتائج في قاعدة البيانات
-      const response = await fetch('http://localhost:5000/api/quantity-reports', {
+      const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportData)
@@ -459,14 +514,14 @@ export default function ColumnFootingsCalculationPage() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const responseContentType = response.headers.get('content-type');
       if (!responseContentType || !responseContentType.includes('application/json')) {
         throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح');
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         // حفظ إضافي لبيانات الأعمدة المحددة
         const columnData = {
@@ -480,7 +535,7 @@ export default function ColumnFootingsCalculationPage() {
         };
 
         // حفظ بيانات الأعمدة في جدول منفصل
-        await fetch('http://localhost:5000/api/column-calculations', {
+        await fetch(`${API_BASE_URL}/api/column-calculations`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(columnData)
@@ -490,7 +545,7 @@ export default function ColumnFootingsCalculationPage() {
           title: 'تم الحفظ بنجاح',
           description: 'تم حفظ كميات الخرسانة وأبعاد الأعمدة في قاعدة البيانات',
         });
-        
+
         // Navigate to reports page
         router.push(`/engineer/quantity-reports/${projectId}`);
       } else {
@@ -498,9 +553,9 @@ export default function ColumnFootingsCalculationPage() {
       }
     } catch (error) {
       console.error('Error saving report:', error);
-      
+
       let errorMessage = 'حدث خطأ أثناء حفظ التقرير';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('Failed to fetch')) {
           errorMessage = 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي على المنفذ 5000';
@@ -510,7 +565,7 @@ export default function ColumnFootingsCalculationPage() {
           errorMessage = 'خطأ في الخادم. يرجى المحاولة مرة أخرى';
         }
       }
-      
+
       toast({
         title: 'خطأ في الحفظ',
         description: errorMessage,
@@ -530,7 +585,7 @@ export default function ColumnFootingsCalculationPage() {
         </div>
 
         <div className="relative z-10 container mx-auto px-4 py-8 lg:py-12 lg:px-8 max-w-7xl">
-          
+
           {/* Enhanced Header */}
           <div className="mb-12 lg:mb-16">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
@@ -538,7 +593,7 @@ export default function ColumnFootingsCalculationPage() {
                 <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
                   <Button variant="ghost" size="sm" className="border-2 border-blue-200/50 bg-white/80 backdrop-blur-sm hover:border-blue-300 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-blue-800 hover:text-blue-900">
                     <ArrowRight className="w-4 h-4 rotate-180" />
-                    العودة للمشاريع
+                    العودة الى صفحة الكروت الخاصة بالباطون
                   </Button>
                 </Link>
                 <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg border-0 px-6 py-2.5 font-bold text-lg">
@@ -550,7 +605,7 @@ export default function ColumnFootingsCalculationPage() {
                 <span>حساب شروش الأعمدة - مشروع #{projectId}</span>
               </div>
             </div>
-            
+
             <div className="relative group">
               <div className="flex items-start lg:items-center gap-6 p-2">
                 <div className="relative">
@@ -575,10 +630,10 @@ export default function ColumnFootingsCalculationPage() {
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 items-start">
-            
+
             {/* Enhanced Input Sections */}
             <div className="xl:col-span-8 space-y-6 lg:space-y-8">
-              
+
               {/* Server Status Warning */}
               {!serverAvailable && (
                 <div className="p-4 lg:p-6 bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-2xl shadow-xl">
@@ -701,18 +756,50 @@ export default function ColumnFootingsCalculationPage() {
                       </Button>
                       <Button
                         variant={useFoundationData ? "default" : "outline"}
-                        onClick={async () => {
-                          const isServerAvailable = await checkServerAvailability();
-                          if (!isServerAvailable) {
+                        onClick={() => {
+                          try {
+                            const raw = localStorage.getItem(`foundationDimensions-${projectId}`);
+                            if (!raw) {
+                              toast({
+                                title: 'لا توجد بيانات',
+                                description: 'لم يتم العثور على أبعاد القواعد. يرجى إجراء الحساب في صفحة القواعد أولاً',
+                                variant: 'destructive'
+                              });
+                              setUseFoundationData(false);
+                              return;
+                            }
+                            const parsed = JSON.parse(raw);
+                            const lenStr = toEnglishDigits(parsed.baseLength);
+                            const widStr = toEnglishDigits(parsed.baseWidth);
+                            const len = Number(lenStr);
+                            const wid = Number(widStr);
+                            if (!Number.isFinite(len) || !Number.isFinite(wid) || len <= 0 || wid <= 0) {
+                              toast({
+                                title: 'بيانات غير صالحة',
+                                description: 'الأبعاد المخزنة غير صالحة. أعد الحساب في صفحة القواعد',
+                                variant: 'destructive'
+                              });
+                              setUseFoundationData(false);
+                              return;
+                            }
+                            // Force English ASCII digits in inputs with en-US locale formatting
+                            const lenEn = len.toLocaleString('en-US', { useGrouping: false, maximumFractionDigits: 10 });
+                            const widEn = wid.toLocaleString('en-US', { useGrouping: false, maximumFractionDigits: 10 });
+                            setInputs(prev => ({ ...prev, baseLength: lenEn, baseWidth: widEn }));
+                            setUseFoundationData(true);
                             toast({
-                              title: 'الخادم غير متاح',
-                              description: 'لا يمكن الاتصال بالخادم الخلفي. تأكد من تشغيله على المنفذ 5000',
+                              title: 'تم جلب البيانات',
+                              description: 'تم جلب أبعاد القاعدة (صفحة القواعد)'
+                            });
+                          } catch (e) {
+                            console.error('Local fetch error', e);
+                            toast({
+                              title: 'خطأ في الجلب',
+                              description: 'تعذر قراءة البيانات المحلية. أعد الحساب في صفحة القواعد',
                               variant: 'destructive'
                             });
-                            return;
+                            setUseFoundationData(false);
                           }
-                          setUseFoundationData(true);
-                          fetchFoundationData();
                         }}
                         className="flex-1 h-12 font-bold"
                       >
@@ -729,6 +816,10 @@ export default function ColumnFootingsCalculationPage() {
                       value={inputs.baseLength}
                       onChange={(value) => handleInputChange('baseLength', value)}
                       placeholder="1.20"
+                      type="text"
+                      inputMode="decimal"
+                      lang="en"
+                      dir="ltr"
                       step="0.1"
                       unit="متر"
                       icon={Ruler}
@@ -739,6 +830,10 @@ export default function ColumnFootingsCalculationPage() {
                       value={inputs.baseWidth}
                       onChange={(value) => handleInputChange('baseWidth', value)}
                       placeholder="1.20"
+                      type="text"
+                      inputMode="decimal"
+                      lang="en"
+                      dir="ltr"
                       step="0.1"
                       unit="متر"
                       icon={Ruler}
@@ -746,7 +841,7 @@ export default function ColumnFootingsCalculationPage() {
                   </div>
 
                   {/* عرض بيانات القواعد المجلوبة */}
-                  {useFoundationData && foundationData && (
+                  {useFoundationData && (
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-4">
                       <div className="flex items-center gap-3 mb-2">
                         <CheckCircle2 className="w-5 h-5 text-green-600" />
@@ -821,8 +916,8 @@ export default function ColumnFootingsCalculationPage() {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  onClick={calculateResults} 
+                <Button
+                  onClick={calculateResults}
                   disabled={isLoading}
                   className="flex-1 h-14 text-lg font-bold shadow-2xl hover:shadow-3xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 hover:from-blue-700 hover:via-blue-800 hover:to-indigo-800 transform hover:-translate-y-1 transition-all duration-300 rounded-2xl border-0"
                 >
@@ -838,9 +933,9 @@ export default function ColumnFootingsCalculationPage() {
                     </>
                   )}
                 </Button>
-                <Button 
-                  onClick={resetCalculation} 
-                  variant="outline" 
+                <Button
+                  onClick={resetCalculation}
+                  variant="outline"
                   className="h-14 px-6 text-lg font-bold border-2 border-gray-200 hover:border-red-400 hover:bg-red-50 hover:text-red-900 transition-all duration-300 rounded-2xl flex items-center gap-3"
                 >
                   <CheckCircle2 className="w-5 h-5" />
@@ -929,7 +1024,7 @@ export default function ColumnFootingsCalculationPage() {
                               <span className="text-purple-700">الأبعاد النهائية:</span>
                               <span className="font-bold text-purple-900">{results.columnDimensions.displayText}</span>
                             </div>
-                            
+
 
 
                             {results.columnDimensions.diameter && (
@@ -1001,7 +1096,7 @@ export default function ColumnFootingsCalculationPage() {
                       </div>
 
                       {/* Save Button */}
-                      <Button 
+                      <Button
                         onClick={async () => {
                           if (!serverAvailable) {
                             // Save locally if server is not available
@@ -1018,7 +1113,7 @@ export default function ColumnFootingsCalculationPage() {
                             return;
                           }
                           await saveToReports();
-                        }} 
+                        }}
                         disabled={saving}
                         className="w-full h-12 font-bold shadow-lg hover:shadow-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 transform hover:-translate-y-0.5 transition-all duration-300 rounded-xl border-0"
                       >

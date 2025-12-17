@@ -44,7 +44,7 @@ export default function ColumnsConcretePage() {
     length?: string;
     width?: string;
     diameter?: string;
-    height: string;
+    height?: string;
     volume: number;
   }>>([]);
   const [nextId, setNextId] = useState(1);
@@ -58,12 +58,16 @@ export default function ColumnsConcretePage() {
 
     switch (shape) {
       case 'square':
-        if (!length || length <= 0) return 0;
-        return length * length * height;
+        // المربع: نفس معادلة المستطيل (الطول × العرض × الارتفاع)
+        // في المربع، يمكن أن يكون العرض = الطول أو مختلف
+        if (!length || !width || length <= 0 || width <= 0) return 0;
+        return length * width * height;
       case 'rectangle':
+        // المستطيل: الطول × العرض × الارتفاع (نفس معادلة المربع)
         if (!length || !width || length <= 0 || width <= 0) return 0;
         return length * width * height;
       case 'circular':
+        // الدائري: (π × القطر² ÷ 4) × الارتفاع
         if (!diameter || diameter <= 0) return 0;
         return (Math.PI * Math.pow(diameter, 2) / 4) * height;
       default:
@@ -73,23 +77,31 @@ export default function ColumnsConcretePage() {
 
   // إضافة عمود جديد
   const addColumn = () => {
-    const newColumn = {
+    const newColumn: {
+      id: number;
+      shape: 'square' | 'rectangle' | 'circular';
+      length?: string;
+      width?: string;
+      diameter?: string;
+      height?: string;
+      volume: number;
+    } = {
       id: nextId,
       shape: selectedShape,
-      length: selectedShape === 'square' ? '0.4' : selectedShape === 'rectangle' ? '0.4' : undefined,
-      width: selectedShape === 'rectangle' ? '0.3' : undefined,
-      diameter: selectedShape === 'circular' ? '0.4' : undefined,
-      height: '3.0',
+      length: undefined,
+      width: undefined,
+      diameter: undefined,
+      height: undefined,
       volume: 0
     };
 
-    // حساب الحجم الابتدائي
+    // حساب الحجم الابتدائي (سيكون 0 لأن الحقول فارغة)
     const volume = calculateColumnVolume(
       selectedShape,
       parseFloat(newColumn.length || '0'),
       parseFloat(newColumn.width || '0'),
       parseFloat(newColumn.diameter || '0'),
-      parseFloat(newColumn.height)
+      parseFloat(newColumn.height || '0')
     );
 
     newColumn.volume = volume;
@@ -110,7 +122,7 @@ export default function ColumnsConcretePage() {
           parseFloat(updatedColumn.length || '0'),
           parseFloat(updatedColumn.width || '0'),
           parseFloat(updatedColumn.diameter || '0'),
-          parseFloat(updatedColumn.height)
+          parseFloat(updatedColumn.height || '0')
         );
 
         return { ...updatedColumn, volume };
@@ -124,47 +136,145 @@ export default function ColumnsConcretePage() {
     setColumns(prev => prev.filter(column => column.id !== id));
   };
 
-  // استيراد أبعاد من صفحة شروش الأعمدة (محاكاة)
-  const importColumnDimensions = () => {
-    // في الواقع، هنا سنجلب البيانات من API
-    // الآن سنضيف أمثلة افتراضية
-    const importedColumns = [
-      {
-        id: nextId,
-        shape: 'square' as const,
-        length: '0.5',
-        width: undefined,
-        diameter: undefined,
-        height: '3.2',
-        volume: calculateColumnVolume('square', 0.5, undefined, undefined, 3.2)
-      },
-      {
-        id: nextId + 1,
-        shape: 'circular' as const,
-        length: undefined,
-        width: undefined,
-        diameter: '0.6',
-        height: '3.5',
-        volume: calculateColumnVolume('circular', undefined, undefined, 0.6, 3.5)
-      },
-      {
-        id: nextId + 2,
-        shape: 'rectangle' as const,
-        length: '0.4',
-        width: '0.3',
-        diameter: undefined,
-        height: '3.0',
-        volume: calculateColumnVolume('rectangle', 0.4, 0.3, undefined, 3.0)
-      }
-    ];
+  // حذف جميع الأعمدة
+  const removeAllColumns = () => {
+    if (columns.length === 0) {
+      toast({
+        title: 'لا توجد أعمدة',
+        description: 'لا توجد أعمدة للحذف',
+        variant: 'destructive'
+      });
+      return;
+    }
 
-    setColumns(prev => [...prev, ...importedColumns]);
-    setNextId(prev => prev + 3);
-    
+    setColumns([]);
+    setTotalVolume(0);
     toast({
-      title: 'تم الاستيراد',
-      description: 'تم استيراد 3 أعمدة مثال من شروش الأعمدة',
+      title: 'تم الحذف',
+      description: `تم حذف جميع الأعمدة (${columns.length} عمود)`,
     });
+  };
+
+  // استيراد أبعاد من صفحة شروش الأعمدة من Local Storage
+  const importColumnDimensions = () => {
+    try {
+      // قراءة البيانات من Local Storage
+      const storedData = localStorage.getItem('columnDimensionsFromFootings');
+      
+      if (!storedData) {
+        toast({
+          title: 'لا توجد بيانات',
+          description: 'لم يتم العثور على أبعاد محفوظة من صفحة شروش الأعمدة. يرجى إجراء الحساب في صفحة شروش الأعمدة أولاً.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      const columnData = JSON.parse(storedData);
+      
+      // تحويل الشكل من العربية إلى الإنجليزية
+      let shape: 'square' | 'rectangle' | 'circular' = 'square';
+      if (columnData.shape === 'مربع') {
+        shape = 'square';
+      } else if (columnData.shape === 'مستطيل') {
+        shape = 'rectangle';
+      } else if (columnData.shape === 'دائري') {
+        shape = 'circular';
+      }
+
+      // لا نغير selectedShape هنا لأن زر "إضافة عمود" يجب أن يعمل بشكل مستقل
+      // زر الاستيراد يضيف عمود جديد بالأبعاد المستوردة فقط
+
+      // تحويل الأبعاد من سم إلى متر (القسمة على 100)
+      let length: string | undefined;
+      let width: string | undefined;
+      let diameter: string | undefined;
+
+      // ملء الأبعاد حسب الشكل
+      if (shape === 'square') {
+        // للمربع: نستخدم length و width (نفس المستطيل)
+        if (columnData.length) {
+          length = (columnData.length / 100).toFixed(2); // تحويل من سم إلى متر
+        }
+        if (columnData.width) {
+          width = (columnData.width / 100).toFixed(2); // تحويل من سم إلى متر
+        } else if (columnData.length) {
+          // إذا لم يكن width موجوداً، نستخدم length كقيمة للعرض أيضاً
+          width = (columnData.length / 100).toFixed(2);
+        }
+      } else if (shape === 'rectangle') {
+        // للمستطيل: نستخدم length و width
+        if (columnData.length) {
+          length = (columnData.length / 100).toFixed(2); // تحويل من سم إلى متر
+        }
+        if (columnData.width) {
+          width = (columnData.width / 100).toFixed(2); // تحويل من سم إلى متر
+        }
+      } else if (shape === 'circular') {
+        // للدائري: نستخدم diameter فقط
+        if (columnData.diameter) {
+          diameter = (columnData.diameter / 100).toFixed(2); // تحويل من سم إلى متر
+        }
+      }
+
+      // التحقق من وجود الأبعاد المطلوبة
+      if (shape === 'square' && (!length || !width)) {
+        toast({
+          title: 'خطأ في البيانات',
+          description: 'لم يتم العثور على أبعاد صحيحة للعمود المربع',
+          variant: 'destructive'
+        });
+        return;
+      }
+      if (shape === 'rectangle' && (!length || !width)) {
+        toast({
+          title: 'خطأ في البيانات',
+          description: 'لم يتم العثور على أبعاد صحيحة للعمود المستطيل',
+          variant: 'destructive'
+        });
+        return;
+      }
+      if (shape === 'circular' && !diameter) {
+        toast({
+          title: 'خطأ في البيانات',
+          description: 'لم يتم العثور على قطر صحيح للعمود الدائري',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // إنشاء عمود جديد بالأبعاد المستوردة
+      const newColumn = {
+        id: nextId,
+        shape: shape,
+        length: length,
+        width: width,
+        diameter: diameter,
+        height: '3.0', // القيمة الافتراضية للارتفاع
+        volume: calculateColumnVolume(
+          shape,
+          length ? parseFloat(length) : undefined,
+          width ? parseFloat(width) : undefined,
+          diameter ? parseFloat(diameter) : undefined,
+          3.0
+        )
+      };
+
+      setColumns(prev => [...prev, newColumn]);
+      setNextId(prev => prev + 1);
+      
+      toast({
+        title: 'تم الاستيراد بنجاح',
+        description: `تم استيراد أبعاد العمود ${getShapeName(shape)} (${columnData.displayText || columnData.shape}) من صفحة شروش الأعمدة`,
+      });
+    } catch (error) {
+      console.error('Error importing column dimensions:', error);
+      toast({
+        title: 'خطأ في الاستيراد',
+        description: 'حدث خطأ أثناء استيراد الأبعاد. تأكد من وجود بيانات صحيحة في Local Storage.',
+        variant: 'destructive'
+      });
+    }
   };
 
   // حساب المجموع الكلي
@@ -217,7 +327,7 @@ export default function ColumnsConcretePage() {
             length: col.length ? parseFloat(col.length) : null,
             width: col.width ? parseFloat(col.width) : null,
             diameter: col.diameter ? parseFloat(col.diameter) : null,
-            height: parseFloat(col.height),
+            height: col.height ? parseFloat(col.height) : null,
             volume: col.volume
           }))
         },
@@ -254,6 +364,70 @@ export default function ColumnsConcretePage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // حساب الخرسانة لجميع الأعمدة
+  const calculateConcrete = () => {
+    if (columns.length === 0) {
+      toast({
+        title: 'لا توجد أعمدة',
+        description: 'يرجى إضافة أعمدة أولاً',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // التحقق من صحة بيانات جميع الأعمدة
+    const invalidColumns: number[] = [];
+    
+    columns.forEach((column) => {
+      let isValid = false;
+      
+      if (column.shape === 'square' || column.shape === 'rectangle') {
+        const length = parseFloat(column.length || '0');
+        const width = parseFloat(column.width || '0');
+        const height = parseFloat(column.height || '0');
+        
+        if (!length || length <= 0 || !width || width <= 0 || !height || height <= 0) {
+          invalidColumns.push(column.id);
+        }
+      } else if (column.shape === 'circular') {
+        const diameter = parseFloat(column.diameter || '0');
+        const height = parseFloat(column.height || '0');
+        
+        if (!diameter || diameter <= 0 || !height || height <= 0) {
+          invalidColumns.push(column.id);
+        }
+      }
+    });
+
+    if (invalidColumns.length > 0) {
+      toast({
+        title: 'بيانات غير مكتملة',
+        description: `يرجى إكمال بيانات الأعمدة: ${invalidColumns.join(', ')}`,
+        variant: 'destructive'
+      });
+      setError(`يرجى إكمال بيانات الأعمدة: ${invalidColumns.join(', ')}`);
+      return;
+    }
+
+    // إعادة حساب جميع الأعمدة
+    setColumns(prev => prev.map(column => {
+      const volume = calculateColumnVolume(
+        column.shape,
+        parseFloat(column.length || '0'),
+        parseFloat(column.width || '0'),
+        parseFloat(column.diameter || '0'),
+        parseFloat(column.height || '0')
+      );
+      return { ...column, volume };
+    }));
+
+    setError(null);
+    toast({
+      title: 'تم الحساب بنجاح',
+      description: `تم حساب كمية الخرسانة لجميع الأعمدة (${columns.length} عمود)`,
+    });
   };
 
   // إعادة تعيين
@@ -303,7 +477,7 @@ export default function ColumnsConcretePage() {
                   className="border-2 border-emerald-200/50 bg-white/80 backdrop-blur-sm hover:border-emerald-300 hover:bg-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-emerald-800 hover:text-emerald-900"
                 >
                   <ArrowRight className="w-4 h-4 rotate-180" />
-                  العودة للمشاريع
+                  العودة إلى صفحة كروت الباطون
                 </Button>
               </Link>
               <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg border-0 px-6 py-2.5 font-bold text-lg">
@@ -367,7 +541,7 @@ export default function ColumnsConcretePage() {
                   <div>
                     <CardTitle className="text-xl font-bold">كرت الأعمدة</CardTitle>
                     <CardDescription className="text-emerald-100 text-base">
-                      إضافة وحساب الأعمدة بأشكال مختلفة
+                      إضافة وحساب الأعمدة بأشكال مختلفة (مربع، مستطيل، دائري)
                     </CardDescription>
                   </div>
                 </div>
@@ -421,7 +595,7 @@ export default function ColumnsConcretePage() {
                         <Button
                           onClick={importColumnDimensions}
                           variant="outline"
-                          className="h-14 border-2 border-blue-300 hover:border-blue-500 hover:bg-blue-50"
+                          className="h-14 border-2 border-blue-300 hover:border-blue-900 hover:bg-blue-900 hover:text-white font-bold transition-all duration-300"
                         >
                           <Download className="w-5 h-5 ml-2" />
                           استيراد أبعاد
@@ -438,11 +612,24 @@ export default function ColumnsConcretePage() {
                       <Label className="text-lg font-bold text-slate-900">
                         الأعمدة المضافة ({columns.length})
                       </Label>
-                      {columns.length > 0 && (
-                        <Badge variant="outline" className="font-bold">
-                          المجموع: {totalVolume.toFixed(3)} م³
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {columns.length > 0 && (
+                          <>
+                            <Badge variant="outline" className="font-bold">
+                              المجموع: {totalVolume.toFixed(3)} م³
+                            </Badge>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={removeAllColumns}
+                              className="h-10 px-4 font-bold gap-2"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              حذف الكل
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     {columns.length === 0 ? (
@@ -484,16 +671,28 @@ export default function ColumnsConcretePage() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                   {column.shape === 'square' && (
-                                    <InputField
-                                      id={`length-${column.id}`}
-                                      label="طول الضلع"
-                                      value={column.length || ''}
-                                      onChange={(value) => updateColumn(column.id, 'length', value)}
-                                      placeholder="0.4"
-                                      step="0.01"
-                                      unit="متر"
-                                      icon={Ruler}
-                                    />
+                                    <>
+                                      <InputField
+                                        id={`length-${column.id}`}
+                                        label="الطول"
+                                        value={column.length || ''}
+                                        onChange={(value) => updateColumn(column.id, 'length', value)}
+                                        placeholder="0.4"
+                                        step="0.01"
+                                        unit="متر"
+                                        icon={Ruler}
+                                      />
+                                      <InputField
+                                        id={`width-${column.id}`}
+                                        label="العرض"
+                                        value={column.width || ''}
+                                        onChange={(value) => updateColumn(column.id, 'width', value)}
+                                        placeholder="0.4"
+                                        step="0.01"
+                                        unit="متر"
+                                        icon={Ruler}
+                                      />
+                                    </>
                                   )}
 
                                   {column.shape === 'rectangle' && (
@@ -537,7 +736,7 @@ export default function ColumnsConcretePage() {
                                   <InputField
                                     id={`height-${column.id}`}
                                     label="الارتفاع"
-                                    value={column.height}
+                                    value={column.height || ''}
                                     onChange={(value) => updateColumn(column.id, 'height', value)}
                                     placeholder="3.0"
                                     step="0.01"
@@ -559,12 +758,24 @@ export default function ColumnsConcretePage() {
             {/* Action Buttons */}
             <div className="flex flex-col lg:flex-row gap-4 pt-4">
               <Button 
+                onClick={calculateConcrete}
+                disabled={columns.length === 0}
+                className="flex-1 h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden disabled:opacity-50"
+              >
+                <span className="relative z-10 flex items-center gap-4">
+                  <Calculator className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                  حساب الخرسانة
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              </Button>
+
+              <Button 
                 onClick={saveToReports}
                 disabled={columns.length === 0 || saving}
                 className="flex-1 h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:via-teal-700 hover:to-blue-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden disabled:opacity-50"
               >
                 <span className="relative z-10 flex items-center gap-4">
-                  <Calculator className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                  <CheckCircle2 className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
                   {saving ? 'جاري الحفظ...' : 'حفظ وتحميل إلى التقارير'}
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -573,9 +784,9 @@ export default function ColumnsConcretePage() {
               <Button 
                 onClick={reset}
                 variant="outline" 
-                className="h-14 px-6 text-base font-black border-2 border-slate-300 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-800 shadow-xl hover:shadow-emerald-200 transition-all duration-500 rounded-2xl flex items-center gap-4"
+                className="h-14 px-6 text-base font-black border-2 border-slate-300 hover:border-red-400 hover:bg-red-50 hover:text-red-800 shadow-xl hover:shadow-red-200 transition-all duration-500 rounded-2xl flex items-center gap-4"
               >
-                <CheckCircle2 className="w-5 h-5" />
+                <Trash2 className="w-5 h-5" />
                 إعادة تعيين الكل
               </Button>
             </div>
@@ -641,11 +852,6 @@ export default function ColumnsConcretePage() {
                               highlight: true 
                             },
                             { 
-                              label: 'وزن الحديد التقديري', 
-                              value: `${calculateSteelWeight().toFixed(2)} كجم`, 
-                              color: 'from-orange-500 to-amber-500' 
-                            },
-                            { 
                               label: 'متوسط الحجم للعمود', 
                               value: `${(totalVolume / columns.length).toFixed(3)} م³`, 
                               color: 'from-blue-500 to-cyan-500' 
@@ -677,35 +883,6 @@ export default function ColumnsConcretePage() {
                               </span>
                             </div>
                           ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* قوانين الحساب */}
-                    <Card className="border-0 bg-gradient-to-r from-emerald-50/80 to-teal-50/80 backdrop-blur-sm">
-                      <CardContent className="p-6">
-                        <h4 className="font-bold text-emerald-900 mb-3 flex items-center gap-2">
-                          <Calculator className="w-5 h-5" />
-                          قوانين الحساب
-                        </h4>
-                        <div className="space-y-2 text-sm text-emerald-800">
-                          <div className="p-3 bg-white/50 rounded-xl">
-                            <p className="font-bold">عمود مربع:</p>
-                            <p>الحجم = الطول × الطول × الارتفاع</p>
-                          </div>
-                          <div className="p-3 bg-white/50 rounded-xl">
-                            <p className="font-bold">عمود مستطيل:</p>
-                            <p>الحجم = الطول × العرض × الارتفاع</p>
-                          </div>
-                          <div className="p-3 bg-white/50 rounded-xl">
-                            <p className="font-bold">عمود دائري:</p>
-                            <p>الحجم = (π × القطر² ÷ 4) × الارتفاع</p>
-                            <p className="text-xs text-emerald-600">حيث π = 3.1416</p>
-                          </div>
-                          <div className="p-3 bg-white/50 rounded-xl">
-                            <p className="font-bold">المجموع الكلي:</p>
-                            <p>إجمالي الحجم = مجموع أحجام جميع الأعمدة</p>
-                          </div>
                         </div>
                       </CardContent>
                     </Card>
