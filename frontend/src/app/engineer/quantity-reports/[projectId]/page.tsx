@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   X,
   Send,
+  Gauge,
 } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -763,11 +764,20 @@ export default function ProjectReportsPage() {
               <p className="text-slate-500 mb-6">
                 قم بإجراء حسابات الكميات من صفحة المشروع لإنشاء التقارير
               </p>
-              <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
-                <Button className="bg-emerald-600 hover:bg-emerald-700">
-                  الذهاب لحسابات الخرسانة
-                </Button>
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href={`/engineer/projects/${projectId}/concrete-cards`} className="w-full sm:w-auto">
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
+                    <Blocks className="w-4 h-4 ml-2" />
+                    الذهاب لحسابات الخرسانة
+                  </Button>
+                </Link>
+                <Link href={`/engineer/projects/${projectId}/steel-calculations`} className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full border-slate-300 hover:bg-slate-50">
+                    <Gauge className="w-4 h-4 ml-2 text-slate-700" />
+                    الذهاب لحسابات الحديد
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         ) : (
