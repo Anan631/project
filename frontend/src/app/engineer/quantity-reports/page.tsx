@@ -746,7 +746,7 @@ export default function QuantityReportsPage() {
                                         const foundations = latestReport.concreteData.foundationsVolume || 0;
                                         const groundSlab = latestReport.concreteData.groundSlabVolume || 0;
                                         return (cleaning + foundations + groundSlab).toFixed(2);
-                                      })} م³
+                                      })()} م³
                                     </p>
                                   </div>
                                 )}

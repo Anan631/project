@@ -70,6 +70,9 @@ const quantityReportSchema = new Schema(
     sentToOwner: { type: Boolean, default: false },
     sentToOwnerAt: { type: Date },
     
+    deleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
+    
     notes: { type: String, default: '' }
   },
   { timestamps: true }

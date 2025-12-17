@@ -17,10 +17,11 @@ router.post('/', async (req, res) => {
     
     console.log('📊 Creating quantity report for project:', data.projectId);
     
-    // Check if report already exists for this project and calculation type
+    // Check if report already exists for this project and calculation type (not deleted)
     const existingReport = await QuantityReport.findOne({
       projectId: data.projectId,
-      calculationType: data.calculationType
+      calculationType: data.calculationType,
+      deleted: { $ne: true }
     });
     
     if (existingReport) {
@@ -51,7 +52,10 @@ router.get('/engineer/:engineerId', async (req, res) => {
     const engineerId = req.params.engineerId;
     console.log('📊 Fetching quantity reports for engineer:', engineerId);
     
-    const reports = await QuantityReport.find({ engineerId }).sort({ updatedAt: -1 });
+    const reports = await QuantityReport.find({ 
+      engineerId,
+      deleted: { $ne: true }
+    }).sort({ updatedAt: -1 });
     
     // Group by project
     const projectsMap = new Map();
@@ -86,7 +90,10 @@ router.get('/project/:projectId', async (req, res) => {
     const projectId = req.params.projectId;
     console.log('📊 Fetching quantity reports for project:', projectId);
     
-    const reports = await QuantityReport.find({ projectId }).sort({ updatedAt: -1 });
+    const reports = await QuantityReport.find({ 
+      projectId,
+      deleted: { $ne: true }
+    }).sort({ updatedAt: -1 });
     
     // Also get project details
     let project = null;
@@ -114,7 +121,10 @@ router.get('/pdf/concrete/:reportId', async (req, res) => {
     const reportId = req.params.reportId;
     console.log('📄 Generating concrete PDF for report:', reportId);
     
-    const report = await QuantityReport.findById(reportId);
+    const report = await QuantityReport.findOne({ 
+      _id: reportId,
+      deleted: { $ne: true }
+    });
     if (!report) {
       return res.status(404).json({ success: false, message: 'Report not found' });
     }
@@ -211,7 +221,10 @@ router.post('/:reportId/send-to-owner', async (req, res) => {
     const reportId = req.params.reportId;
     console.log('📧 Sending report to owner:', reportId);
     
-    const report = await QuantityReport.findById(reportId);
+    const report = await QuantityReport.findOne({ 
+      _id: reportId,
+      deleted: { $ne: true }
+    });
     if (!report) {
       return res.status(404).json({ success: false, message: 'Report not found' });
     }
@@ -267,10 +280,11 @@ router.get('/owner/:ownerEmail', async (req, res) => {
     const ownerEmail = req.params.ownerEmail.toLowerCase();
     console.log('📊 Fetching quantity reports for owner:', ownerEmail);
     
-    // Find reports sent to this owner
+    // Find reports sent to this owner (not deleted)
     const reports = await QuantityReport.find({ 
       ownerEmail: ownerEmail,
-      sentToOwner: true 
+      sentToOwner: true,
+      deleted: { $ne: true }
     }).sort({ sentToOwnerAt: -1 });
     
     console.log(`✅ Found ${reports.length} reports for owner ${ownerEmail}`);
@@ -297,11 +311,12 @@ router.get('/owner/:ownerEmail/project/:projectId', async (req, res) => {
       });
     }
     
-    // Find reports for this project sent to this owner
+    // Find reports for this project sent to this owner (not deleted)
     const reports = await QuantityReport.find({ 
       projectId,
       ownerEmail: ownerEmail,
-      sentToOwner: true 
+      sentToOwner: true,
+      deleted: { $ne: true }
     }).sort({ sentToOwnerAt: -1 });
     
     console.log(`✅ Found ${reports.length} reports for owner ${ownerEmail} and project ${projectId}`);
@@ -312,17 +327,22 @@ router.get('/owner/:ownerEmail/project/:projectId', async (req, res) => {
   }
 });
 
-// Delete report
+// Delete report (soft delete - mark as deleted)
 router.delete('/:id', async (req, res) => {
   try {
     const reportId = req.params.id;
-    const result = await QuantityReport.findByIdAndDelete(reportId);
+    const report = await QuantityReport.findById(reportId);
     
-    if (!result) {
+    if (!report) {
       return res.status(404).json({ success: false, message: 'Report not found' });
     }
     
-    console.log(`🗑️ Deleted quantity report: ${reportId}`);
+    // Soft delete: mark as deleted instead of actually deleting
+    report.deleted = true;
+    report.deletedAt = new Date();
+    await report.save();
+    
+    console.log(`🗑️ Soft deleted quantity report: ${reportId}`);
     return res.json({ success: true, message: 'Report deleted successfully' });
   } catch (err) {
     console.error('❌ Error deleting report:', err);
