@@ -439,7 +439,7 @@ export default function ProjectReportsPage() {
               <img src="/header-bg.jpg" alt="شعار الموقع" class="logo">
               <h1>طلبية خرسانة</h1>
               <p>تقرير كميات ${type === 'concrete' ? 'الخرسانة' : 'الحديد'}</p>
-              <p>تفصيل شامل لكميات المواد والمعدات</p>
+              <p>${report.calculationType === 'column-footings' ? 'شروش الأعمدة' : report.calculationType === 'foundation' ? 'صبة النظافة والقواعد' : 'تفصيل شامل لكميات المواد والمعدات'}</p>
             </div>
 
             <div class="project-name">
@@ -458,7 +458,7 @@ export default function ProjectReportsPage() {
             </div>
 
             <div class="date-info">
-              <span>عدد البنود: 3</span>
+              <span>عدد البنود: ${report.calculationType === 'column-footings' ? '1' : '3'}</span>
               <span>تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}</span>
             </div>
 
@@ -473,40 +473,53 @@ export default function ProjectReportsPage() {
               <tbody>
                 ${
                   type === 'concrete' && report.concreteData
-                    ? `
-                      <tr>
-                        <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
-                        <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
-                        <td>كمية خرسانة النظافة</td>
-                      </tr>
-                      <tr>
-                        <td>${report.concreteData.foundationsVolume?.toFixed(2) || 0} م³</td>
-                        <td>${report.concreteData.foundationsVolume?.toFixed(2) || 0} م³</td>
-                        <td>كمية خرسانة القواعد</td>
-                      </tr>
-                      ${(report.concreteData.groundSlabVolume && report.concreteData.groundSlabVolume > 0) ? `
-                      <tr>
-                        <td>${report.concreteData.groundSlabVolume.toFixed(2)} م³</td>
-                        <td>${report.concreteData.groundSlabVolume.toFixed(2)} م³</td>
-                        <td>كمية خرسانة أرضية المبنى</td>
-                      </tr>
-                      ` : ''}
-                      <tr>
-                        <td>${(() => {
-                          const cleaning = report.concreteData.cleaningVolume || 0;
-                          const foundations = report.concreteData.foundationsVolume || 0;
-                          const groundSlab = report.concreteData.groundSlabVolume || 0;
-                          return (cleaning + foundations + groundSlab).toFixed(2);
-                        })()} م³</td>
-                        <td>${(() => {
-                          const cleaning = report.concreteData.cleaningVolume || 0;
-                          const foundations = report.concreteData.foundationsVolume || 0;
-                          const groundSlab = report.concreteData.groundSlabVolume || 0;
-                          return (cleaning + foundations + groundSlab).toFixed(2);
-                        })()} م³</td>
-                        <td>إجمالي الخرسانة</td>
-                      </tr>
-                    `
+                    ? report.calculationType === 'column-footings'
+                      ? `
+                        <tr>
+                          <td>${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                          <td>${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                          <td>كمية خرسانة شروش الأعمدة</td>
+                        </tr>
+                        <tr>
+                          <td>${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                          <td>${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                          <td>إجمالي الخرسانة</td>
+                        </tr>
+                      `
+                      : `
+                        <tr>
+                          <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
+                          <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
+                          <td>كمية خرسانة النظافة</td>
+                        </tr>
+                        <tr>
+                          <td>${report.concreteData.foundationsVolume?.toFixed(2) || 0} م³</td>
+                          <td>${report.concreteData.foundationsVolume?.toFixed(2) || 0} م³</td>
+                          <td>كمية خرسانة القواعد</td>
+                        </tr>
+                        ${(report.concreteData.groundSlabVolume && report.concreteData.groundSlabVolume > 0) ? `
+                        <tr>
+                          <td>${report.concreteData.groundSlabVolume.toFixed(2)} م³</td>
+                          <td>${report.concreteData.groundSlabVolume.toFixed(2)} م³</td>
+                          <td>كمية خرسانة أرضية المبنى</td>
+                        </tr>
+                        ` : ''}
+                        <tr>
+                          <td>${(() => {
+                            const cleaning = report.concreteData.cleaningVolume || 0;
+                            const foundations = report.concreteData.foundationsVolume || 0;
+                            const groundSlab = report.concreteData.groundSlabVolume || 0;
+                            return (cleaning + foundations + groundSlab).toFixed(2);
+                          })()} م³</td>
+                          <td>${(() => {
+                            const cleaning = report.concreteData.cleaningVolume || 0;
+                            const foundations = report.concreteData.foundationsVolume || 0;
+                            const groundSlab = report.concreteData.groundSlabVolume || 0;
+                            return (cleaning + foundations + groundSlab).toFixed(2);
+                          })()} م³</td>
+                          <td>إجمالي الخرسانة</td>
+                        </tr>
+                      `
                     : `
                       <tr>
                         <td>${report.steelData?.foundationSteel?.toFixed(2) || 0} كجم</td>
@@ -533,12 +546,14 @@ export default function ProjectReportsPage() {
               <div class="value">
                 ${
                   type === 'concrete' && report.concreteData
-                    ? `${(() => {
-                        const cleaning = report.concreteData.cleaningVolume || 0;
-                        const foundations = report.concreteData.foundationsVolume || 0;
-                        const groundSlab = report.concreteData.groundSlabVolume || 0;
-                        return (cleaning + foundations + groundSlab).toFixed(2);
-                      })()} م³`
+                    ? report.calculationType === 'column-footings'
+                      ? `${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+                      : `${(() => {
+                          const cleaning = report.concreteData.cleaningVolume || 0;
+                          const foundations = report.concreteData.foundationsVolume || 0;
+                          const groundSlab = report.concreteData.groundSlabVolume || 0;
+                          return (cleaning + foundations + groundSlab).toFixed(2);
+                        })()} م³`
                     : `${(report.steelData?.totalSteelWeight || 0).toFixed(2)} كجم`
                 }
               </div>
@@ -712,7 +727,9 @@ export default function ProjectReportsPage() {
     );
   }
 
-  const latestReport = reports[0];
+  // Separate reports by type
+  const foundationReport = reports.find(r => r.calculationType === 'foundation');
+  const columnFootingsReport = reports.find(r => r.calculationType === 'column-footings');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl" style={{ fontSize: '16px' }}>
@@ -772,105 +789,205 @@ export default function ProjectReportsPage() {
           </Card>
         ) : (
           <>
-            {/* Download Buttons */}
-            <div className="mb-8">
-              {/* Concrete Report Download */}
-              <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Blocks className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                      <CardDescription className="text-emerald-100">
-                        صبة النظافة والقواعد
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  {latestReport?.concreteData && (
-                    <div className="space-y-4 mb-6">
-                      <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                        <span className="text-slate-600">حجم صبة النظافة</span>
-                        <span className="font-bold text-emerald-600">
-                          {latestReport.concreteData.cleaningVolume?.toFixed(3) || 0} م³
-                        </span>
+            {/* Reports Cards - Side by Side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Foundation Report Card */}
+              {foundationReport && (
+                <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+                  <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Blocks className="w-7 h-7 text-white" />
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                        <span className="text-slate-600">حجم القواعد</span>
-                        <span className="font-bold text-emerald-600">
-                          {latestReport.concreteData.foundationsVolume?.toFixed(3) || 0} م³
-                        </span>
+                      <div>
+                        <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                        <CardDescription className="text-emerald-100">
+                          صبة النظافة والقواعد
+                        </CardDescription>
                       </div>
-                      {latestReport.concreteData.groundSlabVolume && latestReport.concreteData.groundSlabVolume > 0 && (
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {foundationReport?.concreteData && (
+                      <div className="space-y-4 mb-6">
                         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                          <span className="text-slate-600">حجم أرضية المبنى</span>
+                          <span className="text-slate-600">حجم صبة النظافة</span>
                           <span className="font-bold text-emerald-600">
-                            {latestReport.concreteData.groundSlabVolume.toFixed(3)} م³
+                            {foundationReport.concreteData.cleaningVolume?.toFixed(3) || 0} م³
                           </span>
                         </div>
-                      )}
-                      <Separator />
-                      <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                        <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                        <span className="text-2xl font-black text-emerald-600">
-                          {(() => {
-                            const cleaning = latestReport.concreteData.cleaningVolume || 0;
-                            const foundations = latestReport.concreteData.foundationsVolume || 0;
-                            const groundSlab = latestReport.concreteData.groundSlabVolume || 0;
-                            const total = cleaning + foundations + groundSlab;
-                            return total.toFixed(3);
-                          })()} م³
-                        </span>
+                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                          <span className="text-slate-600">حجم القواعد</span>
+                          <span className="font-bold text-emerald-600">
+                            {foundationReport.concreteData.foundationsVolume?.toFixed(3) || 0} م³
+                          </span>
+                        </div>
+                        {foundationReport.concreteData.groundSlabVolume && foundationReport.concreteData.groundSlabVolume > 0 && (
+                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <span className="text-slate-600">حجم أرضية المبنى</span>
+                            <span className="font-bold text-emerald-600">
+                              {foundationReport.concreteData.groundSlabVolume.toFixed(3)} م³
+                            </span>
+                          </div>
+                        )}
+                        <Separator />
+                        <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                          <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
+                          <span className="text-2xl font-black text-emerald-600">
+                            {(() => {
+                              const cleaning = foundationReport.concreteData.cleaningVolume || 0;
+                              const foundations = foundationReport.concreteData.foundationsVolume || 0;
+                              const groundSlab = foundationReport.concreteData.groundSlabVolume || 0;
+                              const total = cleaning + foundations + groundSlab;
+                              return total.toFixed(3);
+                            })()} م³
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => downloadPDF(foundationReport._id, 'concrete')}
+                        disabled={downloading === `${foundationReport._id}-concrete`}
+                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                      >
+                        {downloading === `${foundationReport._id}-concrete` ? (
+                          <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                        ) : (
+                          <Printer className="w-5 h-5 ml-2" />
+                        )}
+                        طباعة تقرير الخرسانة PDF
+                      </Button>
+                      
+                      <Button
+                        onClick={() => handleSendToOwner(foundationReport._id)}
+                        disabled={sendingToOwner === foundationReport._id || foundationReport.sentToOwner}
+                        className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
+                          foundationReport.sentToOwner
+                            ? 'bg-green-600 hover:bg-green-700 text-white'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                        }`}
+                      >
+                        {sendingToOwner === foundationReport._id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                            جاري الإرسال...
+                          </>
+                        ) : foundationReport.sentToOwner ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 ml-2" />
+                            تم الإرسال للمالك
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4 ml-2" />
+                            إرسال التقرير للمالك
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Column Footings Report Card */}
+              {columnFootingsReport && (
+                <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+                  <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Blocks className="w-7 h-7 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                        <CardDescription className="text-emerald-100">
+                          شروش الأعمدة
+                        </CardDescription>
                       </div>
                     </div>
-                  )}
-                  
-                  <div className="space-y-3">
-                    <Button
-                      onClick={() => downloadPDF(latestReport._id, 'concrete')}
-                      disabled={downloading === `${latestReport._id}-concrete`}
-                      className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                    >
-                      {downloading === `${latestReport._id}-concrete` ? (
-                        <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                      ) : (
-                        <Printer className="w-5 h-5 ml-2" />
-                      )}
-                      طباعة تقرير الخرسانة PDF
-                    </Button>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {columnFootingsReport?.concreteData && (
+                      <div className="space-y-4 mb-6">
+                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                          <span className="text-slate-600">حجم شروش الأعمدة</span>
+                          <span className="font-bold text-emerald-600">
+                            {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) || 
+                             columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                          </span>
+                        </div>
+                        {columnFootingsReport.concreteData.numberOfColumns && (
+                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <span className="text-slate-600">عدد الأعمدة</span>
+                            <span className="font-bold text-emerald-600">
+                              {columnFootingsReport.concreteData.numberOfColumns}
+                            </span>
+                          </div>
+                        )}
+                        {columnFootingsReport.concreteData.finalColumnDimensions?.displayText && (
+                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <span className="text-slate-600">أبعاد العمود</span>
+                            <span className="font-bold text-emerald-600">
+                              {columnFootingsReport.concreteData.finalColumnDimensions.displayText}
+                            </span>
+                          </div>
+                        )}
+                        <Separator />
+                        <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                          <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
+                          <span className="text-2xl font-black text-emerald-600">
+                            {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) || 
+                             columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     
-                    <Button
-                      onClick={() => handleSendToOwner(latestReport._id)}
-                      disabled={sendingToOwner === latestReport._id || latestReport.sentToOwner}
-                      className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                        latestReport.sentToOwner
-                          ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                      }`}
-                    >
-                      {sendingToOwner === latestReport._id ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                          جاري الإرسال...
-                        </>
-                      ) : latestReport.sentToOwner ? (
-                        <>
-                          <CheckCircle2 className="w-4 h-4 ml-2" />
-                          تم الإرسال للمالك
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4 ml-2" />
-                          إرسال التقرير للمالك
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => downloadPDF(columnFootingsReport._id, 'concrete')}
+                        disabled={downloading === `${columnFootingsReport._id}-concrete`}
+                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                      >
+                        {downloading === `${columnFootingsReport._id}-concrete` ? (
+                          <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                        ) : (
+                          <Printer className="w-5 h-5 ml-2" />
+                        )}
+                        طباعة تقرير الخرسانة PDF
+                      </Button>
+                      
+                      <Button
+                        onClick={() => handleSendToOwner(columnFootingsReport._id)}
+                        disabled={sendingToOwner === columnFootingsReport._id || columnFootingsReport.sentToOwner}
+                        className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
+                          columnFootingsReport.sentToOwner
+                            ? 'bg-green-600 hover:bg-green-700 text-white'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                        }`}
+                      >
+                        {sendingToOwner === columnFootingsReport._id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                            جاري الإرسال...
+                          </>
+                        ) : columnFootingsReport.sentToOwner ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 ml-2" />
+                            تم الإرسال للمالك
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4 ml-2" />
+                            إرسال التقرير للمالك
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Report History */}
@@ -905,10 +1022,15 @@ export default function ProjectReportsPage() {
                       <div className="flex items-center gap-3">
                         <Badge variant="outline" className="bg-white">
                           {(() => {
-                            const cleaning = report.concreteData?.cleaningVolume || 0;
-                            const foundations = report.concreteData?.foundationsVolume || 0;
-                            const groundSlab = report.concreteData?.groundSlabVolume || 0;
-                            return (cleaning + foundations + groundSlab).toFixed(2);
+                            if (report.calculationType === 'column-footings') {
+                              return (report.concreteData?.totalFootingsVolume || 
+                                      report.concreteData?.totalConcrete || 0).toFixed(2);
+                            } else {
+                              const cleaning = report.concreteData?.cleaningVolume || 0;
+                              const foundations = report.concreteData?.foundationsVolume || 0;
+                              const groundSlab = report.concreteData?.groundSlabVolume || 0;
+                              return (cleaning + foundations + groundSlab).toFixed(2);
+                            }
                           })()} م³
                         </Badge>
                         <Button
