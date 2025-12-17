@@ -948,11 +948,9 @@ export default function ProjectReportsPage() {
                 تأكيد حذف التقرير
               </AlertDialogTitle>
             </div>
-            <AlertDialogDescription className="text-right text-base leading-relaxed">
-              <div className="space-y-3">
-                <div>
-                  هل أنت متأكد من حذف تقرير:
-                </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-right text-base leading-relaxed">
+                <p>هل أنت متأكد من حذف تقرير:</p>
                 <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
                   <div className="font-bold text-amber-800 text-lg mb-2">
                     {deleteDialog.reportType}
