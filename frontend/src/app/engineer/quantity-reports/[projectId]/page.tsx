@@ -18,7 +18,6 @@ import {
   AlertTriangle,
   X,
   Send,
-  Gauge,
 } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -764,20 +763,11 @@ export default function ProjectReportsPage() {
               <p className="text-slate-500 mb-6">
                 قم بإجراء حسابات الكميات من صفحة المشروع لإنشاء التقارير
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href={`/engineer/projects/${projectId}/concrete-cards`} className="w-full sm:w-auto">
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-                    <Blocks className="w-4 h-4 ml-2" />
-                    الذهاب لحسابات الخرسانة
-                  </Button>
-                </Link>
-                <Link href={`/engineer/projects/${projectId}/steel-calculations`} className="w-full sm:w-auto">
-                  <Button variant="outline" className="w-full border-slate-300 hover:bg-slate-50">
-                    <Gauge className="w-4 h-4 ml-2 text-slate-700" />
-                    الذهاب لحسابات الحديد
-                  </Button>
-                </Link>
-              </div>
+              <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
+                <Button className="bg-emerald-600 hover:bg-emerald-700">
+                  الذهاب لحسابات الخرسانة
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         ) : (
@@ -958,34 +948,38 @@ export default function ProjectReportsPage() {
                 تأكيد حذف التقرير
               </AlertDialogTitle>
             </div>
+            <AlertDialogDescription className="text-right text-base leading-relaxed">
+              <div className="space-y-3">
+                <div>
+                  هل أنت متأكد من حذف تقرير:
+                </div>
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                  <div className="font-bold text-amber-800 text-lg mb-2">
+                    {deleteDialog.reportType}
+                  </div>
+                  <div className="text-amber-700 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>التاريخ: {deleteDialog.reportDate}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <FileText className="w-4 h-4" />
+                      <span>المشروع: {projectInfo?.name}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="text-red-800 font-medium flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    هذا الإجراء لا يمكن التراجع عنه
+                  </div>
+                  <div className="text-red-700 text-sm mt-1">
+                    سيتم حذف جميع البيانات المتعلقة بهذا التقرير بشكل دائم
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogDescription className="text-right text-base leading-relaxed space-y-3">
-            <div>هل أنت متأكد من حذف تقرير:</div>
-            <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
-              <div className="font-bold text-amber-800 text-lg mb-2">
-                {deleteDialog.reportType}
-              </div>
-              <div className="text-amber-700 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>التاريخ: {deleteDialog.reportDate}</span>
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <FileText className="w-4 h-4" />
-                  <span>المشروع: {projectInfo?.name}</span>
-                </div>
-              </div>
-            </div>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <div className="text-red-800 font-medium flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />
-                هذا الإجراء لا يمكن التراجع عنه
-              </div>
-              <div className="text-red-700 text-sm mt-1">
-                سيتم حذف جميع البيانات المتعلقة بهذا التقرير بشكل دائم
-              </div>
-            </div>
-          </AlertDialogDescription>
           <AlertDialogFooter className="flex gap-3 mt-6">
             <AlertDialogCancel className="flex-1 h-12 text-base font-medium">
               <X className="w-4 h-4 ml-2" />
