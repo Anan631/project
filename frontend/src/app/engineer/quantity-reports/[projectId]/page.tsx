@@ -50,11 +50,21 @@ interface QuantityReport {
     totalConcrete: number;
     totalLoad: number;
     foundationDimensions: string;
+    totalFootingsVolume?: number;
+    numberOfColumns?: number;
+    finalColumnDimensions?: {
+      displayText: string;
+      [key: string]: any;
+    };
   };
   steelData: {
     totalSteelWeight: number;
     foundationSteel: number;
     columnSteel?: number;
+    beamSteel?: number;
+    slabSteel?: number;
+    stirrupsSteel?: number;
+    [key: string]: any;
   };
   sentToOwner?: boolean;
   sentToOwnerAt?: string;
