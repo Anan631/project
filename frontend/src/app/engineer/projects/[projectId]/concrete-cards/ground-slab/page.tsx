@@ -22,6 +22,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export default function GroundSlabPage() {
   const params = useParams();
@@ -30,6 +42,14 @@ export default function GroundSlabPage() {
   const projectId = params.projectId as string;
 
   const [saving, setSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [existingReportDialog, setExistingReportDialog] = useState<{
+    open: boolean;
+    reportId: string | null;
+  }>({
+    open: false,
+    reportId: null,
+  });
   const [inputs, setInputs] = useState({
     slabArea: '', // m^2
     slabThickness: '', // m
@@ -38,7 +58,6 @@ export default function GroundSlabPage() {
   const [results, setResults] = useState<null | {
     groundSlabVolume: number;
     totalConcrete: number;
-    steelWeight: number;
   }>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,31 +66,98 @@ export default function GroundSlabPage() {
     if (error) setError(null);
   };
 
-  const calculate = () => {
+  const calculate = async () => {
+    setIsLoading(true);
+    setError(null);
+
     try {
       const slabArea = parseFloat(inputs.slabArea);
       const slabThickness = parseFloat(inputs.slabThickness);
 
       if (isNaN(slabArea) || isNaN(slabThickness) || slabArea <= 0 || slabThickness <= 0) {
         setError('يرجى ملء جميع الحقول المطلوبة بقيم صحيحة');
+        setIsLoading(false);
         return;
+      }
+
+      // Check if report already exists for this project and calculation type
+      try {
+        const reportsResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+        const reportsData = await reportsResponse.json();
+        
+        if (reportsData.success && reportsData.reports && reportsData.reports.length > 0) {
+          const existingReport = reportsData.reports.find((r: any) => r.calculationType === 'ground-slab');
+          
+          if (existingReport) {
+            // Show warning dialog
+            setExistingReportDialog({
+              open: true,
+              reportId: existingReport._id,
+            });
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not check for existing reports:', err);
+        // Continue with calculation if check fails
       }
 
       // قانون حساب حجم الخرسانة: المساحة * السماكة
       const groundSlabVolume = slabArea * slabThickness; // m3
-      
-      // معدل الحديد التقديري (ثابت 80 كجم/م³ كما في الكود الثاني)
-      const steelRatio = 80;
-      const steelWeight = groundSlabVolume * steelRatio; // kg
 
       setResults({ 
         groundSlabVolume, 
-        totalConcrete: groundSlabVolume, 
-        steelWeight 
+        totalConcrete: groundSlabVolume
       });
       setError(null);
+      toast({
+        title: 'تم الحساب بنجاح',
+        description: 'تم حساب كميات خرسانة أرضية المبنى',
+      });
     } catch (e) {
       setError('حدث خطأ في الحساب. يرجى التحقق من المدخلات.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRecalculate = async () => {
+    if (!existingReportDialog.reportId) {
+      setExistingReportDialog({ open: false, reportId: null });
+      // Continue with calculation by calling calculate again
+      calculate();
+      return;
+    }
+
+    try {
+      // Delete existing report (soft delete)
+      const deleteResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/${existingReportDialog.reportId}`, {
+        method: 'DELETE'
+      });
+
+      if (deleteResponse.ok) {
+        toast({
+          title: 'تم حذف التقرير السابق',
+          description: 'تم حذف التقرير السابق بنجاح',
+        });
+      }
+
+      // Close dialog and continue with calculation
+      setExistingReportDialog({ open: false, reportId: null });
+      
+      // Continue with calculation by calling calculate again
+      calculate();
+    } catch (error) {
+      console.error('Error deleting existing report:', error);
+      toast({
+        title: 'تحذير',
+        description: 'لم يتم حذف التقرير السابق، سيتم تحديث التقرير الحالي',
+        variant: 'destructive'
+      });
+      setExistingReportDialog({ open: false, reportId: null });
+      // Continue with calculation anyway
+      calculate();
     }
   };
 
@@ -95,7 +181,17 @@ export default function GroundSlabPage() {
       const engineerId = localStorage.getItem('userId') || '';
       const engineerName = localStorage.getItem('userName') || 'المهندس';
 
-      const projectRes = await fetch(`http://localhost:5000/api/projects/${projectId}`);
+      const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+      
+      if (!projectRes.ok) {
+        throw new Error(`HTTP error! status: ${projectRes.status}`);
+      }
+      
+      const projectContentType = projectRes.headers.get('content-type');
+      if (!projectContentType || !projectContentType.includes('application/json')) {
+        throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح. تأكد من تشغيل الخادم الخلفي.');
+      }
+      
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
 
@@ -117,14 +213,18 @@ export default function GroundSlabPage() {
             slabThickness: parseFloat(inputs.slabThickness),
           },
         },
+        // إزالة بيانات الحديد - لم تبدأ حسابات الحديد بعد
         steelData: {
-          totalSteelWeight: results.steelWeight,
+          totalSteelWeight: 0,
           foundationSteel: 0,
           columnSteel: 0,
+          beamSteel: 0,
+          slabSteel: 0,
         },
+        sentToOwner: false
       };
 
-      const response = await fetch('http://localhost:5000/api/quantity-reports', {
+      const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportData),
@@ -135,11 +235,12 @@ export default function GroundSlabPage() {
         toast({ title: 'تم الحفظ بنجاح', description: 'تم ترحيل النتائج إلى صفحة تقارير الكميات' });
         router.push(`/engineer/quantity-reports/${projectId}`);
       } else {
-        throw new Error(data.message);
+        throw new Error(data.message || 'فشل في حفظ التقرير');
       }
     } catch (error) {
       console.error('Error saving report:', error);
-      toast({ title: 'خطأ في الحفظ', description: 'حدث خطأ أثناء حفظ التقرير', variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ أثناء حفظ التقرير';
+      toast({ title: 'خطأ في الحفظ', description: errorMessage, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -252,12 +353,23 @@ export default function GroundSlabPage() {
             <div className="flex flex-col lg:flex-row gap-4 pt-4">
               <Button 
                 onClick={calculate}
-                className="flex-1 h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:via-teal-700 hover:to-blue-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden"
+                disabled={isLoading}
+                className="flex-1 h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:via-teal-700 hover:to-blue-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="relative z-10 flex items-center gap-4">
-                  <Calculator className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-                  إجراء الحسابات
-                </span>
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    جاري الحساب...
+                  </>
+                ) : (
+                  <span className="relative z-10 flex items-center gap-4">
+                    <Calculator className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                    إجراء الحسابات
+                  </span>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </Button>
               <Button 
@@ -311,7 +423,6 @@ export default function GroundSlabPage() {
                             { label: 'المساحة المدخلة', value: `${parseFloat(inputs.slabArea).toFixed(2)} م²`, color: 'from-emerald-400 to-teal-400' },
                             { label: 'السماكة المدخلة', value: `${parseFloat(inputs.slabThickness).toFixed(2)} م`, color: 'from-blue-400 to-indigo-400' },
                             { label: 'حجم الخرسانة', value: `${results.groundSlabVolume.toFixed(2)} م³`, color: 'from-indigo-500 to-purple-500', highlight: true },
-                            { label: 'وزن الحديد التقديري', value: `${results.steelWeight.toFixed(2)} كجم`, color: 'from-orange-500 to-amber-500', highlight: true },
                           ].map(({ label, value, color, highlight }, index) => (
                             <div key={index} className={`group p-6 bg-gradient-to-r ${highlight ? 'from-indigo-50 to-purple-50 border-2 border-indigo-200' : 'from-white/60 hover:from-white'} rounded-2xl ${highlight ? 'border-indigo-200' : 'border-slate-200 hover:border-indigo-300'} hover:shadow-lg transition-all duration-300 flex items-center justify-between`}>
                               <span className={`font-bold ${highlight ? 'text-indigo-900 text-lg' : 'text-slate-800 text-base'}`}>{label}:</span>
@@ -361,6 +472,28 @@ export default function GroundSlabPage() {
           </div>
         </div>
       </div>
+
+      {/* Alert Dialog for Existing Report */}
+      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          setExistingReportDialog({ open: false, reportId: null });
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تحذير: تقرير موجود مسبقاً</AlertDialogTitle>
+            <AlertDialogDescription>
+              تم حساب أرضية المبنى مسبقاً والتقرير جاهز. هل تريد حذف التقرير السابق وحساب أرضية المبنى من جديد؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRecalculate}>
+              نعم، احذف التقرير السابق وأعد الحساب
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

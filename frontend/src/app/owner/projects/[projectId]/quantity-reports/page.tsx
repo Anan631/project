@@ -303,7 +303,7 @@ export default function OwnerQuantityReportsPage() {
           <div class="container">
             <div class="header">
               <h1>تقرير كميات الخرسانة</h1>
-              <p>${report.calculationType === 'column-footings' ? 'شروش الأعمدة' : report.calculationType === 'foundation' ? 'صبة النظافة والقواعد' : 'تفصيل شامل'}</p>
+              <p>${report.calculationType === 'column-footings' ? 'شروش الأعمدة' : report.calculationType === 'foundation' ? 'صبة النظافة والقواعد' : report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' : 'تفصيل شامل'}</p>
             </div>
 
             <div class="project-name">
@@ -357,6 +357,19 @@ export default function OwnerQuantityReportsPage() {
                         <td>إجمالي الخرسانة</td>
                       </tr>
                     `
+                    : report.calculationType === 'ground-slab'
+                    ? `
+                      <tr>
+                        <td>${(report.concreteData.groundSlabVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>${(report.concreteData.groundSlabVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>كمية خرسانة أرضية المبنى (المِدّة)</td>
+                      </tr>
+                      <tr>
+                        <td>${(report.concreteData.groundSlabVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>${(report.concreteData.groundSlabVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>إجمالي الخرسانة</td>
+                      </tr>
+                    `
                     : `
                       <tr>
                         <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
@@ -403,6 +416,8 @@ export default function OwnerQuantityReportsPage() {
                     ? `${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
                     : report.calculationType === 'ground-bridges'
                     ? `${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+                    : report.calculationType === 'ground-slab'
+                    ? `${(report.concreteData.groundSlabVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
                     : `${(() => {
                         const cleaning = report.concreteData.cleaningVolume || 0;
                         const foundations = report.concreteData.foundationsVolume || 0;
@@ -478,6 +493,7 @@ export default function OwnerQuantityReportsPage() {
   const foundationReport = reports.find(r => r.calculationType === 'foundation');
   const columnFootingsReport = reports.find(r => r.calculationType === 'column-footings');
   const groundBridgesReport = reports.find(r => r.calculationType === 'ground-bridges');
+  const groundSlabReport = reports.find(r => r.calculationType === 'ground-slab');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl" style={{ fontSize: '16px' }}>
@@ -757,6 +773,68 @@ export default function OwnerQuantityReportsPage() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Ground Slab Report Card */}
+              {groundSlabReport && (
+                <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+                  <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Blocks className="w-7 h-7 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                        <CardDescription className="text-emerald-100">
+                          أرضية المبنى (المِدّة)
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {groundSlabReport?.concreteData && (
+                      <div className="space-y-4 mb-6">
+                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                          <span className="text-slate-600">حجم أرضية المبنى</span>
+                          <span className="font-bold text-emerald-600">
+                            {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) || 
+                             groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                          </span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                          <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
+                          <span className="text-2xl font-black text-emerald-600">
+                            {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) || 
+                             groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => downloadPDF(groundSlabReport._id)}
+                        disabled={downloading === groundSlabReport._id}
+                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                      >
+                        {downloading === groundSlabReport._id ? (
+                          <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                        ) : (
+                          <Printer className="w-5 h-5 ml-2" />
+                        )}
+                        طباعة التقرير
+                      </Button>
+                      
+                      {groundSlabReport.sentToOwnerAt && (
+                        <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          <span>تم الإرسال: {formatDate(groundSlabReport.sentToOwnerAt)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Report History */}
@@ -782,6 +860,7 @@ export default function OwnerQuantityReportsPage() {
                               تقرير {report.calculationType === 'foundation' ? 'القواعد وصبة النظافة' : 
                                      report.calculationType === 'column-footings' ? 'شروش الأعمدة' : 
                                      report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : 
+                                     report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' : 
                                      report.calculationType}
                             </p>
                             <p className="text-sm text-slate-500 flex items-center gap-2">
@@ -797,6 +876,9 @@ export default function OwnerQuantityReportsPage() {
                                       report.concreteData?.totalConcrete || 0).toFixed(2);
                             } else if (report.calculationType === 'ground-bridges') {
                               return (report.concreteData?.totalVolume || 
+                                      report.concreteData?.totalConcrete || 0).toFixed(2);
+                            } else if (report.calculationType === 'ground-slab') {
+                              return (report.concreteData?.groundSlabVolume || 
                                       report.concreteData?.totalConcrete || 0).toFixed(2);
                             } else {
                               const cleaning = report.concreteData?.cleaningVolume || 0;
