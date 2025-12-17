@@ -431,9 +431,7 @@ export default function FoundationCalculationPage() {
                   <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-emerald-800 bg-clip-text text-transparent leading-tight mb-4">
                     حساب القواعد وصبة النظافة
                   </h1>
-                  <p className="text-lg lg:text-xl text-slate-600 font-semibold leading-relaxed max-w-2xl">
-                    حساب دقيق لكميات الخرسانة وفق المعايير الهندسية الدولية
-                  </p>
+                  
                 </div>
               </div>
               <div className="absolute -inset-4 bg-gradient-to-r from-emerald-400/20 via-blue-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
@@ -470,7 +468,7 @@ export default function FoundationCalculationPage() {
                     <div>
                       <CardTitle className="text-xl font-bold">صبة النظافة العامة</CardTitle>
                       <CardDescription className="text-emerald-100 text-base">
-                        أبعاد الصبة الأساسية تحت المبنى (إن وجدت)
+                        أبعاد الصبة الأساسية تحت المبنى
                       </CardDescription>
                     </div>
                   </div>
@@ -729,9 +727,7 @@ export default function FoundationCalculationPage() {
                     </div>
                     <div>
                       <CardTitle className="text-xl font-bold">النتائج الهندسية</CardTitle>
-                      <CardDescription className="text-indigo-100 text-base">
-                        حسابات دقيقة وفق المعايير الفنية
-                      </CardDescription>
+                      
                     </div>
                   </div>
                 </CardHeader>

@@ -480,14 +480,9 @@ export default function ColumnsConcretePage() {
                   العودة إلى صفحة كروت الباطون
                 </Button>
               </Link>
-              <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg border-0 px-6 py-2.5 font-bold text-lg">
-                حساب خرسانة الأعمدة
-              </Badge>
+              
             </div>
-            <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
-              <LayoutDashboard className="w-4 h-4" />
-              <span>حساب خرسانة الأعمدة - مشروع #{projectId}</span>
-            </div>
+            
           </div>
 
           <div className="relative group">
@@ -504,9 +499,7 @@ export default function ColumnsConcretePage() {
                 <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-emerald-800 bg-clip-text text-transparent leading-tight mb-4">
                   حساب كمية الخرسانة في الأعمدة
                 </h1>
-                <p className="text-lg lg:text-xl text-slate-600 font-semibold leading-relaxed max-w-2xl">
-                  حساب دقيق لحجم الخرسانة في الأعمدة المربعة، المستطيلة، والدائرية
-                </p>
+                
               </div>
             </div>
             <div className="absolute -inset-4 bg-gradient-to-r from-emerald-400/20 via-blue-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
@@ -677,8 +670,7 @@ export default function ColumnsConcretePage() {
                                         label="الطول"
                                         value={column.length || ''}
                                         onChange={(value) => updateColumn(column.id, 'length', value)}
-                                        placeholder="0.4"
-                                        step="0.01"
+                                        
                                         unit="متر"
                                         icon={Ruler}
                                       />
@@ -687,8 +679,7 @@ export default function ColumnsConcretePage() {
                                         label="العرض"
                                         value={column.width || ''}
                                         onChange={(value) => updateColumn(column.id, 'width', value)}
-                                        placeholder="0.4"
-                                        step="0.01"
+                                        
                                         unit="متر"
                                         icon={Ruler}
                                       />
@@ -702,8 +693,7 @@ export default function ColumnsConcretePage() {
                                         label="الطول"
                                         value={column.length || ''}
                                         onChange={(value) => updateColumn(column.id, 'length', value)}
-                                        placeholder="0.4"
-                                        step="0.01"
+                                       
                                         unit="متر"
                                         icon={Ruler}
                                       />
@@ -712,8 +702,7 @@ export default function ColumnsConcretePage() {
                                         label="العرض"
                                         value={column.width || ''}
                                         onChange={(value) => updateColumn(column.id, 'width', value)}
-                                        placeholder="0.3"
-                                        step="0.01"
+                                     
                                         unit="متر"
                                         icon={Ruler}
                                       />
@@ -726,8 +715,7 @@ export default function ColumnsConcretePage() {
                                       label="القطر"
                                       value={column.diameter || ''}
                                       onChange={(value) => updateColumn(column.id, 'diameter', value)}
-                                      placeholder="0.4"
-                                      step="0.01"
+                                    
                                       unit="متر"
                                       icon={Ruler}
                                     />
@@ -738,8 +726,7 @@ export default function ColumnsConcretePage() {
                                     label="الارتفاع"
                                     value={column.height || ''}
                                     onChange={(value) => updateColumn(column.id, 'height', value)}
-                                    placeholder="3.0"
-                                    step="0.01"
+                                    
                                     unit="متر"
                                     icon={Ruler}
                                   />
@@ -802,9 +789,7 @@ export default function ColumnsConcretePage() {
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold">النتائج الهندسية</CardTitle>
-                    <CardDescription className="text-indigo-100 text-base">
-                      حسابات دقيقة وفق المعايير الفنية
-                    </CardDescription>
+                    
                   </div>
                 </div>
               </CardHeader>

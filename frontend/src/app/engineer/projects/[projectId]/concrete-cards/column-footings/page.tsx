@@ -596,14 +596,9 @@ export default function ColumnFootingsCalculationPage() {
                     العودة الى صفحة الكروت الخاصة بالباطون
                   </Button>
                 </Link>
-                <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg border-0 px-6 py-2.5 font-bold text-lg">
-                  حساب الخرسانة المتقدم
-                </Badge>
+                
               </div>
-              <div className="flex items-center gap-3 text-sm text-slate-600 font-medium">
-                <LayoutDashboard className="w-4 h-4" />
-                <span>حساب شروش الأعمدة - مشروع #{projectId}</span>
-              </div>
+              
             </div>
 
             <div className="relative group">
@@ -620,9 +615,7 @@ export default function ColumnFootingsCalculationPage() {
                   <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-blue-800 bg-clip-text text-transparent leading-tight mb-4">
                     حساب شروش الأعمدة
                   </h1>
-                  <p className="text-lg lg:text-xl text-slate-600 font-semibold leading-relaxed max-w-2xl">
-                    حساب دقيق لكميات الخرسانة في شروش الأعمدة وفق المعايير الهندسية
-                  </p>
+                  
                 </div>
               </div>
               <div className="absolute -inset-4 bg-gradient-to-r from-blue-400/20 via-indigo-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
@@ -690,7 +683,7 @@ export default function ColumnFootingsCalculationPage() {
                     label="عدد الأعمدة"
                     value={inputs.numberOfColumns}
                     onChange={(value) => handleInputChange('numberOfColumns', value)}
-                    placeholder="12"
+                    
                     type="number"
                     unit="عمود"
                     icon={Grid}
@@ -707,8 +700,8 @@ export default function ColumnFootingsCalculationPage() {
                     label="ارتفاع الشرش"
                     value={inputs.footingHeight}
                     onChange={(value) => handleInputChange('footingHeight', value)}
-                    placeholder="0.18"
-                    step="0.01"
+                    
+                   
                     unit="متر"
                     icon={Ruler}
                   />
@@ -815,12 +808,10 @@ export default function ColumnFootingsCalculationPage() {
                       label="طول القاعدة"
                       value={inputs.baseLength}
                       onChange={(value) => handleInputChange('baseLength', value)}
-                      placeholder="1.20"
                       type="text"
                       inputMode="decimal"
                       lang="en"
                       dir="ltr"
-                      step="0.1"
                       unit="متر"
                       icon={Ruler}
                     />
@@ -829,12 +820,10 @@ export default function ColumnFootingsCalculationPage() {
                       label="عرض القاعدة"
                       value={inputs.baseWidth}
                       onChange={(value) => handleInputChange('baseWidth', value)}
-                      placeholder="1.20"
                       type="text"
                       inputMode="decimal"
                       lang="en"
                       dir="ltr"
-                      step="0.1"
                       unit="متر"
                       icon={Ruler}
                     />
@@ -876,7 +865,6 @@ export default function ColumnFootingsCalculationPage() {
                     label="عدد الطوابق"
                     value={inputs.numberOfFloors}
                     onChange={(value) => handleInputChange('numberOfFloors', value)}
-                    placeholder="4"
                     type="number"
                     unit="طابق"
                     icon={Layers}
@@ -886,8 +874,6 @@ export default function ColumnFootingsCalculationPage() {
                     label="مساحة البلاطة"
                     value={inputs.slabArea}
                     onChange={(value) => handleInputChange('slabArea', value)}
-                    placeholder="150"
-                    step="0.1"
                     unit="م²"
                     icon={Grid}
                   />
