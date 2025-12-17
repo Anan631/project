@@ -14,7 +14,9 @@ import {
   LayoutDashboard,
   Component,
   Plus,
-  Trash2
+  Trash2,
+  AlertTriangle,
+  X
 } from "lucide-react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -26,6 +28,16 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Helper component for input fields
 function InputField({ id, label, value, onChange, type = "number", unit, icon: Icon }: {
@@ -67,12 +79,21 @@ interface Bridge {
   height: string;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 export default function GroundBridgesCalculationPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const projectId = params.projectId as string;
   const [saving, setSaving] = useState(false);
+  const [existingReportDialog, setExistingReportDialog] = useState<{
+    open: boolean;
+    reportId: string | null;
+  }>({
+    open: false,
+    reportId: null,
+  });
 
   // State for bridges
   const [bridges, setBridges] = useState<Bridge[]>([
@@ -123,7 +144,7 @@ export default function GroundBridgesCalculationPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      const response = await fetch('http://localhost:5000/api/health', {
+      const response = await fetch(`${API_BASE_URL}/api/health`, {
         method: 'GET',
         signal: controller.signal
       });
@@ -154,6 +175,29 @@ export default function GroundBridgesCalculationPage() {
           setIsLoading(false);
           return;
         }
+      }
+
+      // Check if report already exists for this project and calculation type
+      try {
+        const reportsResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+        const reportsData = await reportsResponse.json();
+        
+        if (reportsData.success && reportsData.reports && reportsData.reports.length > 0) {
+          const existingReport = reportsData.reports.find((r: any) => r.calculationType === 'ground-bridges');
+          
+          if (existingReport) {
+            // Show warning dialog
+            setExistingReportDialog({
+              open: true,
+              reportId: existingReport._id,
+            });
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not check for existing reports:', err);
+        // Continue with calculation if check fails
       }
 
       // Convert to numbers and validate
@@ -204,6 +248,45 @@ export default function GroundBridgesCalculationPage() {
     }
   };
 
+  const handleRecalculate = async () => {
+    if (!existingReportDialog.reportId) {
+      setExistingReportDialog({ open: false, reportId: null });
+      // Continue with calculation by calling calculateResults again
+      calculateResults();
+      return;
+    }
+
+    try {
+      // Delete existing report (soft delete)
+      const deleteResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/${existingReportDialog.reportId}`, {
+        method: 'DELETE'
+      });
+
+      if (deleteResponse.ok) {
+        toast({
+          title: 'تم حذف التقرير السابق',
+          description: 'تم حذف التقرير السابق بنجاح',
+        });
+      }
+
+      // Close dialog and continue with calculation
+      setExistingReportDialog({ open: false, reportId: null });
+      
+      // Continue with calculation by calling calculateResults again
+      calculateResults();
+    } catch (error) {
+      console.error('Error deleting existing report:', error);
+      toast({
+        title: 'تحذير',
+        description: 'لم يتم حذف التقرير السابق، سيتم تحديث التقرير الحالي',
+        variant: 'destructive'
+      });
+      setExistingReportDialog({ open: false, reportId: null });
+      // Continue with calculation anyway
+      calculateResults();
+    }
+  };
+
   const resetCalculation = () => {
     setBridges([{ id: '1', length: '', width: '', height: '' }]);
     setResults(null);
@@ -226,7 +309,7 @@ export default function GroundBridgesCalculationPage() {
       const engineerName = localStorage.getItem('userName') || 'المهندس';
       
       // Fetch project details to get owner info
-      const projectRes = await fetch(`http://localhost:5000/api/projects/${projectId}`);
+      const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
       
       if (!projectRes.ok) {
         throw new Error(`HTTP error! status: ${projectRes.status}`);
@@ -254,13 +337,18 @@ export default function GroundBridgesCalculationPage() {
           totalConcrete: results.totalVolume,
           bridgesCount: results.bridges.length
         },
+        // إزالة بيانات الحديد - لم تبدأ حسابات الحديد بعد
         steelData: {
-          totalSteelWeight: results.totalVolume * 120, // 120 kg/m³ for bridges
+          totalSteelWeight: 0,
+          foundationSteel: 0,
+          columnSteel: 0,
+          beamSteel: 0,
+          slabSteel: 0
         }
       };
 
       // حفظ النتائج في قاعدة البيانات
-      const response = await fetch('http://localhost:5000/api/quantity-reports', {
+      const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportData)
@@ -651,6 +739,54 @@ export default function GroundBridgesCalculationPage() {
           </div>
         </div>
       </div>
+      {/* Existing Report Warning Dialog */}
+      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => 
+        setExistingReportDialog(prev => ({ ...prev, open }))
+      }>
+        <AlertDialogContent className="max-w-lg" dir="rtl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-7 h-7 text-amber-600" />
+              </div>
+              <AlertDialogTitle className="text-right text-xl font-bold">
+                تحذير: تقرير موجود مسبقاً
+              </AlertDialogTitle>
+            </div>
+            <div className="text-right text-base leading-relaxed space-y-3">
+              <p className="text-slate-700">
+                تم إجراء الحسابات وحفظ التقرير مسبقاً لهذا المشروع.
+              </p>
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                <p className="text-amber-800 font-medium">
+                  إذا قمت بإعادة الحسابات، سيتم:
+                </p>
+                <ul className="list-disc list-inside text-amber-700 text-sm mt-2 space-y-1">
+                  <li>حذف التقرير السابق من عند المهندس</li>
+                  <li>حذف التقرير السابق من عند المالك (إذا كان قد تم إرساله)</li>
+                  <li>حفظ التقرير الجديد</li>
+                </ul>
+              </div>
+              <p className="text-slate-600">
+                هل تريد المتابعة وإعادة الحسابات؟
+              </p>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3 mt-6">
+            <AlertDialogCancel className="flex-1 h-12 text-base font-medium">
+              <X className="w-4 h-4 ml-2" />
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRecalculate}
+              className="flex-1 h-12 bg-amber-600 hover:bg-amber-700 text-white text-base font-medium"
+            >
+              <Calculator className="w-4 h-4 ml-2" />
+              إعادة الحسابات
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   );
 }

@@ -31,10 +31,26 @@ interface QuantityReport {
   ownerEmail: string;
   calculationType: string;
   concreteData: {
-    cleaningVolume: number;
-    foundationsVolume: number;
+    cleaningVolume?: number;
+    foundationsVolume?: number;
     groundSlabVolume?: number;
     totalConcrete: number;
+    totalFootingsVolume?: number;
+    numberOfColumns?: number;
+    finalColumnDimensions?: {
+      displayText: string;
+      [key: string]: any;
+    };
+    totalVolume?: number;
+    bridgesCount?: number;
+    bridges?: Array<{
+      id: string;
+      length: number;
+      width: number;
+      height: number;
+      volume: number;
+    }>;
+    [key: string]: any;
   };
   sentToOwner: boolean;
   sentToOwnerAt: string;
@@ -328,6 +344,19 @@ export default function OwnerQuantityReportsPage() {
                         <td>إجمالي الخرسانة</td>
                       </tr>
                     `
+                    : report.calculationType === 'ground-bridges'
+                    ? `
+                      <tr>
+                        <td>${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>كمية خرسانة الجسور الأرضية</td>
+                      </tr>
+                      <tr>
+                        <td>${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>إجمالي الخرسانة</td>
+                      </tr>
+                    `
                     : `
                       <tr>
                         <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
@@ -369,12 +398,18 @@ export default function OwnerQuantityReportsPage() {
             <div class="total-box">
               <label>المجموع الكلي:</label>
               <div class="value">
-                ${(() => {
-                  const cleaning = report.concreteData.cleaningVolume || 0;
-                  const foundations = report.concreteData.foundationsVolume || 0;
-                  const groundSlab = report.concreteData.groundSlabVolume || 0;
-                  return (cleaning + foundations + groundSlab).toFixed(2);
-                })()} م³
+                ${
+                  report.calculationType === 'column-footings'
+                    ? `${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+                    : report.calculationType === 'ground-bridges'
+                    ? `${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+                    : `${(() => {
+                        const cleaning = report.concreteData.cleaningVolume || 0;
+                        const foundations = report.concreteData.foundationsVolume || 0;
+                        const groundSlab = report.concreteData.groundSlabVolume || 0;
+                        return (cleaning + foundations + groundSlab).toFixed(2);
+                      })} م³`
+                }
               </div>
             </div>
 
@@ -442,6 +477,7 @@ export default function OwnerQuantityReportsPage() {
   // Separate reports by type
   const foundationReport = reports.find(r => r.calculationType === 'foundation');
   const columnFootingsReport = reports.find(r => r.calculationType === 'column-footings');
+  const groundBridgesReport = reports.find(r => r.calculationType === 'ground-bridges');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl" style={{ fontSize: '16px' }}>
@@ -493,7 +529,7 @@ export default function OwnerQuantityReportsPage() {
         ) : (
           <>
             {/* Reports Cards - Side by Side */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
               {/* Foundation Report Card */}
               {foundationReport && (
                 <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
@@ -651,6 +687,76 @@ export default function OwnerQuantityReportsPage() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Ground Bridges Report Card */}
+              {groundBridgesReport && (
+                <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+                  <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Blocks className="w-7 h-7 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                        <CardDescription className="text-emerald-100">
+                          الجسور الأرضية
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {groundBridgesReport?.concreteData && (
+                      <div className="space-y-4 mb-6">
+                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                          <span className="text-slate-600">حجم الجسور الأرضية</span>
+                          <span className="font-bold text-emerald-600">
+                            {groundBridgesReport.concreteData.totalVolume?.toFixed(3) || 
+                             groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                          </span>
+                        </div>
+                        {groundBridgesReport.concreteData.bridgesCount && (
+                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <span className="text-slate-600">عدد الجسور</span>
+                            <span className="font-bold text-emerald-600">
+                              {groundBridgesReport.concreteData.bridgesCount}
+                            </span>
+                          </div>
+                        )}
+                        <Separator />
+                        <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                          <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
+                          <span className="text-2xl font-black text-emerald-600">
+                            {groundBridgesReport.concreteData.totalVolume?.toFixed(3) || 
+                             groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => downloadPDF(groundBridgesReport._id)}
+                        disabled={downloading === groundBridgesReport._id}
+                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                      >
+                        {downloading === groundBridgesReport._id ? (
+                          <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                        ) : (
+                          <Printer className="w-5 h-5 ml-2" />
+                        )}
+                        طباعة التقرير
+                      </Button>
+                      
+                      {groundBridgesReport.sentToOwnerAt && (
+                        <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          <span>تم الإرسال: {formatDate(groundBridgesReport.sentToOwnerAt)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Report History */}
@@ -675,6 +781,7 @@ export default function OwnerQuantityReportsPage() {
                             <p className="font-medium text-slate-800">
                               تقرير {report.calculationType === 'foundation' ? 'القواعد وصبة النظافة' : 
                                      report.calculationType === 'column-footings' ? 'شروش الأعمدة' : 
+                                     report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : 
                                      report.calculationType}
                             </p>
                             <p className="text-sm text-slate-500 flex items-center gap-2">
@@ -687,6 +794,9 @@ export default function OwnerQuantityReportsPage() {
                           {(() => {
                             if (report.calculationType === 'column-footings') {
                               return (report.concreteData?.totalFootingsVolume || 
+                                      report.concreteData?.totalConcrete || 0).toFixed(2);
+                            } else if (report.calculationType === 'ground-bridges') {
+                              return (report.concreteData?.totalVolume || 
                                       report.concreteData?.totalConcrete || 0).toFixed(2);
                             } else {
                               const cleaning = report.concreteData?.cleaningVolume || 0;
