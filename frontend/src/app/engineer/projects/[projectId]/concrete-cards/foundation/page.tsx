@@ -16,7 +16,9 @@ import {
   Grid,
   LayoutDashboard,
   Plus,
-  Trash2
+  Trash2,
+  AlertTriangle,
+  X
 } from "lucide-react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -29,6 +31,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function FoundationCalculationPage() {
   const params = useParams();
@@ -36,6 +48,13 @@ export default function FoundationCalculationPage() {
   const { toast } = useToast();
   const projectId = params.projectId as string;
   const [saving, setSaving] = useState(false);
+  const [existingReportDialog, setExistingReportDialog] = useState<{
+    open: boolean;
+    reportId: string | null;
+  }>({
+    open: false,
+    reportId: null,
+  });
 
   // State for all inputs
   const [inputs, setInputs] = useState({
@@ -159,6 +178,28 @@ export default function FoundationCalculationPage() {
         return;
       }
 
+      // Check if report already exists for this project and calculation type
+      try {
+        const reportsResponse = await fetch(`http://localhost:5000/api/quantity-reports/project/${projectId}`);
+        const reportsData = await reportsResponse.json();
+        
+        if (reportsData.success && reportsData.reports && reportsData.reports.length > 0) {
+          const existingReport = reportsData.reports.find((r: any) => r.calculationType === 'foundation');
+          
+          if (existingReport) {
+            // Show warning dialog
+            setExistingReportDialog({
+              open: true,
+              reportId: existingReport._id,
+            });
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not check for existing reports:', err);
+        // Continue with calculation if check fails
+      }
+
       // أ. حجم صبة النظافة (العامة)
       const cleaningVolume = cleaningLength * cleaningWidth * cleaningHeight;
 
@@ -270,10 +311,48 @@ export default function FoundationCalculationPage() {
       });
       setError(null);
 
-      // لا إرسال للخادم بناءً على المتطلب: التخزين محلي فقط
-
     } catch (error) {
       setError('حدث خطأ في الحساب. يرجى التحقق من المدخلات.');
+    }
+  };
+
+  const handleRecalculate = async () => {
+    if (!existingReportDialog.reportId) {
+      setExistingReportDialog({ open: false, reportId: null });
+      // Continue with calculation by calling calculateResults again
+      calculateResults();
+      return;
+    }
+
+    try {
+      // Delete existing report
+      const deleteResponse = await fetch(`http://localhost:5000/api/quantity-reports/${existingReportDialog.reportId}`, {
+        method: 'DELETE'
+      });
+
+      if (deleteResponse.ok) {
+        toast({
+          title: 'تم حذف التقرير السابق',
+          description: 'تم حذف التقرير السابق بنجاح',
+        });
+      }
+
+      // Close dialog and continue with calculation
+      setExistingReportDialog({ open: false, reportId: null });
+      
+      // Continue with calculation by calling calculateResults again
+      // This time it won't find the report, so it will proceed
+      calculateResults();
+    } catch (error) {
+      console.error('Error deleting existing report:', error);
+      toast({
+        title: 'تحذير',
+        description: 'لم يتم حذف التقرير السابق، سيتم تحديث التقرير الحالي',
+        variant: 'destructive'
+      });
+      setExistingReportDialog({ open: false, reportId: null });
+      // Continue with calculation anyway
+      calculateResults();
     }
   };
 
@@ -355,10 +434,15 @@ export default function FoundationCalculationPage() {
             volume: (parseFloat(f.cleaningLength) - 0.20) * (parseFloat(f.cleaningWidth) - 0.20) * parseFloat(f.height)
           }))
         },
+        // إزالة بيانات الحديد - لم تبدأ حسابات الحديد بعد
         steelData: {
-          totalSteelWeight: results.totalConcrete * 80,
-          foundationSteel: results.foundationsVolume * 80
-        }
+          totalSteelWeight: 0,
+          foundationSteel: 0,
+          columnSteel: 0,
+          beamSteel: 0,
+          slabSteel: 0
+        },
+        sentToOwner: false
       };
 
       const response = await fetch('http://localhost:5000/api/quantity-reports', {
@@ -823,6 +907,55 @@ export default function FoundationCalculationPage() {
           </div>
         </div>
       </div>
+
+      {/* Existing Report Warning Dialog */}
+      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => 
+        setExistingReportDialog(prev => ({ ...prev, open }))
+      }>
+        <AlertDialogContent className="max-w-lg" dir="rtl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-7 h-7 text-amber-600" />
+              </div>
+              <AlertDialogTitle className="text-right text-xl font-bold">
+                تحذير: تقرير موجود مسبقاً
+              </AlertDialogTitle>
+            </div>
+            <div className="text-right text-base leading-relaxed space-y-3">
+              <p className="text-slate-700">
+                تم إجراء الحسابات وحفظ التقرير مسبقاً لهذا المشروع.
+              </p>
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                <p className="text-amber-800 font-medium">
+                  إذا قمت بإعادة الحسابات، سيتم:
+                </p>
+                <ul className="list-disc list-inside text-amber-700 text-sm mt-2 space-y-1">
+                  <li>حذف التقرير السابق من عند المهندس</li>
+                  <li>حذف التقرير السابق من عند المالك (إذا كان قد تم إرساله)</li>
+                  <li>حفظ التقرير الجديد</li>
+                </ul>
+              </div>
+              <p className="text-slate-600">
+                هل تريد المتابعة وإعادة الحسابات؟
+              </p>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3 mt-6">
+            <AlertDialogCancel className="flex-1 h-12 text-base font-medium">
+              <X className="w-4 h-4 ml-2" />
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRecalculate}
+              className="flex-1 h-12 bg-amber-600 hover:bg-amber-700 text-white text-base font-medium"
+            >
+              <Calculator className="w-4 h-4 ml-2" />
+              إعادة الحسابات
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   );
 }

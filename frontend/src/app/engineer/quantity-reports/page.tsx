@@ -698,9 +698,6 @@ export default function QuantityReportsPage() {
                                     e.stopPropagation();
                                     router.push(`/engineer/quantity-reports/${project.projectId}`);
                                   }}>
-                                  <Badge className={cn(getPriorityBadge(project.priority || 'medium'), "text-xs")}>
-                                    {getPriorityBadge(project.priority || 'medium').label}
-                                  </Badge>
                                 </div>
                               </div>
                             </CardHeader>
@@ -721,21 +718,13 @@ export default function QuantityReportsPage() {
                                       {project.reports.slice(0, 3).map((report) => {
                                         const badge = getReportTypeBadge(report.calculationType);
                                         return (
-                                          <div key={report._id} className="relative group/badge">
-                                            <Badge 
-                                              className={`${badge.color} text-white text-xs flex items-center gap-1 pr-6`}
-                                            >
-                                              <badge.icon className="w-3 h-3 text-white" />
-                                              {badge.label}
-                                            </Badge>
-                                            <button
-                                              title="حذف التقرير"
-                                              onClick={(e) => { e.stopPropagation(); handleDeleteReport(project.projectId, report._id, report.calculationType); }}
-                                              className="absolute -right-1 -top-1 hidden group-hover/badge:flex items-center justify-center w-5 h-5 rounded-full bg-white text-red-600 shadow hover:bg-red-50"
-                                            >
-                                              <Trash2 className="w-3 h-3" />
-                                            </button>
-                                          </div>
+                                          <Badge 
+                                            key={report._id}
+                                            className={`${badge.color} text-white text-xs flex items-center gap-1`}
+                                          >
+                                            <badge.icon className="w-3 h-3 text-white" />
+                                            {badge.label}
+                                          </Badge>
                                         );
                                       })}
                                       {project.reports.length > 3 && (
@@ -749,30 +738,16 @@ export default function QuantityReportsPage() {
                                 
                                 {/* Quick Stats */}
                                 {latestReport?.concreteData && (
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-emerald-50 rounded-lg p-2 text-center">
-                                      <p className="text-xs text-emerald-600">الخرسانة</p>
-                                      <p className="text-sm font-bold text-emerald-700">
-                                        {(() => {
-                                          const cleaning = latestReport.concreteData.cleaningVolume || 0;
-                                          const foundations = latestReport.concreteData.foundationsVolume || 0;
-                                          const groundSlab = latestReport.concreteData.groundSlabVolume || 0;
-                                          return (cleaning + foundations + groundSlab).toFixed(2);
-                                        })()} م³
-                                      </p>
-                                    </div>
-                                    <div className="bg-orange-50 rounded-lg p-2 text-center">
-                                      <p className="text-xs text-orange-600">الحديد</p>
-                                      <p className="text-sm font-bold text-orange-700">
-                                        {(() => {
-                                          const cleaning = latestReport.concreteData.cleaningVolume || 0;
-                                          const foundations = latestReport.concreteData.foundationsVolume || 0;
-                                          const groundSlab = latestReport.concreteData.groundSlabVolume || 0;
-                                          const totalConcrete = cleaning + foundations + groundSlab;
-                                          return (totalConcrete * 80).toFixed(0);
-                                        })()} كجم
-                                      </p>
-                                    </div>
+                                  <div className="bg-emerald-50 rounded-lg p-3 text-center">
+                                    <p className="text-xs text-emerald-600 mb-1">الخرسانة</p>
+                                    <p className="text-lg font-bold text-emerald-700">
+                                      {(() => {
+                                        const cleaning = latestReport.concreteData.cleaningVolume || 0;
+                                        const foundations = latestReport.concreteData.foundationsVolume || 0;
+                                        const groundSlab = latestReport.concreteData.groundSlabVolume || 0;
+                                        return (cleaning + foundations + groundSlab).toFixed(2);
+                                      })} م³
+                                    </p>
                                   </div>
                                 )}
                                 
@@ -871,9 +846,6 @@ export default function QuantityReportsPage() {
                                   <p className="font-bold text-slate-900">{project.projectName}</p>
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm text-slate-500">#{project.projectId.slice(-6)}</span>
-                                    <Badge className={cn(getPriorityBadge(project.priority || 'medium'), "text-xs")}>
-                                      {getPriorityBadge(project.priority || 'medium').label}
-                                    </Badge>
                                   </div>
                                 </div>
                               </div>
@@ -890,21 +862,13 @@ export default function QuantityReportsPage() {
                                   {project.reports.slice(0, 2).map((report) => {
                                     const badge = getReportTypeBadge(report.calculationType);
                                     return (
-                                      <div key={report._id} className="relative group/badge">
-                                        <Badge 
-                                          className={`${badge.color} text-white text-xs flex items-center gap-1 pr-6`}
-                                        >
-                                          <badge.icon className="w-3 h-3 text-white" />
-                                          {badge.label}
-                                        </Badge>
-                                        <button
-                                          title="حذف التقرير"
-                                          onClick={(e) => { e.stopPropagation(); handleDeleteReport(project.projectId, report._id, report.calculationType); }}
-                                          className="absolute -right-1 -top-1 hidden group-hover/badge:flex items-center justify-center w-5 h-5 rounded-full bg-white text-red-600 shadow hover:bg-red-50"
-                                        >
-                                          <Trash2 className="w-3 h-3" />
-                                        </button>
-                                      </div>
+                                      <Badge 
+                                        key={report._id}
+                                        className={`${badge.color} text-white text-xs flex items-center gap-1`}
+                                      >
+                                        <badge.icon className="w-3 h-3 text-white" />
+                                        {badge.label}
+                                      </Badge>
                                     );
                                   })}
                                   {project.reports.length > 2 && (

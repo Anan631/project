@@ -67,6 +67,9 @@ const quantityReportSchema = new Schema(
       default: 'foundation'
     },
     
+    sentToOwner: { type: Boolean, default: false },
+    sentToOwnerAt: { type: Date },
+    
     notes: { type: String, default: '' }
   },
   { timestamps: true }

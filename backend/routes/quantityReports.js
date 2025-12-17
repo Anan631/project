@@ -205,6 +205,113 @@ router.get('/pdf/steel/:reportId', async (req, res) => {
   }
 });
 
+// Send report to owner
+router.post('/:reportId/send-to-owner', async (req, res) => {
+  try {
+    const reportId = req.params.reportId;
+    console.log('📧 Sending report to owner:', reportId);
+    
+    const report = await QuantityReport.findById(reportId);
+    if (!report) {
+      return res.status(404).json({ success: false, message: 'Report not found' });
+    }
+    
+    // Verify that the project is linked to an owner
+    const project = await Project.findById(report.projectId);
+    if (!project || !project.linkedOwnerEmail) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'المشروع غير مرتبط بمالك. يرجى ربط المشروع بمالك أولاً' 
+      });
+    }
+    
+    // Verify owner email matches
+    if (report.ownerEmail && report.ownerEmail.toLowerCase() !== project.linkedOwnerEmail.toLowerCase()) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'البريد الإلكتروني للمالك في التقرير لا يطابق المالك المرتبط بالمشروع' 
+      });
+    }
+    
+    // Update report to mark as sent to owner
+    report.sentToOwner = true;
+    report.sentToOwnerAt = new Date();
+    if (!report.ownerEmail) {
+      report.ownerEmail = project.linkedOwnerEmail;
+    }
+    if (!report.ownerName && project.clientName) {
+      report.ownerName = project.clientName;
+    }
+    
+    await report.save();
+    
+    console.log('✅ Report sent to owner successfully:', report.ownerEmail);
+    return res.json({ 
+      success: true, 
+      message: 'تم إرسال التقرير للمالك بنجاح',
+      report 
+    });
+  } catch (err) {
+    console.error('❌ Error sending report to owner:', err);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to send report to owner',
+      error: err.message 
+    });
+  }
+});
+
+// Get reports sent to owner
+router.get('/owner/:ownerEmail', async (req, res) => {
+  try {
+    const ownerEmail = req.params.ownerEmail.toLowerCase();
+    console.log('📊 Fetching quantity reports for owner:', ownerEmail);
+    
+    // Find reports sent to this owner
+    const reports = await QuantityReport.find({ 
+      ownerEmail: ownerEmail,
+      sentToOwner: true 
+    }).sort({ sentToOwnerAt: -1 });
+    
+    console.log(`✅ Found ${reports.length} reports for owner ${ownerEmail}`);
+    return res.json({ success: true, reports });
+  } catch (err) {
+    console.error('❌ Error fetching owner reports:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch reports' });
+  }
+});
+
+// Get reports for a specific project sent to owner
+router.get('/owner/:ownerEmail/project/:projectId', async (req, res) => {
+  try {
+    const ownerEmail = req.params.ownerEmail.toLowerCase();
+    const projectId = req.params.projectId;
+    console.log('📊 Fetching quantity reports for owner and project:', ownerEmail, projectId);
+    
+    // Verify project is linked to this owner
+    const project = await Project.findById(projectId);
+    if (!project || !project.linkedOwnerEmail || project.linkedOwnerEmail.toLowerCase() !== ownerEmail) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'المشروع غير مرتبط بهذا المالك' 
+      });
+    }
+    
+    // Find reports for this project sent to this owner
+    const reports = await QuantityReport.find({ 
+      projectId,
+      ownerEmail: ownerEmail,
+      sentToOwner: true 
+    }).sort({ sentToOwnerAt: -1 });
+    
+    console.log(`✅ Found ${reports.length} reports for owner ${ownerEmail} and project ${projectId}`);
+    return res.json({ success: true, reports, project });
+  } catch (err) {
+    console.error('❌ Error fetching owner project reports:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch reports' });
+  }
+});
+
 // Delete report
 router.delete('/:id', async (req, res) => {
   try {

@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   CalendarDays, Image as ImageIcon, FileText, MessageSquare, Mail, Edit, Trash2, Send, X,
   HardHat, Percent, BarChart3, GanttChartSquare, Loader2 as LoaderIcon, MapPin, AlertTriangle, Check, Wallet,
-  ArrowRight, Building, Clock, User, Download
+  ArrowRight, Building, Clock, User, Download, Blocks
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
@@ -825,6 +825,32 @@ export default function OwnerProjectDetailPage() {
                     <p className="text-gray-500 text-sm">سيتم عرض التقارير هنا عند إضافتها من المهندس</p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Quantity Reports Card */}
+            <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold flex items-center gap-3 text-gray-900">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Blocks className="h-4 w-4 text-blue-600" />
+                  </div>
+                  تقارير الكميات
+                </CardTitle>
+                <CardDescription className="text-sm text-gray-600">
+                  يمكنك عرض تقارير كميات الخرسانة المرسلة من المهندس
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium">
+                  <Link href={`/owner/projects/${projectId}/quantity-reports`}>
+                    <Blocks className="ml-2 h-4 w-4" />
+                    عرض تقارير الكميات
+                  </Link>
+                </Button>
+                <p className="text-xs text-gray-500 text-center">
+                  اضغط لعرض جميع تقارير كميات الخرسانة المرسلة لك من المهندس
+                </p>
               </CardContent>
             </Card>
           </div>

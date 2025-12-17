@@ -6,19 +6,18 @@ import Link from 'next/link';
 import {
   Building2,
   FileText,
-  Download,
   ArrowRight,
   Loader2,
   User,
   Calendar,
   Blocks,
-  CircleDot,
   CheckCircle2,
   AlertCircle,
   Printer,
   Trash2,
   AlertTriangle,
   X,
+  Send,
 } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,7 +34,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import jsPDF from 'jspdf';
 
 interface QuantityReport {
   _id: string;
@@ -58,6 +56,8 @@ interface QuantityReport {
     foundationSteel: number;
     columnSteel?: number;
   };
+  sentToOwner?: boolean;
+  sentToOwnerAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -72,6 +72,7 @@ export default function ProjectReportsPage() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [sendingToOwner, setSendingToOwner] = useState<string | null>(null);
   const [projectInfo, setProjectInfo] = useState<{
     name: string;
     engineerName: string;
@@ -483,11 +484,13 @@ export default function ProjectReportsPage() {
                         <td>${report.concreteData.foundationsVolume?.toFixed(2) || 0} م³</td>
                         <td>كمية خرسانة القواعد</td>
                       </tr>
+                      ${(report.concreteData.groundSlabVolume && report.concreteData.groundSlabVolume > 0) ? `
                       <tr>
-                        <td>${report.concreteData.groundSlabVolume?.toFixed(2) || 0} م³</td>
-                        <td>${report.concreteData.groundSlabVolume?.toFixed(2) || 0} م³</td>
+                        <td>${report.concreteData.groundSlabVolume.toFixed(2)} م³</td>
+                        <td>${report.concreteData.groundSlabVolume.toFixed(2)} م³</td>
                         <td>كمية خرسانة أرضية المبنى</td>
                       </tr>
+                      ` : ''}
                       <tr>
                         <td>${(() => {
                           const cleaning = report.concreteData.cleaningVolume || 0;
@@ -652,6 +655,42 @@ export default function ProjectReportsPage() {
     }
   };
 
+  const handleSendToOwner = async (reportId: string) => {
+    setSendingToOwner(reportId);
+    try {
+      const response = await fetch(`http://localhost:5000/api/quantity-reports/${reportId}/send-to-owner`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update the report in state
+        setReports(prev => prev.map(report => 
+          report._id === reportId 
+            ? { ...report, sentToOwner: true, sentToOwnerAt: new Date().toISOString() }
+            : report
+        ));
+        toast({
+          title: 'تم الإرسال بنجاح',
+          description: 'تم إرسال التقرير للمالك بنجاح',
+        });
+      } else {
+        throw new Error(data.message || 'فشل إرسال التقرير');
+      }
+    } catch (error: any) {
+      console.error('Error sending report to owner:', error);
+      toast({
+        title: 'خطأ في الإرسال',
+        description: error.message || 'حدث خطأ أثناء إرسال التقرير للمالك',
+        variant: 'destructive'
+      });
+    } finally {
+      setSendingToOwner(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ar-EG', {
       year: 'numeric',
@@ -734,7 +773,7 @@ export default function ProjectReportsPage() {
         ) : (
           <>
             {/* Download Buttons */}
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <div className="mb-8">
               {/* Concrete Report Download */}
               <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
                 <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
@@ -765,12 +804,14 @@ export default function ProjectReportsPage() {
                           {latestReport.concreteData.foundationsVolume?.toFixed(3) || 0} م³
                         </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                        <span className="text-slate-600">حجم أرضية المبنى</span>
-                        <span className="font-bold text-emerald-600">
-                          {latestReport.concreteData.groundSlabVolume?.toFixed(3) || 0} م³
-                        </span>
-                      </div>
+                      {latestReport.concreteData.groundSlabVolume && latestReport.concreteData.groundSlabVolume > 0 && (
+                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                          <span className="text-slate-600">حجم أرضية المبنى</span>
+                          <span className="font-bold text-emerald-600">
+                            {latestReport.concreteData.groundSlabVolume.toFixed(3)} م³
+                          </span>
+                        </div>
+                      )}
                       <Separator />
                       <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
                         <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
@@ -787,77 +828,47 @@ export default function ProjectReportsPage() {
                     </div>
                   )}
                   
-                  <Button
-                    onClick={() => downloadPDF(latestReport._id, 'concrete')}
-                    disabled={downloading === `${latestReport._id}-concrete`}
-                    className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                  >
-                    {downloading === `${latestReport._id}-concrete` ? (
-                      <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                    ) : (
-                      <Printer className="w-5 h-5 ml-2" />
-                    )}
-                    طباعة تقرير الخرسانة PDF
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Steel Report Download */}
-              <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                <CardHeader className="bg-gradient-to-br from-orange-500 to-red-600 text-white">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <CircleDot className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl">تقرير كمية الحديد</CardTitle>
-                      <CardDescription className="text-orange-100">
-                        حديد التسليح المطلوب
-                      </CardDescription>
-                    </div>
+                  <div className="space-y-3">
+                    <Button
+                      onClick={() => downloadPDF(latestReport._id, 'concrete')}
+                      disabled={downloading === `${latestReport._id}-concrete`}
+                      className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                    >
+                      {downloading === `${latestReport._id}-concrete` ? (
+                        <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                      ) : (
+                        <Printer className="w-5 h-5 ml-2" />
+                      )}
+                      طباعة تقرير الخرسانة PDF
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleSendToOwner(latestReport._id)}
+                      disabled={sendingToOwner === latestReport._id || latestReport.sentToOwner}
+                      className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
+                        latestReport.sentToOwner
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                      }`}
+                    >
+                      {sendingToOwner === latestReport._id ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                          جاري الإرسال...
+                        </>
+                      ) : latestReport.sentToOwner ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 ml-2" />
+                          تم الإرسال للمالك
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 ml-2" />
+                          إرسال التقرير للمالك
+                        </>
+                      )}
+                    </Button>
                   </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  {latestReport && (
-                    <div className="space-y-4 mb-6">
-                      <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                        <span className="text-slate-600">حديد القواعد (تقديري)</span>
-                        <span className="font-bold text-orange-600">
-                          {((latestReport.concreteData?.totalConcrete || 0) * 80 * 0.3).toFixed(2)} كجم
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                        <span className="text-slate-600">معدل الحديد</span>
-                        <span className="font-bold text-orange-600">~80 كجم/م³</span>
-                      </div>
-                      <Separator />
-                      <div className="flex justify-between items-center p-4 bg-orange-50 rounded-lg border-2 border-orange-200">
-                        <span className="font-bold text-slate-800">إجمالي الحديد (تقديري)</span>
-                        <span className="text-2xl font-black text-orange-600">
-                          {(() => {
-                            const cleaning = latestReport.concreteData?.cleaningVolume || 0;
-                            const foundations = latestReport.concreteData?.foundationsVolume || 0;
-                            const groundSlab = latestReport.concreteData?.groundSlabVolume || 0;
-                            const totalConcrete = cleaning + foundations + groundSlab;
-                            return (totalConcrete * 80).toFixed(2);
-                          })()} كجم
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <Button
-                    onClick={() => downloadPDF(latestReport._id, 'steel')}
-                    disabled={downloading === `${latestReport._id}-steel`}
-                    className="w-full h-14 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                  >
-                    {downloading === `${latestReport._id}-steel` ? (
-                      <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                    ) : (
-                      <Printer className="w-5 h-5 ml-2" />
-                    )}
-                    طباعة تقرير الحديد PDF
-                  </Button>
                 </CardContent>
               </Card>
             </div>
