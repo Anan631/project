@@ -151,8 +151,9 @@ export default function AdminSidebar({ isOpen, onToggle }: AdminSidebarProps) {
 
   const handleLogout = async () => {
     try {
-      // Clear all local storage data
-      localStorage.clear();
+      // Clear authentication data (localStorage + cookies)
+      const { clearAuthData } = require('@/lib/auth-utils');
+      clearAuthData();
       
       // Clear session storage
       sessionStorage.clear();

@@ -123,10 +123,8 @@ export default function EngineerSidebar({ isOpen, onToggle }: EngineerSidebarPro
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userId");
+    const { clearAuthData } = require('@/lib/auth-utils');
+    clearAuthData();
     localStorage.removeItem('engineerSidebarState');
     toast({
       title: "تم تسجيل الخروج",

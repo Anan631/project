@@ -145,10 +145,8 @@ export default function OwnerSidebar({ isOpen, onToggle }: OwnerSidebarProps) {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userId");
+    const { clearAuthData } = require('@/lib/auth-utils');
+    clearAuthData();
     localStorage.removeItem('ownerSidebarState');
     toast({
       title: "تم تسجيل الخروج",

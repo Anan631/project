@@ -51,7 +51,8 @@ export default function Navbar() {
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
-      localStorage.clear();
+      const { clearAuthData } = require('@/lib/auth-utils');
+      clearAuthData();
       setIsLoggedIn(false);
       setUserRole(null);
       setUserName(null);

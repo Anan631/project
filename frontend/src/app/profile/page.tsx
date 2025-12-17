@@ -44,7 +44,10 @@ const passwordSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 type PasswordFormValues = z.infer<typeof passwordSchema>;
-type UserProfileData = Omit<UserDocument, 'password_hash'>;
+type UserProfileData = Omit<UserDocument, 'password_hash'> & { 
+  _id?: string;
+  id?: string;
+};
 
 export function ProfilePageContent() {
   const { toast } = useToast();
@@ -84,18 +87,21 @@ export function ProfilePageContent() {
     const fetchUserData = async () => {
       const storedId = localStorage.getItem('userId');
       if (storedId) {
-        const userProfileResult = await getUserProfile(storedId);
-        if (userProfileResult && userProfileResult.success && userProfileResult.user) {
-          const userProfile = userProfileResult.user;
-          userProfile.id = userProfile._id || userProfile.id || storedId;
-          setCurrentUser(userProfile);
+        const userProfile = await getUserProfile(storedId);
+        if (userProfile) {
+          // التأكد من تعيين المعرف بشكل صحيح
+          // في MongoDB، المعرف يأتي باسم _id وليس id
+          const profileWithId = userProfile as UserProfileData & { _id?: string };
+          profileWithId.id = (profileWithId as any)._id || profileWithId.id || storedId;
+          setCurrentUser(profileWithId);
           resetProfile({
-            name: userProfile.name,
-            email: userProfile.email,
-            phone: userProfile.phone || '',
+            name: profileWithId.name,
+            email: profileWithId.email,
+            phone: profileWithId.phone || '',
           });
         } else {
-          localStorage.clear();
+          const { clearAuthData } = require('@/lib/auth-utils');
+          clearAuthData();
           router.push('/login');
         }
       } else {
@@ -143,7 +149,7 @@ export function ProfilePageContent() {
   const onPasswordSubmit: SubmitHandler<PasswordFormValues> = async (data) => {
     if (!currentUser) return;
     setIsPasswordLoading(true);
-    const result: ChangePasswordResult = await changePasswordAction({
+    const result = await changePasswordAction({
       userId: currentUser.id,
       currentPassword: data.currentPassword,
       newPassword: data.newPassword,
@@ -201,7 +207,8 @@ export function ProfilePageContent() {
           description: "تم تعطيل حسابك مع الحفاظ على البيانات لمدة عام واحد. نأسف لمغادرتك.",
         });
         setIsDeleteDialogOpen(false);
-        localStorage.clear();
+        const { clearAuthData } = require('@/lib/auth-utils');
+        clearAuthData();
         router.push('/');
       }, 2000);
     } else {

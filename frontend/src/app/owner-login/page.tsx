@@ -74,10 +74,14 @@ export default function OwnerLoginPage() {
         reset();
 
         if (result.user && typeof window !== 'undefined') {
-          localStorage.setItem('userName', result.user.name);
-          localStorage.setItem('userRole', result.user.role);
-          localStorage.setItem('userEmail', result.user.email);
-          localStorage.setItem('userId', result.user.id);
+          // Dynamic import to avoid SSR issues
+          const authUtils = await import('@/lib/auth-utils');
+          authUtils.setAuthData({
+            id: result.user.id,
+            name: result.user.name,
+            email: result.user.email,
+            role: result.user.role,
+          });
         }
 
         router.push(result.redirectTo || '/owner/dashboard');

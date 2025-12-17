@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import EngineerAppLayout from "@/components/engineer/EngineerAppLayout";
+// Layout is automatically applied via layout.tsx in /engineer folder
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +45,10 @@ const passwordSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 type PasswordFormValues = z.infer<typeof passwordSchema>;
-type UserProfileData = Omit<UserDocument, 'password_hash'>;
+type UserProfileData = Omit<UserDocument, 'password_hash'> & { 
+  _id?: string;
+  id?: string;
+};
 
 export function EngineerProfilePageContent() {
   const { toast } = useToast();
@@ -85,15 +88,17 @@ export function EngineerProfilePageContent() {
         if (userProfile) {
           // التأكد من تعيين المعرف بشكل صحيح
           // في MongoDB، المعرف يأتي باسم _id وليس id
-          userProfile.id = userProfile._id || storedId;
-          setCurrentUser(userProfile);
+          const profileWithId = userProfile as UserProfileData;
+          profileWithId.id = (profileWithId as any)._id || profileWithId.id || storedId;
+          setCurrentUser(profileWithId);
           resetProfile({
             name: userProfile.name,
             email: userProfile.email,
             phone: userProfile.phone || '',
           });
         } else {
-          localStorage.clear();
+          const { clearAuthData } = require('@/lib/auth-utils');
+          clearAuthData();
           router.push('/login');
         }
       } else {
@@ -207,7 +212,8 @@ export function EngineerProfilePageContent() {
           description: "تم تعطيل حسابك مع الحفاظ على البيانات لمدة عام واحد. نأسف لمغادرتك.",
         });
         setIsDeleteDialogOpen(false);
-        localStorage.clear();
+        const { clearAuthData } = require('@/lib/auth-utils');
+        clearAuthData();
         router.push('/');
       }, 2000);
     } else {
@@ -239,8 +245,7 @@ export function EngineerProfilePageContent() {
   }
 
   return (
-    <EngineerAppLayout>
-      <div className="container mx-auto py-6 max-w-4xl">
+    <div className="container mx-auto py-6 max-w-4xl">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">الملف الشخصي</h1>
           <p className="text-gray-600 mt-2">إدارة معلومات حسابك الشخصي</p>
@@ -469,7 +474,6 @@ export function EngineerProfilePageContent() {
             </AlertDialog>
           </CardContent>
         </Card>
-      </div>
-    </EngineerAppLayout>
+    </div>
   );
 }
