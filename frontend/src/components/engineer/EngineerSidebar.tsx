@@ -65,7 +65,6 @@ const accordionItems = [
     color: "text-purple-500",
     links: [
       { href: "/engineer/structural-elements/input-details", label: "إدخال تفاصيل العناصر", icon: PenSquare },
-      { href: "/engineer/structural-elements/validate-data", label: "التحقق من صحة البيانات", icon: ClipboardCheck },
     ],
   },
   {
@@ -77,10 +76,6 @@ const accordionItems = [
       { href: "/engineer/cost-estimator", label: "حاسبة أسعار المواد", icon: Coins },
       { href: "/engineer/quantity-survey/calculate-materials", label: "حساب كميات المواد", icon: Calculator },
       { href: "/engineer/quantity-reports", label: "تقارير الكميات", icon: FileText },
-      { href: "/engineer/quantity-survey/view-reports", label: "عرض تقارير الكميات", icon: BarChart3 },
-      { href: "/engineer/quantity-survey/customize-reports", label: "تخصيص عرض التقارير", icon: Settings2 },
-      { href: "/engineer/quantity-survey/export-reports", label: "تصدير التقارير", icon: Download },
-      { href: "/engineer/quantity-survey/generate-report-data", label: "توليد بيانات التقرير", icon: FileText },
     ],
   },
   {
