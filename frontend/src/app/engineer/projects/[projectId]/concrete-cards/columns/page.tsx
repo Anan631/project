@@ -30,6 +30,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ColumnsConcretePage() {
   const params = useParams();
@@ -51,6 +61,13 @@ export default function ColumnsConcretePage() {
   const [selectedShape, setSelectedShape] = useState<'square' | 'rectangle' | 'circular'>('square');
   const [totalVolume, setTotalVolume] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [existingReportDialog, setExistingReportDialog] = useState<{
+    open: boolean;
+    reportId: string | null;
+  }>({
+    open: false,
+    reportId: null,
+  });
 
   // دالة حساب حجم العمود الواحد
   const calculateColumnVolume = (shape: string, length?: number, width?: number, diameter?: number, height?: number): number => {
@@ -283,13 +300,44 @@ export default function ColumnsConcretePage() {
     setTotalVolume(total);
   }, [columns]);
 
-  // حساب وزن الحديد (نفس معدل الكود السابق)
-  const calculateSteelWeight = () => {
-    return totalVolume * 80; // 80 كجم/م³
+  // التحقق من وجود تقرير سابق
+  const checkExistingReport = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/quantity-reports/project/${projectId}`);
+      const data = await response.json();
+      
+      if (data.success && data.reports) {
+        const existingReport = data.reports.find((r: any) => 
+          r.calculationType === 'columns' && !r.deleted
+        );
+        
+        if (existingReport) {
+          return existingReport._id;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error checking existing report:', error);
+      return null;
+    }
+  };
+
+  // حذف التقرير السابق (soft delete)
+  const deleteExistingReport = async (reportId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/quantity-reports/${reportId}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      return data.success;
+    } catch (error) {
+      console.error('Error deleting existing report:', error);
+      return false;
+    }
   };
 
   // حفظ التقرير
-  const saveToReports = async () => {
+  const saveToReports = async (shouldDeleteExisting: boolean = false) => {
     if (columns.length === 0) {
       toast({ 
         title: 'لا توجد أعمدة', 
@@ -301,6 +349,11 @@ export default function ColumnsConcretePage() {
 
     setSaving(true);
     try {
+      // حذف التقرير السابق إذا طُلب ذلك
+      if (shouldDeleteExisting && existingReportDialog.reportId) {
+        await deleteExistingReport(existingReportDialog.reportId);
+      }
+
       const engineerId = localStorage.getItem('userId') || '';
       const engineerName = localStorage.getItem('userName') || 'المهندس';
       
@@ -331,10 +384,11 @@ export default function ColumnsConcretePage() {
             volume: col.volume
           }))
         },
+        // إزالة بيانات الحديد بالكامل
         steelData: {
-          totalSteelWeight: calculateSteelWeight(),
+          totalSteelWeight: 0,
           foundationSteel: 0,
-          columnSteel: calculateSteelWeight(),
+          columnSteel: 0,
         },
       };
 
@@ -363,11 +417,12 @@ export default function ColumnsConcretePage() {
       });
     } finally {
       setSaving(false);
+      setExistingReportDialog({ open: false, reportId: null });
     }
   };
 
   // حساب الخرسانة لجميع الأعمدة
-  const calculateConcrete = () => {
+  const calculateConcrete = async () => {
     if (columns.length === 0) {
       toast({
         title: 'لا توجد أعمدة',
@@ -408,6 +463,16 @@ export default function ColumnsConcretePage() {
         variant: 'destructive'
       });
       setError(`يرجى إكمال بيانات الأعمدة: ${invalidColumns.join(', ')}`);
+      return;
+    }
+
+    // التحقق من وجود تقرير سابق
+    const existingReportId = await checkExistingReport();
+    if (existingReportId) {
+      setExistingReportDialog({
+        open: true,
+        reportId: existingReportId,
+      });
       return;
     }
 
@@ -757,7 +822,7 @@ export default function ColumnsConcretePage() {
               </Button>
 
               <Button 
-                onClick={saveToReports}
+                onClick={() => saveToReports(false)}
                 disabled={columns.length === 0 || saving}
                 className="flex-1 h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:via-teal-700 hover:to-blue-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden disabled:opacity-50"
               >
@@ -888,6 +953,64 @@ export default function ColumnsConcretePage() {
           </div>
         </div>
       </div>
+
+      {/* Dialog للتحذير من إعادة الحساب */}
+      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => 
+        setExistingReportDialog(prev => ({ ...prev, open }))
+      }>
+        <AlertDialogContent className="max-w-lg" dir="rtl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-7 h-7 text-amber-600" />
+              </div>
+              <AlertDialogTitle className="text-right text-xl font-bold">
+                تحذير: الحسابات تمت مسبقًا
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-right text-base leading-relaxed">
+                <p>تم إجراء حسابات الأعمدة مسبقًا والتقرير جاهز.</p>
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                  <p className="text-amber-800 font-medium">
+                    في حال اختيار إعادة الحسابات:
+                  </p>
+                  <ul className="list-disc list-inside text-amber-700 text-sm mt-2 space-y-1">
+                    <li>سيتم تغيير حالة التقرير السابق إلى محذوف</li>
+                    <li>سيتم تنفيذ الحسابات من جديد</li>
+                    <li>سيتم حفظ التقرير الجديد وربطه بنفس المشروع والمالك</li>
+                  </ul>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3 mt-6">
+            <AlertDialogCancel className="flex-1 h-12 text-base font-medium">
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                // إعادة الحساب ثم الحفظ مع حذف التقرير السابق
+                setColumns(prev => prev.map(column => {
+                  const volume = calculateColumnVolume(
+                    column.shape,
+                    parseFloat(column.length || '0'),
+                    parseFloat(column.width || '0'),
+                    parseFloat(column.diameter || '0'),
+                    parseFloat(column.height || '0')
+                  );
+                  return { ...column, volume };
+                }));
+                setError(null);
+                saveToReports(true);
+              }}
+              className="flex-1 h-12 bg-amber-600 hover:bg-amber-700 text-white text-base font-medium"
+            >
+              إعادة الحسابات
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

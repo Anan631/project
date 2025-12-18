@@ -303,7 +303,7 @@ export default function OwnerQuantityReportsPage() {
           <div class="container">
             <div class="header">
               <h1>تقرير كميات الخرسانة</h1>
-              <p>${report.calculationType === 'column-footings' ? 'شروش الأعمدة' : report.calculationType === 'foundation' ? 'صبة النظافة والقواعد' : report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' : 'تفصيل شامل'}</p>
+              <p>${report.calculationType === 'column-footings' ? 'شروش الأعمدة' : report.calculationType === 'columns' ? 'الأعمدة' : report.calculationType === 'foundation' ? 'صبة النظافة والقواعد' : report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' : 'تفصيل شامل'}</p>
             </div>
 
             <div class="project-name">
@@ -341,6 +341,19 @@ export default function OwnerQuantityReportsPage() {
                       <tr>
                         <td>${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                         <td>${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>إجمالي الخرسانة</td>
+                      </tr>
+                    `
+                    : report.calculationType === 'columns'
+                    ? `
+                      <tr>
+                        <td>${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>كمية خرسانة الأعمدة</td>
+                      </tr>
+                      <tr>
+                        <td>${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                        <td>${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                         <td>إجمالي الخرسانة</td>
                       </tr>
                     `
@@ -414,6 +427,8 @@ export default function OwnerQuantityReportsPage() {
                 ${
                   report.calculationType === 'column-footings'
                     ? `${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+                    : report.calculationType === 'columns'
+                    ? `${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
                     : report.calculationType === 'ground-bridges'
                     ? `${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
                     : report.calculationType === 'ground-slab'
@@ -492,6 +507,7 @@ export default function OwnerQuantityReportsPage() {
   // Separate reports by type
   const foundationReport = reports.find(r => r.calculationType === 'foundation');
   const columnFootingsReport = reports.find(r => r.calculationType === 'column-footings');
+  const columnsReport = reports.find(r => r.calculationType === 'columns');
   const groundBridgesReport = reports.find(r => r.calculationType === 'ground-bridges');
   const groundSlabReport = reports.find(r => r.calculationType === 'ground-slab');
 
@@ -704,6 +720,76 @@ export default function OwnerQuantityReportsPage() {
                 </Card>
               )}
 
+              {/* Columns Report Card */}
+              {columnsReport && (
+                <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+                  <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Blocks className="w-7 h-7 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                        <CardDescription className="text-emerald-100">
+                          الأعمدة
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {columnsReport?.concreteData && (
+                      <div className="space-y-4 mb-6">
+                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                          <span className="text-slate-600">حجم الأعمدة</span>
+                          <span className="font-bold text-emerald-600">
+                            {columnsReport.concreteData.columnsVolume?.toFixed(3) || 
+                             columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                          </span>
+                        </div>
+                        {columnsReport.concreteData.columnsData && columnsReport.concreteData.columnsData.length > 0 && (
+                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <span className="text-slate-600">عدد الأعمدة</span>
+                            <span className="font-bold text-emerald-600">
+                              {columnsReport.concreteData.columnsData.length}
+                            </span>
+                          </div>
+                        )}
+                        <Separator />
+                        <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                          <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
+                          <span className="text-2xl font-black text-emerald-600">
+                            {columnsReport.concreteData.columnsVolume?.toFixed(3) || 
+                             columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => downloadPDF(columnsReport._id)}
+                        disabled={downloading === columnsReport._id}
+                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                      >
+                        {downloading === columnsReport._id ? (
+                          <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                        ) : (
+                          <Printer className="w-5 h-5 ml-2" />
+                        )}
+                        طباعة التقرير
+                      </Button>
+                      
+                      {columnsReport.sentToOwnerAt && (
+                        <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          <span>تم الإرسال: {formatDate(columnsReport.sentToOwnerAt)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Ground Bridges Report Card */}
               {groundBridgesReport && (
                 <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
@@ -859,6 +945,7 @@ export default function OwnerQuantityReportsPage() {
                             <p className="font-medium text-slate-800">
                               تقرير {report.calculationType === 'foundation' ? 'القواعد وصبة النظافة' : 
                                      report.calculationType === 'column-footings' ? 'شروش الأعمدة' : 
+                                     report.calculationType === 'columns' ? 'الأعمدة' : 
                                      report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : 
                                      report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' : 
                                      report.calculationType}
@@ -873,6 +960,9 @@ export default function OwnerQuantityReportsPage() {
                           {(() => {
                             if (report.calculationType === 'column-footings') {
                               return (report.concreteData?.totalFootingsVolume || 
+                                      report.concreteData?.totalConcrete || 0).toFixed(2);
+                            } else if (report.calculationType === 'columns') {
+                              return (report.concreteData?.columnsVolume || 
                                       report.concreteData?.totalConcrete || 0).toFixed(2);
                             } else if (report.calculationType === 'ground-bridges') {
                               return (report.concreteData?.totalVolume || 
