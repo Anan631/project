@@ -980,6 +980,286 @@ export default function EngineerProjectDetailPage() {
     });
   };
 
+  // Generate Timeline PDF Report
+  const handleDownloadTimelineReport = () => {
+    if (!project || !project.timelineTasks || project.timelineTasks.length === 0) {
+      toast({
+        title: "لا توجد مهام للتقرير",
+        description: "لا توجد مهام في الجدول الزمني لإنشاء التقرير.",
+        variant: "default"
+      });
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const engineerName = project.engineer || 'غير معروف';
+      // استخدام اسم المالك المربوط بالمشروع أولاً، ثم العميل كبديل
+      const ownerName = project.linkedOwnerEmail ? 
+        (selectedOwner?.name || project.clientName || project.linkedOwnerEmail) : 
+        (project.clientName || 'غير محدد');
+      const clientName = ownerName; // للتوافق مع باقي الكود
+      const totalTasks = project.timelineTasks.length;
+      const completedTasks = project.timelineTasks.filter(t => t.status === 'مكتمل').length;
+      const inProgressTasks = project.timelineTasks.filter(t => t.status === 'قيد التنفيذ').length;
+      const plannedTasks = project.timelineTasks.filter(t => t.status === 'مخطط له').length;
+
+      const tableRows = project.timelineTasks.map(task => {
+        const taskStart = new Date(task.startDate);
+        const taskEnd = new Date(task.endDate);
+        const duration = Math.ceil((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        
+        const statusColor = task.status === 'مكتمل' ? '#10b981' : 
+                           task.status === 'قيد التنفيذ' ? '#f59e0b' : '#6b7280';
+        
+        return `
+          <tr>
+            <td>${task.name}</td>
+            <td>${formatDate(task.startDate)}</td>
+            <td>${formatDate(task.endDate)}</td>
+            <td style="font-weight: 600; color: #3b82f6;">${duration} يوم</td>
+            <td>
+              <span style="background-color: ${statusColor}20; color: ${statusColor}; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid ${statusColor}40;">
+                ${task.status}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      const reportHtml = `
+        <html>
+          <head>
+            <title>تقرير الجدول الزمني - ${project.name}</title>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+            <style>
+              @media print {
+                body {
+                  -webkit-print-color-adjust: exact;
+                  color-adjust: exact;
+                }
+              }
+              body {
+                font-family: 'Tajawal', sans-serif;
+                direction: rtl;
+                background-color: #f3f4f6;
+                margin: 0;
+                padding: 20px;
+                color: #1f2937;
+              }
+              .container {
+                max-width: 1200px;
+                margin: auto;
+                background: linear-gradient(to bottom, #ffffff, #f9fafb);
+                padding: 40px 50px;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
+                border: 1px solid #e5e7eb;
+              }
+              .report-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding-bottom: 25px;
+                border-bottom: 4px solid #10b981;
+                margin-bottom: 30px;
+              }
+              .report-header .titles {
+                text-align: right;
+              }
+              .report-header h1 {
+                margin: 0;
+                color: #065f46;
+                font-size: 36px;
+                font-weight: 700;
+                letter-spacing: -1px;
+              }
+              .report-header p {
+                margin: 8px 0 0;
+                font-size: 18px;
+                color: #4b5563;
+              }
+              .report-meta {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-bottom: 40px;
+              }
+              .meta-item {
+                background-color: #f9fafb;
+                padding: 20px;
+                border-radius: 12px;
+                border: 1px solid #e5e7eb;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+              }
+              .meta-item .label {
+                font-size: 14px;
+                color: #6b7280;
+                font-weight: 400;
+              }
+              .meta-item .value {
+                font-size: 18px;
+                color: #065f46;
+                font-weight: 700;
+              }
+              .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 15px;
+                margin-bottom: 30px;
+              }
+              .stat-card {
+                background: linear-gradient(135deg, #10b981, #059669);
+                color: white;
+                padding: 20px;
+                border-radius: 12px;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+              }
+              .stat-card .number {
+                font-size: 32px;
+                font-weight: 700;
+                margin-bottom: 5px;
+              }
+              .stat-card .label {
+                font-size: 14px;
+                opacity: 0.9;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 15px;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                margin-bottom: 30px;
+              }
+              th, td {
+                padding: 16px 20px;
+                text-align: right;
+                border-bottom: 1px solid #e5e7eb;
+              }
+              thead th {
+                background: linear-gradient(to bottom, #10b981, #059669);
+                font-weight: 700;
+                color: #ffffff;
+                font-size: 16px;
+              }
+              tbody tr {
+                transition: background-color 0.2s ease;
+              }
+              tbody tr:last-child {
+                border-bottom: 0;
+              }
+              tbody tr:nth-of-type(even) {
+                background-color: #f9fafb;
+              }
+              tbody tr:hover {
+                background-color: #f0fdf4;
+              }
+              .report-footer {
+                margin-top: 50px;
+                text-align: center;
+                font-size: 14px;
+                color: #9ca3af;
+                padding-top: 20px;
+                border-top: 1px solid #e5e7eb;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <header class="report-header">
+                <img src="/logo.png" alt="شعار الموقع" style="max-height: 80px; border-radius: 8px;">
+                <div class="titles">
+                  <h1>تقرير الجدول الزمني</h1>
+                  <p>مشروع: ${project.name}</p>
+                </div>
+              </header>
+              
+              <section class="report-meta">
+                <div class="meta-item">
+                  <span class="label">المهندس المسؤول</span>
+                  <span class="value">${engineerName}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">المالك</span>
+                  <span class="value">${ownerName}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">تاريخ التقرير</span>
+                  <span class="value">${new Date().toLocaleDateString('ar-EG-u-nu-latn')}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="label">مدة المشروع</span>
+                  <span class="value">${totalProjectDurationDays} يوم</span>
+                </div>
+              </section>
+
+              <section class="stats-grid">
+                <div class="stat-card">
+                  <div class="number">${totalTasks}</div>
+                  <div class="label">إجمالي المهام</div>
+                </div>
+                <div class="stat-card">
+                  <div class="number">${completedTasks}</div>
+                  <div class="label">مهام مكتملة</div>
+                </div>
+                <div class="stat-card">
+                  <div class="number">${inProgressTasks}</div>
+                  <div class="label">قيد التنفيذ</div>
+                </div>
+                <div class="stat-card">
+                  <div class="number">${plannedTasks}</div>
+                  <div class="label">مخطط لها</div>
+                </div>
+              </section>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>اسم المهمة</th>
+                    <th>تاريخ البدء</th>
+                    <th>تاريخ الانتهاء</th>
+                    <th>المدة</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tableRows}
+                </tbody>
+              </table>
+
+              <footer class="report-footer">
+                <p>هذا التقرير تم إنشاؤه بواسطة نظام إدارة المشاريع.</p>
+                <p>&copy; ${new Date().getFullYear()} جميع الحقوق محفوظة.</p>
+              </footer>
+            </div>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.write(reportHtml);
+      printWindow.document.close();
+      printWindow.print();
+
+      toast({
+        title: "تم فتح تقرير الجدول الزمني",
+        description: "تم فتح التقرير في نافذة جديدة. يمكنك طباعته أو حفظه كملف PDF."
+      });
+    } else {
+      toast({
+        title: "خطأ في الطباعة",
+        description: "لم يتمكن المتصفح من فتح نافذة الطباعة.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Simulation Progress Bar */}
@@ -1394,13 +1674,21 @@ export default function EngineerProjectDetailPage() {
                 <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                   <GanttChartSquare size={28} /> الجدول الزمني للمشروع
                 </CardTitle>
-                {!isOwnerView && (
-                  <div className="flex gap-2">
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white transition-colors" 
+                    onClick={handleDownloadTimelineReport}
+                  >
+                    <Download size={18} className="ms-1.5" /> تحميل تقرير PDF
+                  </Button>
+                  {!isOwnerView && (
                     <Button variant="outline" size="sm" className="border-blue-600 text-black hover:bg-blue-600 hover:text-white transition-colors" onClick={() => setIsAddTaskModalOpen(true)}>
                       <Plus size={18} className="ms-1.5" /> إضافة مهمة
                     </Button>
-                  </div>
-                )}
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {project.timelineTasks && project.timelineTasks.length > 0 ? (
