@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Instagram, Facebook } from 'lucide-react';
-import NotificationsFixed from './NotificationsFixed';
+// NotificationsFixed component removed
 import WhatsAppIcon from '../icons/WhatsAppIcon';
 
 // Social & Clock Component
@@ -130,8 +130,7 @@ export default function AdminHeader() {
     }
   }, [pathname]);
 
-  // تحديد ما إذا كان يجب عرض إشعارات بناءً على دور المستخدم
-  const showNotifications = userRole === 'ENGINEER' || userRole === 'OWNER';
+  // Notification functionality removed as requested
 
   return (
     <header className="shadow-md">
@@ -154,9 +153,9 @@ export default function AdminHeader() {
             </Link>
           </div>
 
-          {/* Left Side: Notifications */}
+          {/* Left Side: Notifications - Removed */}
           <div className="flex-1 flex justify-end">
-            {showNotifications && <NotificationsFixed />}
+            {/* Notification bell removed as requested */}
           </div>
         </div>
       </div>

@@ -5,11 +5,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Instagram, Facebook, Clock, Calendar, Bell, Settings,
+  Instagram, Facebook, Clock, Calendar, Settings,
   User, LogOut, X, ChevronDown, Home, Calculator,
   FileText, Phone, Mail, MapPin, Star, Award, Shield
 } from 'lucide-react';
-import NotificationsFixed from './NotificationsFixed';
+
 import WhatsAppIcon from '../icons/WhatsAppIcon';
 import { APP_LOGO_SRC } from '@/lib/branding';
 import { useSettings } from '@/contexts/SettingsContext';
@@ -494,10 +494,7 @@ export default function Header() {
   const { userRole, isLoading } = useUserRole();
   const { isOpen, toggleMenu, closeMenu } = useMobileMenu();
 
-  const showNotifications = useMemo(() =>
-    userRole === 'ENGINEER' || userRole === 'OWNER',
-    [userRole]
-  );
+
 
   return (
     <header className="shadow-2xl relative z-40">
@@ -532,14 +529,6 @@ export default function Header() {
 
           {/* الجانب الأيسر */}
           <div className="flex items-center gap-4">
-            {!isLoading && showNotifications && (
-              <div className="animate-fade-in">
-                <div className="relative">
-                  <NotificationsFixed />
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-red-500 to-red-600 rounded-full animate-pulse border border-white/50"></div>
-                </div>
-              </div>
-            )}
             <UserMenu userRole={userRole} />
           </div>
         </div>
