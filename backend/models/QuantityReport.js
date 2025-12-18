@@ -63,7 +63,7 @@ const quantityReportSchema = new Schema(
     
     calculationType: { 
       type: String, 
-      enum: ['foundation', 'cleaning-slab', 'ground-slab', 'columns', 'beams', 'slabs', 'full', 'column-footings', 'ground-bridges'],
+      enum: ['foundation', 'cleaning-slab', 'ground-slab', 'columns', 'beams', 'slabs', 'full', 'column-footings', 'ground-bridges', 'roof'],
       default: 'foundation'
     },
     

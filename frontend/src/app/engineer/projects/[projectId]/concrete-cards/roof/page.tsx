@@ -20,7 +20,18 @@ import {
   CheckCircle2,
   TrendingUp,
   Box,
+  AlertCircle,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function RoofConcretePage() {
   const params = useParams();
@@ -48,6 +59,13 @@ export default function RoofConcretePage() {
   const [liveLoadPerM2, setLiveLoadPerM2] = useState<string>('0.15'); // طن/م2 - محسوب تلقائياً فقط
 
   const [saving, setSaving] = useState(false);
+  const [existingReportDialog, setExistingReportDialog] = useState<{
+    open: boolean;
+    reportId: string | null;
+  }>({
+    open: false,
+    reportId: null,
+  });
 
   // المشتقات
   const numeric = (v: string) => {
@@ -212,7 +230,43 @@ export default function RoofConcretePage() {
   // نتيجة الزر
   const [finalTotal, setFinalTotal] = useState<number>(0);
 
-  const handleCalculate = () => {
+  // التحقق من وجود تقرير سابق
+  const checkExistingReport = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/quantity-reports/project/${projectId}`);
+      const data = await response.json();
+      
+      if (data.success && data.reports) {
+        const existingReport = data.reports.find((r: any) => 
+          r.calculationType === 'roof' && !r.deleted
+        );
+        
+        if (existingReport) {
+          return existingReport._id;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error checking existing report:', error);
+      return null;
+    }
+  };
+
+  // حذف التقرير السابق (soft delete)
+  const deleteExistingReport = async (reportId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/quantity-reports/${reportId}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      return data.success;
+    } catch (error) {
+      console.error('Error deleting existing report:', error);
+      return false;
+    }
+  };
+
+  const handleCalculate = async () => {
     // تحقق مبسط قبل الحساب
     if (a <= 0 || t <= 0) {
       toast({ title: 'مدخلات غير صالحة', description: 'يرجى إدخال مساحة وسمك صالحين', variant: 'destructive' });
@@ -234,7 +288,22 @@ export default function RoofConcretePage() {
       }
     }
     
+    // التحقق من وجود تقرير سابق
+    const existingReportId = await checkExistingReport();
+    if (existingReportId) {
+      setExistingReportDialog({
+        open: true,
+        reportId: existingReportId,
+      });
+      return;
+    }
+    
+    // حساب النتائج وعرضها فقط (بدون حفظ)
     setFinalTotal(Math.max(0, computedTotalConcrete));
+    toast({
+      title: 'تم الحساب بنجاح',
+      description: `تم حساب كمية الخرسانة: ${computedTotalConcrete.toFixed(3)} م³`,
+    });
   };
 
   const canSave = useMemo(() => {
@@ -258,6 +327,23 @@ export default function RoofConcretePage() {
       toast({ title: 'بيانات ناقصة', description: 'يرجى التحقق من المدخلات', variant: 'destructive' });
       return;
     }
+
+    // التأكد من أن الحسابات تمت
+    if (finalTotal === 0 && computedTotalConcrete === 0) {
+      toast({ 
+        title: 'يرجى حساب النتائج أولاً', 
+        description: 'اضغط على زر "احسب الخرسانة" قبل الحفظ', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    // التحقق من وجود تقرير سابق وحذفه قبل الحفظ
+    const existingReportId = await checkExistingReport();
+    if (existingReportId) {
+      await deleteExistingReport(existingReportId);
+    }
+
     setSaving(true);
     try {
       const engineerId = localStorage.getItem('userId') || '';
@@ -266,6 +352,9 @@ export default function RoofConcretePage() {
       const projectRes = await fetch(`http://localhost:5000/api/projects/${projectId}`);
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
+
+      // استخدام finalTotal إذا كان محسوباً، وإلا استخدام computedTotalConcrete
+      const totalConcreteToSave = finalTotal > 0 ? finalTotal : computedTotalConcrete;
 
       const payload = {
         projectId,
@@ -276,7 +365,7 @@ export default function RoofConcretePage() {
         ownerEmail: project?.linkedOwnerEmail || '',
         calculationType: 'roof',
         concreteData: {
-          totalConcrete: computedTotalConcrete,
+          totalConcrete: totalConcreteToSave,
           roofData: {
             roofType: roofType, // نوع السقف: with-ribs أو without-ribs
             area: a,
@@ -302,6 +391,7 @@ export default function RoofConcretePage() {
             } : null,
           }
         },
+        // إزالة بيانات الحديد بالكامل
         steelData: {
           totalSteelWeight: 0,
           foundationSteel: 0,
@@ -530,7 +620,7 @@ export default function RoofConcretePage() {
 
               <Button 
                 onClick={saveToReports}
-                disabled={!canSave || saving}
+                disabled={!canSave || saving || finalTotal === 0}
                 className="h-14 px-6 text-base font-black bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:via-teal-700 hover:to-blue-700 text-white shadow-xl transition-all duration-500 rounded-2xl flex items-center gap-4"
               >
                 {saving ? 'جاري الحفظ...' : 'حفظ وتحميل إلى التقارير'}
@@ -586,6 +676,58 @@ export default function RoofConcretePage() {
           </div>
         </div>
       </div>
+
+      {/* Dialog للتحذير من إعادة الحساب */}
+      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => 
+        setExistingReportDialog(prev => ({ ...prev, open }))
+      }>
+        <AlertDialogContent className="max-w-lg" dir="rtl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-7 h-7 text-amber-600" />
+              </div>
+              <AlertDialogTitle className="text-right text-xl font-bold">
+                تحذير: الحسابات تمت مسبقًا
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-right text-base leading-relaxed">
+                <p>تم إجراء حسابات السقف مسبقًا والتقرير جاهز.</p>
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                  <p className="text-amber-800 font-medium">
+                    في حال اختيار إعادة الحسابات:
+                  </p>
+                  <ul className="list-disc list-inside text-amber-700 text-sm mt-2 space-y-1">
+                    <li>سيتم تنفيذ الحسابات من جديد وعرض النتائج</li>
+                    <li>يمكنك بعد ذلك حفظ التقرير الجديد باستخدام زر "حفظ وتحميل إلى التقارير"</li>
+                    <li>عند الحفظ، سيتم حذف التقرير السابق تلقائيًا</li>
+                  </ul>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3 mt-6">
+            <AlertDialogCancel className="flex-1 h-12 text-base font-medium">
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                // إعادة الحساب فقط (بدون حفظ)
+                setFinalTotal(Math.max(0, computedTotalConcrete));
+                setExistingReportDialog({ open: false, reportId: null });
+                toast({
+                  title: 'تم الحساب بنجاح',
+                  description: `تم حساب كمية الخرسانة: ${computedTotalConcrete.toFixed(3)} م³. يمكنك الآن حفظ التقرير باستخدام زر "حفظ وتحميل إلى التقارير"`,
+                });
+              }}
+              className="flex-1 h-12 bg-amber-600 hover:bg-amber-700 text-white text-base font-medium"
+            >
+              إعادة الحسابات
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

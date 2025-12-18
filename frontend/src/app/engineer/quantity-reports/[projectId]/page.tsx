@@ -459,7 +459,7 @@ export default function ProjectReportsPage() {
               <img src="/header-bg.jpg" alt="شعار الموقع" class="logo">
               <h1>طلبية خرسانة</h1>
               <p>تقرير كميات الخرسانة</p>
-              <p>${report.calculationType === 'column-footings' ? 'شروش الأعمدة' : report.calculationType === 'columns' ? 'الأعمدة' : report.calculationType === 'foundation' ? 'صبة النظافة والقواعد' : report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' : 'تفصيل شامل لكميات المواد والمعدات'}</p>
+              <p>${report.calculationType === 'column-footings' ? 'شروش الأعمدة' : report.calculationType === 'columns' ? 'الأعمدة' : report.calculationType === 'roof' ? 'السقف' : report.calculationType === 'foundation' ? 'صبة النظافة والقواعد' : report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' : 'تفصيل شامل لكميات المواد والمعدات'}</p>
             </div>
 
             <div class="project-name">
@@ -478,7 +478,7 @@ export default function ProjectReportsPage() {
             </div>
 
             <div class="date-info">
-              <span>عدد البنود: ${report.calculationType === 'column-footings' || report.calculationType === 'columns' || report.calculationType === 'ground-bridges' || report.calculationType === 'ground-slab' ? '1' : '3'}</span>
+              <span>عدد البنود: ${report.calculationType === 'column-footings' || report.calculationType === 'columns' || report.calculationType === 'roof' || report.calculationType === 'ground-bridges' || report.calculationType === 'ground-slab' ? '1' : '3'}</span>
               <span>تاريخ التقرير: ${new Date().toLocaleDateString('ar-EG')}</span>
             </div>
 
@@ -516,6 +516,19 @@ export default function ProjectReportsPage() {
                         <tr>
                           <td>${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                           <td>${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                          <td>إجمالي الخرسانة</td>
+                        </tr>
+                      `
+                      : report.calculationType === 'roof'
+                      ? `
+                        <tr>
+                          <td>${(report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                          <td>${(report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                          <td>كمية خرسانة السقف</td>
+                        </tr>
+                        <tr>
+                          <td>${(report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
+                          <td>${(report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                           <td>إجمالي الخرسانة</td>
                         </tr>
                       `
@@ -593,6 +606,8 @@ export default function ProjectReportsPage() {
                       ? `${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
                       : report.calculationType === 'columns'
                       ? `${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+                      : report.calculationType === 'roof'
+                      ? `${(report.concreteData.totalConcrete || 0).toFixed(2)} م³`
                       : report.calculationType === 'ground-bridges'
                       ? `${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
                       : report.calculationType === 'ground-slab'
@@ -780,6 +795,7 @@ export default function ProjectReportsPage() {
   const foundationReport = reports.find(r => r.calculationType === 'foundation');
   const columnFootingsReport = reports.find(r => r.calculationType === 'column-footings');
   const columnsReport = reports.find(r => r.calculationType === 'columns');
+  const roofReport = reports.find(r => r.calculationType === 'roof');
   const groundBridgesReport = reports.find(r => r.calculationType === 'ground-bridges');
   const groundSlabReport = reports.find(r => r.calculationType === 'ground-slab');
 
@@ -1131,6 +1147,106 @@ export default function ProjectReportsPage() {
                 </Card>
               )}
 
+              {/* Roof Report Card */}
+              {roofReport && (
+                <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+                  <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Blocks className="w-7 h-7 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                        <CardDescription className="text-emerald-100">
+                          السقف
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {roofReport?.concreteData && (
+                      <div className="space-y-4 mb-6">
+                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                          <span className="text-slate-600">حجم السقف</span>
+                          <span className="font-bold text-emerald-600">
+                            {roofReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                          </span>
+                        </div>
+                        {roofReport.concreteData.roofData && (
+                          <>
+                            {roofReport.concreteData.roofData.area && (
+                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                                <span className="text-slate-600">مساحة السقف</span>
+                                <span className="font-bold text-emerald-600">
+                                  {roofReport.concreteData.roofData.area.toFixed(2)} م²
+                                </span>
+                              </div>
+                            )}
+                            {roofReport.concreteData.roofData.roofType && (
+                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                                <span className="text-slate-600">نوع السقف</span>
+                                <span className="font-bold text-emerald-600">
+                                  {roofReport.concreteData.roofData.roofType === 'with-ribs' ? 'مع ربس' : 'بدون ربس'}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        )}
+                        <Separator />
+                        <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                          <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
+                          <span className="text-2xl font-black text-emerald-600">
+                            {roofReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => downloadPDF(roofReport._id, 'concrete')}
+                        disabled={downloading === `${roofReport._id}-concrete`}
+                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                      >
+                        {downloading === `${roofReport._id}-concrete` ? (
+                          <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                        ) : (
+                          <Printer className="w-5 h-5 ml-2" />
+                        )}
+                        طباعة تقرير الخرسانة PDF
+                      </Button>
+                      
+                      <Button
+                        onClick={() => handleSendToOwner(roofReport._id)}
+                        disabled={sendingToOwner === roofReport._id || roofReport.sentToOwner}
+                        className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
+                          roofReport.sentToOwner
+                            ? 'bg-green-600 hover:bg-green-700 text-white'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                        }`}
+                      >
+                        {sendingToOwner === roofReport._id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                            جاري الإرسال...
+                          </>
+                        ) : roofReport.sentToOwner ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 ml-2" />
+                            تم الإرسال للمالك
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4 ml-2" />
+                            إرسال التقرير للمالك
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Ground Bridges Report Card */}
               {groundBridgesReport && (
                 <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
@@ -1326,6 +1442,7 @@ export default function ProjectReportsPage() {
                             تقرير {report.calculationType === 'foundation' ? 'القواعد وصبة النظافة' : 
                                    report.calculationType === 'column-footings' ? 'شروش الأعمدة' : 
                                    report.calculationType === 'columns' ? 'الأعمدة' : 
+                                   report.calculationType === 'roof' ? 'السقف' : 
                                    report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : 
                                    report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' : 
                                    report.calculationType}
@@ -1345,6 +1462,8 @@ export default function ProjectReportsPage() {
                             } else if (report.calculationType === 'columns') {
                               return (report.concreteData?.columnsVolume || 
                                       report.concreteData?.totalConcrete || 0).toFixed(2);
+                            } else if (report.calculationType === 'roof') {
+                              return (report.concreteData?.totalConcrete || 0).toFixed(2);
                             } else if (report.calculationType === 'ground-bridges') {
                               return (report.concreteData?.totalVolume || 
                                       report.concreteData?.totalConcrete || 0).toFixed(2);
