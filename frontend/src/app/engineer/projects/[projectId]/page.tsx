@@ -82,9 +82,7 @@ export default function EngineerProjectDetailPage() {
   const [fileType, setFileType] = useState('image');
   const [taskToEdit, setTaskToEdit] = useState<TimelineTask | null>(null);
   const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
-  const [reportData, setReportData] = useState<any>(null);
-  const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
-  const [resultsType, setResultsType] = useState('');
+
   const [selectedMediaIds, setSelectedMediaIds] = useState<string[]>([]);
   const [selectedCostReports, setSelectedCostReports] = useState<string[]>([]);
 
@@ -948,33 +946,7 @@ export default function EngineerProjectDetailPage() {
   };
 
 
-  // Simulation for generating reports
-  const simulateReportGeneration = async () => {
-    await simulateAction("توليد تقارير المشروع", 4000);
 
-    // Mock report generation
-    const reportData = {
-      projectProgress: project.overallProgress,
-      completedTasks: project.timelineTasks?.filter(t => t.status === 'مكتمل').length || 0,
-      totalTasks: project.timelineTasks?.length || 0,
-      totalCost: costReports.reduce((acc, r) => acc + r.totalCost_ILS, 0),
-      estimatedRemainingCost: Math.floor(Math.random() * 50000) + 10000,
-      budgetUtilization: Math.floor(Math.random() * 30) + 40,
-      timeRemaining: Math.floor(Math.random() * 90) + 30,
-      riskLevel: Math.random() > 0.7 ? 'عالي' : Math.random() > 0.4 ? 'متوسط' : 'منخفض'
-    };
-
-    setReportData(reportData);
-    setResultsType('report');
-    setIsResultsModalOpen(true);
-
-    toast({
-      title: "تم إنشاء التقرير",
-      description: "تم إنشاء تقرير المشروع بنجاح"
-    });
-
-    return reportData;
-  };
 
   // Function to open edit task modal
   const openEditTaskModal = (task: TimelineTask) => {
@@ -982,14 +954,20 @@ export default function EngineerProjectDetailPage() {
     setIsEditTaskModalOpen(true);
   };
 
+  // Get Arabic day name
+  const getArabicDayName = (dateString: string) => {
+    const date = new Date(dateString);
+    const dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    return dayNames[date.getDay()];
+  };
+
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long',
+      month: '2-digit',
+      day: '2-digit',
     });
   };
 
@@ -1162,9 +1140,7 @@ export default function EngineerProjectDetailPage() {
               <Button variant="outline" className="w-full justify-start bg-orange-500/20 text-orange-100 border-orange-500/30 hover:bg-orange-500/30 h-14" onClick={() => setIsAddTaskModalOpen(true)}>
                 <GanttChartSquare size={18} className="ms-2" /> إضافة مهمة جديدة
               </Button>
-              <Button variant="outline" className="w-full justify-start bg-cyan-500/20 text-cyan-100 border-cyan-500/30 hover:bg-cyan-500/30 h-14" onClick={simulateReportGeneration}>
-                <Download size={18} className="ms-2" /> توليد/تصدير التقارير
-              </Button>
+
             </CardContent>
           </Card>
         )}
@@ -1525,19 +1501,18 @@ export default function EngineerProjectDetailPage() {
                               <TableRow key={task.id || `timeline-task-${index}`} className="hover:bg-gray-50">
                                 <TableCell className="font-medium">{task.name}</TableCell>
                                 <TableCell>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center justify-center">
                                     <div
                                       className="w-6 h-6 rounded-full border-2 border-gray-300 shadow-sm"
                                       style={{ backgroundColor: task.color }}
                                     />
-                                    <span className="text-xs text-gray-500 font-mono">{task.color}</span>
                                   </div>
                                 </TableCell>
                                 <TableCell>
                                   <div className="text-sm">
                                     <div className="font-medium">{formatDate(task.startDate)}</div>
                                     <div className="text-xs text-gray-500">
-                                      {startDate.toLocaleDateString('en-US', { weekday: 'short' })}
+                                      {getArabicDayName(task.startDate)}
                                     </div>
                                   </div>
                                 </TableCell>
@@ -1545,7 +1520,7 @@ export default function EngineerProjectDetailPage() {
                                   <div className="text-sm">
                                     <div className="font-medium">{formatDate(task.endDate)}</div>
                                     <div className="text-xs text-gray-500">
-                                      {endDate.toLocaleDateString('en-US', { weekday: 'short' })}
+                                      {getArabicDayName(task.endDate)}
                                     </div>
                                   </div>
                                 </TableCell>
@@ -1572,7 +1547,7 @@ export default function EngineerProjectDetailPage() {
                                       <Button variant="outline" size="sm" onClick={() => openEditTaskModal(task)}>
                                         <FileEdit size={14} />
                                       </Button>
-                                      <Button variant="outline" size="sm" onClick={() => handleDeleteTask(task.id)}>
+                                      <Button variant="outline" size="sm" onClick={() => handleDeleteTask(task.id)} className="text-red-600 border-red-300 hover:bg-red-600 hover:border-red-600 hover:text-white transition-all">
                                         <Trash2 size={14} />
                                       </Button>
                                     </div>
@@ -1839,7 +1814,7 @@ export default function EngineerProjectDetailPage() {
                                 <Button variant="outline" size="sm" onClick={() => handleDownloadReport(report)}>
                                   <Download size={14} />
                                 </Button>
-                                <Button variant="outline" size="sm" onClick={() => handleDeleteCostReport(report.id)} className="text-red-500 hover:bg-red-50 hover:text-red-600 border-red-200">
+                                <Button variant="outline" size="sm" onClick={() => handleDeleteCostReport(report.id)} className="text-red-600 border-red-300 hover:bg-red-600 hover:border-red-600 hover:text-white transition-all">
                                   <Trash2 size={14} />
                                 </Button>
                               </div>
@@ -2193,7 +2168,7 @@ export default function EngineerProjectDetailPage() {
                 <SelectTrigger className="h-11 bg-gray-50 border-gray-200 focus:ring-orange-500 rounded-xl">
                   <SelectValue placeholder="اختر الحالة" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[9999]" position="popper" sideOffset={5}>
                   <SelectItem value="مخطط له">📅 مخطط له</SelectItem>
                   <SelectItem value="قيد التنفيذ">🚧 قيد التنفيذ</SelectItem>
                   <SelectItem value="مكتمل">✅ مكتمل</SelectItem>
@@ -2232,103 +2207,97 @@ export default function EngineerProjectDetailPage() {
 
       {/* Edit Task Dialog */}
       <Dialog open={isEditTaskModalOpen} onOpenChange={setIsEditTaskModalOpen}>
-        <DialogOverlay className="bg-black/50 backdrop-blur-sm" />
-        <DialogContent className="sm:max-w-[425px] bg-white/95 border-0 shadow-2xl rounded-lg overflow-hidden">
-          <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-indigo-500 to-indigo-600"></div>
-          <div className="absolute top-4 left-4 z-10">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsEditTaskModalOpen(false)}
-              className="rounded-full bg-white/80 hover:bg-white text-gray-700 shadow-md"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+        <DialogOverlay className="bg-black/60 backdrop-blur-sm" />
+        <DialogContent className="sm:max-w-[500px] bg-white border-0 shadow-2xl rounded-2xl overflow-hidden p-0">
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
+            <div className="flex justify-between items-center">
+              <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                <FileEdit size={24} /> تعديل المهمة
+              </DialogTitle>
+              <Button variant="ghost" size="icon" onClick={() => setIsEditTaskModalOpen(false)} className="text-white hover:bg-white/20 rounded-full">
+                <X size={20} />
+              </Button>
+            </div>
+            <p className="text-indigo-100 mt-2 text-sm">قم بتعديل تفاصيل المهمة في الجدول الزمني.</p>
           </div>
-          <DialogHeader className="pt-8 pb-4 px-6">
-            <DialogTitle className="text-xl font-bold text-gray-800 text-right">تعديل المهمة</DialogTitle>
-          </DialogHeader>
+
           {taskToEdit && (
-            <div className="py-4 px-6 space-y-4 text-right">
-              <div>
-                <Label htmlFor="editTaskName" className="block mb-1.5 font-semibold text-gray-700">اسم المهمة:</Label>
+            <div className="p-6 space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="editTaskName" className="text-sm font-semibold text-gray-700">اسم المهمة</Label>
                 <Input
                   id="editTaskName"
                   value={taskToEdit.name}
                   onChange={(e) => setTaskToEdit({ ...taskToEdit, name: e.target.value })}
-                  className="bg-white focus:border-indigo-500 border-gray-200"
+                  className="h-11 bg-gray-50 border-gray-200 focus:ring-indigo-500 rounded-xl"
+                  placeholder="مثال: صب القواعد المسلحة"
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="editStartDate" className="block mb-1.5 font-semibold text-gray-700">تاريخ البدء:</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="editStartDate" className="text-sm font-semibold text-gray-700">تاريخ البدء</Label>
                   <Input
                     id="editStartDate"
                     type="date"
                     value={taskToEdit.startDate}
                     onChange={(e) => setTaskToEdit({ ...taskToEdit, startDate: e.target.value })}
-                    className="bg-white focus:border-indigo-500 border-gray-200"
+                    className="h-11 bg-gray-50 border-gray-200 focus:ring-indigo-500 rounded-xl"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="editEndDate" className="block mb-1.5 font-semibold text-gray-700">تاريخ الانتهاء:</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="editEndDate" className="text-sm font-semibold text-gray-700">تاريخ الانتهاء</Label>
                   <Input
                     id="editEndDate"
                     type="date"
                     value={taskToEdit.endDate}
                     onChange={(e) => setTaskToEdit({ ...taskToEdit, endDate: e.target.value })}
-                    className="bg-white focus:border-indigo-500 border-gray-200"
+                    className="h-11 bg-gray-50 border-gray-200 focus:ring-indigo-500 rounded-xl"
                   />
                 </div>
               </div>
-              <div>
-                <Label htmlFor="editTaskStatus" className="block mb-1.5 font-semibold text-gray-700">الحالة:</Label>
-                <Select value={taskToEdit.status} onValueChange={(value) => setTaskToEdit({ ...taskToEdit, status: value as any })}>
-                  <SelectTrigger className="bg-white focus:border-indigo-500 border-gray-200">
-                    <SelectValue />
+
+              <div className="space-y-2">
+                <Label htmlFor="editTaskStatus" className="text-sm font-semibold text-gray-700">حالة المهمة</Label>
+                <Select value={taskToEdit.status} onValueChange={(value: "مخطط له" | "قيد التنفيذ" | "مكتمل") => setTaskToEdit({ ...taskToEdit, status: value })}>
+                  <SelectTrigger className="h-11 bg-gray-50 border-gray-200 focus:ring-indigo-500 rounded-xl">
+                    <SelectValue placeholder="اختر الحالة" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="مخطط له">مخطط له</SelectItem>
-                    <SelectItem value="قيد التنفيذ">قيد التنفيذ</SelectItem>
-                    <SelectItem value="مكتمل">مكتمل</SelectItem>
+                  <SelectContent className="z-[9999]" position="popper" sideOffset={5}>
+                    <SelectItem value="مخطط له">📅 مخطط له</SelectItem>
+                    <SelectItem value="قيد التنفيذ">🚧 قيد التنفيذ</SelectItem>
+                    <SelectItem value="مكتمل">✅ مكتمل</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label htmlFor="editTaskColor" className="block mb-1.5 font-semibold text-gray-700">اللون:</Label>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="editTaskColor"
-                      type="color"
-                      value={taskToEdit.color}
-                      onChange={(e) => setTaskToEdit({ ...taskToEdit, color: e.target.value })}
-                      className="w-12 h-12 p-1 bg-white border rounded-lg shadow-sm"
-                    />
-                    <span className="text-sm text-gray-600">اختر لون المهمة</span>
-                  </div>
 
-                  {/* Color Palette */}
-                  <div className="grid grid-cols-5 gap-2">
-                    {defaultColors.map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${taskToEdit.color === color ? 'border-gray-800 shadow-lg' : 'border-gray-300'
-                          }`}
-                        style={{ backgroundColor: color }}
-                        onClick={() => setTaskToEdit({ ...taskToEdit, color })}
-                        title={color}
-                      />
-                    ))}
-                  </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-gray-700">لون التمييز</Label>
+                <div className="flex flex-wrap gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  {defaultColors.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      className={`w-8 h-8 rounded-full shadow-sm transition-all hover:scale-110 ${taskToEdit.color === color ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : ''}`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => setTaskToEdit({ ...taskToEdit, color })}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    value={taskToEdit.color}
+                    onChange={(e) => setTaskToEdit({ ...taskToEdit, color: e.target.value })}
+                    className="w-8 h-8 rounded-full overflow-hidden cursor-pointer border-0 p-0"
+                    title="اختر لون مخصص"
+                  />
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={handleEditTask} className="flex-1 bg-indigo-600 hover:bg-indigo-700">
-                  <Save size={18} className="ms-2" /> حفظ التغييرات
+
+              <div className="flex gap-3">
+                <Button onClick={handleEditTask} className="flex-1 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02]">
+                  <Save size={20} className="me-2" /> حفظ التغييرات
                 </Button>
-                <Button variant="outline" onClick={() => handleDeleteTask(taskToEdit.id)} className="text-red-600 border-red-600 hover:bg-red-50">
+                <Button variant="outline" onClick={() => handleDeleteTask(taskToEdit.id)} className="h-12 px-4 text-red-600 border-red-300 hover:bg-red-600 hover:border-red-600 hover:text-white rounded-xl transition-all">
                   <Trash2 size={18} />
                 </Button>
               </div>
@@ -2388,80 +2357,7 @@ export default function EngineerProjectDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Results Modal */}
-      <Dialog open={isResultsModalOpen} onOpenChange={setIsResultsModalOpen}>
-        <DialogOverlay className="bg-black/50 backdrop-blur-sm" />
-        <DialogContent className="sm:max-w-[600px] bg-white/95 border-0 shadow-2xl rounded-lg overflow-hidden">
-          <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-purple-600"></div>
-          <div className="absolute top-4 left-4 z-10">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsResultsModalOpen(false)}
-              className="rounded-full bg-white/80 hover:bg-white text-gray-700 shadow-md"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <DialogHeader className="pt-8 pb-4 px-6">
-            <DialogTitle className="text-xl font-bold text-gray-800 text-right">
-              تقرير المشروع
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4 px-6 space-y-4 text-right">
-            {resultsType === 'report' && reportData && (
-              <div className="space-y-4">
-                <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold">تقدم المشروع:</span>
-                    <span className="text-xl font-bold text-purple-700">{reportData.projectProgress}%</span>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">المهام المكتملة:</p>
-                    <p className="font-semibold">{reportData.completedTasks} / {reportData.totalTasks}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">التكاليف الإجمالية:</p>
-                    <p className="font-semibold">{reportData.totalCost.toLocaleString()} شيكل</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">التكاليف المقدرة المتبقية:</p>
-                    <p className="font-semibold">{reportData.estimatedRemainingCost.toLocaleString()} شيكل</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">نسبة استهلاك الميزانية:</p>
-                    <p className="font-semibold">{reportData.budgetUtilization}%</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">الوقت المتبقي (أيام):</p>
-                    <p className="font-semibold">{reportData.timeRemaining}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-lg border">
-                    <p className="text-sm text-gray-600">مستوى المخاطرة:</p>
-                    <p className={`font-semibold ${reportData.riskLevel === 'عالي' ? 'text-red-600' :
-                      reportData.riskLevel === 'متوسط' ? 'text-yellow-600' : 'text-green-600'
-                      }`}>
-                      {reportData.riskLevel}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setIsResultsModalOpen(false)}>
-                إغلاق
-              </Button>
-              <Button className="bg-purple-600 hover:bg-purple-700">
-                <Download size={18} className="ms-2" /> تصدير النتائج
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <EditProjectDialog
         isOpen={isEditModalOpen}
