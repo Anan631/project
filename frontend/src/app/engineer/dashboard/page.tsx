@@ -87,15 +87,15 @@ const dashboardCategories = [
   },
   {
     id: 'reports',
-    title: "التقارير الفنية",
-    description: "توليد تقارير فنية ومالية مفصلة للمشاريع.",
+    title: "تقارير كميات المواد",
+    description: "حصر وتقدير كميات مواد البناء اللازمة للمشاريع الإنشائية.",
     icon: BarChart3,
-    href: "/engineer/quantity-survey/view-reports",
+    href: "/engineer/quantity-reports",
     iconColorClass: "text-cyan-600",
     bgColorClass: "bg-cyan-50 border-cyan-200",
     buttonClass: "bg-cyan-600 hover:bg-cyan-700 text-white border-cyan-600",
-    badge: "تقارير",
-    keywords: ["تقارير", "فنية", "مالية", "تحليل"]
+    badge: "كميات",
+    keywords: ["تقارير", "كميات", "مواد", "حصر"]
   },
   {
     id: 'owners',
