@@ -328,14 +328,18 @@ export default function QuantityReportsPage() {
 
   const getReportTypeBadge = (type: string) => {
     const types: Record<string, { label: string; color: string; icon: any }> = {
-      'foundation': { label: 'قواعد', color: 'bg-blue-500', icon: Shield },
-      'cleaning-slab': { label: 'صبة نظافة', color: 'bg-green-500', icon: Target },
-      'columns': { label: 'أعمدة', color: 'bg-purple-500', icon: BarChart3 },
-      'beams': { label: 'كمرات', color: 'bg-orange-500', icon: Zap },
-      'slabs': { label: 'بلاطات', color: 'bg-cyan-500', icon: Building2 },
-      'full': { label: 'شامل', color: 'bg-emerald-500', icon: CheckCircle2 }
+      'foundation': { label: 'صبة النظافة والقواعد', color: 'bg-blue-500', icon: Shield },
+      'cleaning-slab': { label: 'صبة النظافة', color: 'bg-green-500', icon: Target },
+      'column-footings': { label: 'شروش الأعمدة', color: 'bg-purple-500', icon: BarChart3 },
+      'columns': { label: 'الأعمدة', color: 'bg-purple-500', icon: BarChart3 },
+      'roof': { label: 'السقف', color: 'bg-orange-500', icon: Zap },
+      'ground-bridges': { label: 'الجسور الأرضية', color: 'bg-cyan-500', icon: Building2 },
+      'ground-slab': { label: 'أرضية المبنى (المِدّة)', color: 'bg-emerald-500', icon: CheckCircle2 },
+      'beams': { label: 'الكمرات', color: 'bg-orange-500', icon: Zap },
+      'slabs': { label: 'البلاطات', color: 'bg-cyan-500', icon: Building2 },
+      'full': { label: 'تقرير شامل', color: 'bg-emerald-500', icon: CheckCircle2 }
     };
-    return types[type] || { label: type, color: 'bg-gray-500', icon: FileText };
+    return types[type] || { label: 'تقرير غير محدد', color: 'bg-gray-500', icon: FileText };
   };
 
   const getPriorityBadge = (priority: string) => {
@@ -689,8 +693,6 @@ export default function QuantityReportsPage() {
                                     {project.projectName}
                                   </CardTitle>
                                   <div className="flex items-center gap-2 text-sm text-slate-500">
-                                    <span>#{project.projectId.slice(-6)}</span>
-                                    <Separator orientation="vertical" className="h-4" />
                                     <span>{project.reports.length} تقرير</span>
                                   </div>
                                 </div>
@@ -733,21 +735,6 @@ export default function QuantityReportsPage() {
                                         </Badge>
                                       )}
                                     </div>
-                                  </div>
-                                )}
-                                
-                                {/* Quick Stats */}
-                                {latestReport?.concreteData && (
-                                  <div className="bg-emerald-50 rounded-lg p-3 text-center">
-                                    <p className="text-xs text-emerald-600 mb-1">الخرسانة</p>
-                                    <p className="text-lg font-bold text-emerald-700">
-                                      {(() => {
-                                        const cleaning = latestReport.concreteData.cleaningVolume || 0;
-                                        const foundations = latestReport.concreteData.foundationsVolume || 0;
-                                        const groundSlab = latestReport.concreteData.groundSlabVolume || 0;
-                                        return (cleaning + foundations + groundSlab).toFixed(2);
-                                      })()} م³
-                                    </p>
                                   </div>
                                 )}
                                 
@@ -844,9 +831,6 @@ export default function QuantityReportsPage() {
                                 </div>
                                 <div>
                                   <p className="font-bold text-slate-900">{project.projectName}</p>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm text-slate-500">#{project.projectId.slice(-6)}</span>
-                                  </div>
                                 </div>
                               </div>
                             </TableCell>

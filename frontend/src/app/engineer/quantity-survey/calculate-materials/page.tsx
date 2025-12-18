@@ -103,16 +103,6 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
       </CardHeader>
       
       <CardContent className="relative z-10">
-        {/* تفاصيل إضافية */}
-        <div className="flex items-center gap-4 mb-6 text-sm text-gray-500">
-          {project.startDate && (
-            <div className="flex items-center gap-1.5">
-              <Calendar className="h-4 w-4" />
-              <span>{project.startDate}</span>
-            </div>
-          )}
-        </div>
-        
         {/* أزرار الحسابات */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <Button
@@ -145,18 +135,13 @@ const ProjectCard = ({ project, index }: { project: Project; index: number }) =>
           <Button
             asChild
             variant="outline"
-            className="flex-1 border-gray-300 hover:border-blue-400 hover:bg-blue-50 text-gray-700 hover:text-blue-700 transition-all duration-300 rounded-xl"
+            className="w-full border-gray-300 hover:border-blue-400 hover:bg-blue-50 text-gray-700 hover:text-blue-700 transition-all duration-300 rounded-xl"
           >
             <Link href={`/engineer/projects/${project.id}`}>
               <FileText className="h-4 w-4 ml-2" />
               تفاصيل المشروع
             </Link>
           </Button>
-          
-          <div className="flex items-center text-xs text-gray-500 gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg">
-            <Clock className="h-4 w-4" />
-            <span>آخر تحديث: —</span>
-          </div>
         </div>
       </CardContent>
     </Card>

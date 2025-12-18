@@ -700,7 +700,7 @@ export default function CreateProjectPage() {
                           <div className="space-y-3">
                             <Label htmlFor="budget" className="flex items-center gap-2 text-gray-700 font-semibold text-base">
                               <DollarSign className="h-4 w-4 text-red-500" />
-                              الميزانية التقديرية (ريال سعودي)
+                              الميزانية التقديرية (شيكل)
                               <span className="text-gray-400 text-sm font-normal">(اختياري)</span>
                             </Label>
                             <div className="relative">
@@ -712,7 +712,7 @@ export default function CreateProjectPage() {
                                 placeholder="1500000" 
                               />
                               <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-bold text-lg">
-                                ر.س
+                                ₪
                               </div>
                             </div>
                             {errors.budget && (
