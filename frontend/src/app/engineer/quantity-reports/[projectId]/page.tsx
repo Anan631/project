@@ -18,6 +18,10 @@ import {
   AlertTriangle,
   X,
   Send,
+  TrendingUp,
+  BarChart3,
+  Activity,
+  Package,
 } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface QuantityReport {
   _id: string;
@@ -109,6 +114,11 @@ export default function ProjectReportsPage() {
     reportType: null,
     reportDate: null,
   });
+  
+  const [deleteAllDialog, setDeleteAllDialog] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     fetchReports();
@@ -696,6 +706,10 @@ export default function ProjectReportsPage() {
       reportId,
       reportType: report.calculationType === 'foundation' ? 'القواعد وصبة النظافة' : 
                  report.calculationType === 'column-footings' ? 'شروش الأعمدة' : 
+                 report.calculationType === 'columns' ? 'الأعمدة' : 
+                 report.calculationType === 'roof' ? 'السقف' : 
+                 report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : 
+                 report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' : 
                  report.calculationType,
       reportDate: formatDate(report.updatedAt),
     });
@@ -780,16 +794,69 @@ export default function ProjectReportsPage() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" dir="rtl">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-12 h-12 animate-spin text-emerald-600 mx-auto" />
-          <p className="text-lg text-slate-600">جاري تحميل التقارير...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleDeleteAllReports = async () => {
+    setDeletingAll(true);
+    try {
+      const deletePromises = reports.map(report => 
+        fetch(`http://localhost:5000/api/quantity-reports/${report._id}`, {
+          method: 'DELETE'
+        })
+      );
+
+      const responses = await Promise.all(deletePromises);
+      const results = await Promise.all(responses.map(res => res.json()));
+      
+      const failedDeletes = results.filter(result => !result.success);
+      
+      if (failedDeletes.length === 0) {
+        setReports([]);
+        toast({
+          title: 'تم الحذف بنجاح',
+          description: `تم حذف جميع التقارير (${reports.length}) بنجاح`,
+        });
+      } else {
+        throw new Error(`فشل في حذف ${failedDeletes.length} تقرير`);
+      }
+    } catch (error: any) {
+      console.error('Error deleting all reports:', error);
+      toast({
+        title: 'خطأ في الحذف',
+        description: error.message || 'حدث خطأ أثناء حذف التقارير',
+        variant: 'destructive'
+      });
+    } finally {
+      setDeletingAll(false);
+      setDeleteAllDialog(false);
+    }
+  };
+
+
+
+  // Calculate statistics
+  const totalConcreteVolume = reports.reduce((sum, report) => {
+    if (report.calculationType === 'column-footings') {
+      return sum + (report.concreteData?.totalFootingsVolume || report.concreteData?.totalConcrete || 0);
+    } else if (report.calculationType === 'columns') {
+      return sum + (report.concreteData?.columnsVolume || report.concreteData?.totalConcrete || 0);
+    } else if (report.calculationType === 'roof') {
+      return sum + (report.concreteData?.totalConcrete || 0);
+    } else if (report.calculationType === 'ground-bridges') {
+      return sum + (report.concreteData?.totalVolume || report.concreteData?.totalConcrete || 0);
+    } else if (report.calculationType === 'ground-slab') {
+      return sum + (report.concreteData?.groundSlabVolume || report.concreteData?.totalConcrete || 0);
+    } else {
+      const cleaning = report.concreteData?.cleaningVolume || 0;
+      const foundations = report.concreteData?.foundationsVolume || 0;
+      const groundSlab = report.concreteData?.groundSlabVolume || 0;
+      return sum + cleaning + foundations + groundSlab;
+    }
+  }, 0);
+
+  const totalSteelWeight = reports.reduce((sum, report) => {
+    return sum + (report.steelData?.totalSteelWeight || 0);
+  }, 0);
+
+  const sentReportsCount = reports.filter(report => report.sentToOwner).length;
 
   // Separate reports by type
   const foundationReport = reports.find(r => r.calculationType === 'foundation');
@@ -799,14 +866,33 @@ export default function ProjectReportsPage() {
   const groundBridgesReport = reports.find(r => r.calculationType === 'ground-bridges');
   const groundSlabReport = reports.find(r => r.calculationType === 'ground-slab');
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl">
+        <div className="text-center space-y-6 p-8 bg-white rounded-2xl shadow-xl max-w-md">
+          <div className="w-24 h-24 mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+            <Loader2 className="w-12 h-12 animate-spin text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">جاري تحميل التقارير</h2>
+            <p className="text-slate-600">يرجى الانتظار بينما نحضر بيانات التقارير...</p>
+          </div>
+          <div className="w-full bg-slate-200 rounded-full h-2">
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full animate-pulse" style={{width: '70%'}}></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl" style={{ fontSize: '16px' }}>
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         
         {/* Back Button */}
         <div className="mb-6">
           <Link href="/engineer/quantity-reports">
-            <Button variant="ghost" className="gap-2 text-slate-600 hover:text-slate-900">
+            <Button variant="ghost" className="gap-2 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 shadow-sm hover:shadow-md transition-all duration-300 px-4 py-2 rounded-lg">
               <ArrowRight className="w-4 h-4" />
               العودة لقائمة المشاريع
             </Button>
@@ -814,24 +900,28 @@ export default function ProjectReportsPage() {
         </div>
 
         {/* Project Header */}
-        <Card className="border-0 shadow-xl mb-8 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white py-8">
-            <div className="flex items-start gap-6">
-              <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                <Building2 className="w-10 h-10 text-white" />
-              </div>
-              <div className="flex-1">
-                <CardTitle className="text-2xl font-bold mb-2">
-                  {projectInfo?.name || `مشروع #${projectId.slice(-6)}`}
-                </CardTitle>
-                <div className="flex flex-wrap gap-4 text-blue-100">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    <span>المهندس: {projectInfo?.engineerName}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    <span>المالك: {projectInfo?.ownerName}</span>
+        <Card className="border-0 shadow-xl mb-8 overflow-hidden bg-white/80 backdrop-blur-sm">
+          <CardHeader className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white py-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+            <div className="relative z-10">
+              <div className="flex items-start gap-6">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
+                  <Building2 className="w-10 h-10 text-white" />
+                </div>
+                <div className="flex-1">
+                  <CardTitle className="text-3xl font-bold mb-3">
+                    {projectInfo?.name || `مشروع #${projectId.slice(-6)}`}
+                  </CardTitle>
+                  <div className="flex flex-wrap gap-6 text-blue-100">
+                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg">
+                      <User className="w-4 h-4" />
+                      <span>المهندس: {projectInfo?.engineerName}</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg">
+                      <User className="w-4 h-4" />
+                      <span>المالك: {projectInfo?.ownerName}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -841,15 +931,17 @@ export default function ProjectReportsPage() {
 
         {/* No Reports State */}
         {reports.length === 0 ? (
-          <Card className="border-0 shadow-lg">
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
             <CardContent className="py-16 text-center">
-              <AlertCircle className="w-16 h-16 text-amber-400 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-slate-700 mb-2">لا توجد تقارير لهذا المشروع</h3>
-              <p className="text-slate-500 mb-6">
+              <div className="w-24 h-24 mx-auto bg-amber-100 rounded-full flex items-center justify-center mb-6">
+                <AlertCircle className="w-12 h-12 text-amber-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-700 mb-3">لا توجد تقارير لهذا المشروع</h3>
+              <p className="text-slate-500 mb-8 max-w-md mx-auto">
                 قم بإجراء حسابات الكميات من صفحة المشروع لإنشاء التقارير
               </p>
               <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
-                <Button className="bg-emerald-600 hover:bg-emerald-700">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 text-lg shadow-lg hover:shadow-xl transition-all">
                   الذهاب لحسابات الخرسانة
                 </Button>
               </Link>
@@ -857,646 +949,1142 @@ export default function ProjectReportsPage() {
           </Card>
         ) : (
           <>
-            {/* Reports Cards - Side by Side */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-              {/* Foundation Report Card */}
-              {foundationReport && (
-                <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                  <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Blocks className="w-7 h-7 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                        <CardDescription className="text-emerald-100">
-                          صبة النظافة والقواعد
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    {foundationReport?.concreteData && (
-                      <div className="space-y-4 mb-6">
-                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                          <span className="text-slate-600">حجم صبة النظافة</span>
-                          <span className="font-bold text-emerald-600">
-                            {foundationReport.concreteData.cleaningVolume?.toFixed(3) || 0} م³
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                          <span className="text-slate-600">حجم القواعد</span>
-                          <span className="font-bold text-emerald-600">
-                            {foundationReport.concreteData.foundationsVolume?.toFixed(3) || 0} م³
-                          </span>
-                        </div>
-                        {foundationReport.concreteData.groundSlabVolume && foundationReport.concreteData.groundSlabVolume > 0 && (
-                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                            <span className="text-slate-600">حجم أرضية المبنى</span>
-                            <span className="font-bold text-emerald-600">
-                              {foundationReport.concreteData.groundSlabVolume.toFixed(3)} م³
-                            </span>
-                          </div>
-                        )}
-                        <Separator />
-                        <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                          <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                          <span className="text-2xl font-black text-emerald-600">
-                            {(() => {
-                              const cleaning = foundationReport.concreteData.cleaningVolume || 0;
-                              const foundations = foundationReport.concreteData.foundationsVolume || 0;
-                              const groundSlab = foundationReport.concreteData.groundSlabVolume || 0;
-                              const total = cleaning + foundations + groundSlab;
-                              return total.toFixed(3);
-                            })()} م³
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-3">
-                      <Button
-                        onClick={() => downloadPDF(foundationReport._id, 'concrete')}
-                        disabled={downloading === `${foundationReport._id}-concrete`}
-                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                      >
-                        {downloading === `${foundationReport._id}-concrete` ? (
-                          <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                        ) : (
-                          <Printer className="w-5 h-5 ml-2" />
-                        )}
-                        طباعة تقرير الخرسانة PDF
-                      </Button>
-                      
-                      <Button
-                        onClick={() => handleSendToOwner(foundationReport._id)}
-                        disabled={sendingToOwner === foundationReport._id || foundationReport.sentToOwner}
-                        className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                          foundationReport.sentToOwner
-                            ? 'bg-green-600 hover:bg-green-700 text-white'
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                        }`}
-                      >
-                        {sendingToOwner === foundationReport._id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                            جاري الإرسال...
-                          </>
-                        ) : foundationReport.sentToOwner ? (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 ml-2" />
-                            تم الإرسال للمالك
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-4 h-4 ml-2" />
-                            إرسال التقرير للمالك
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Column Footings Report Card */}
-              {columnFootingsReport && (
-                <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                  <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Blocks className="w-7 h-7 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                        <CardDescription className="text-emerald-100">
-                          شروش الأعمدة
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    {columnFootingsReport?.concreteData && (
-                      <div className="space-y-4 mb-6">
-                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                          <span className="text-slate-600">حجم شروش الأعمدة</span>
-                          <span className="font-bold text-emerald-600">
-                            {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) || 
-                             columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                          </span>
-                        </div>
-                        {columnFootingsReport.concreteData.numberOfColumns && (
-                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                            <span className="text-slate-600">عدد الأعمدة</span>
-                            <span className="font-bold text-emerald-600">
-                              {columnFootingsReport.concreteData.numberOfColumns}
-                            </span>
-                          </div>
-                        )}
-                        {columnFootingsReport.concreteData.finalColumnDimensions?.displayText && (
-                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                            <span className="text-slate-600">أبعاد العمود</span>
-                            <span className="font-bold text-emerald-600">
-                              {columnFootingsReport.concreteData.finalColumnDimensions.displayText}
-                            </span>
-                          </div>
-                        )}
-                        <Separator />
-                        <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                          <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                          <span className="text-2xl font-black text-emerald-600">
-                            {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) || 
-                             columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-3">
-                      <Button
-                        onClick={() => downloadPDF(columnFootingsReport._id, 'concrete')}
-                        disabled={downloading === `${columnFootingsReport._id}-concrete`}
-                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                      >
-                        {downloading === `${columnFootingsReport._id}-concrete` ? (
-                          <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                        ) : (
-                          <Printer className="w-5 h-5 ml-2" />
-                        )}
-                        طباعة تقرير الخرسانة PDF
-                      </Button>
-                      
-                      <Button
-                        onClick={() => handleSendToOwner(columnFootingsReport._id)}
-                        disabled={sendingToOwner === columnFootingsReport._id || columnFootingsReport.sentToOwner}
-                        className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                          columnFootingsReport.sentToOwner
-                            ? 'bg-green-600 hover:bg-green-700 text-white'
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                        }`}
-                      >
-                        {sendingToOwner === columnFootingsReport._id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                            جاري الإرسال...
-                          </>
-                        ) : columnFootingsReport.sentToOwner ? (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 ml-2" />
-                            تم الإرسال للمالك
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-4 h-4 ml-2" />
-                            إرسال التقرير للمالك
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Columns Report Card */}
-              {columnsReport && (
-                <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                  <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Blocks className="w-7 h-7 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                        <CardDescription className="text-emerald-100">
-                          الأعمدة
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    {columnsReport?.concreteData && (
-                      <div className="space-y-4 mb-6">
-                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                          <span className="text-slate-600">حجم الأعمدة</span>
-                          <span className="font-bold text-emerald-600">
-                            {columnsReport.concreteData.columnsVolume?.toFixed(3) || 
-                             columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                          </span>
-                        </div>
-                        {columnsReport.concreteData.columnsData && columnsReport.concreteData.columnsData.length > 0 && (
-                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                            <span className="text-slate-600">عدد الأعمدة</span>
-                            <span className="font-bold text-emerald-600">
-                              {columnsReport.concreteData.columnsData.length}
-                            </span>
-                          </div>
-                        )}
-                        <Separator />
-                        <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                          <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                          <span className="text-2xl font-black text-emerald-600">
-                            {columnsReport.concreteData.columnsVolume?.toFixed(3) || 
-                             columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-3">
-                      <Button
-                        onClick={() => downloadPDF(columnsReport._id, 'concrete')}
-                        disabled={downloading === `${columnsReport._id}-concrete`}
-                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                      >
-                        {downloading === `${columnsReport._id}-concrete` ? (
-                          <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                        ) : (
-                          <Printer className="w-5 h-5 ml-2" />
-                        )}
-                        طباعة تقرير الخرسانة PDF
-                      </Button>
-                      
-                      <Button
-                        onClick={() => handleSendToOwner(columnsReport._id)}
-                        disabled={sendingToOwner === columnsReport._id || columnsReport.sentToOwner}
-                        className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                          columnsReport.sentToOwner
-                            ? 'bg-green-600 hover:bg-green-700 text-white'
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                        }`}
-                      >
-                        {sendingToOwner === columnsReport._id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                            جاري الإرسال...
-                          </>
-                        ) : columnsReport.sentToOwner ? (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 ml-2" />
-                            تم الإرسال للمالك
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-4 h-4 ml-2" />
-                            إرسال التقرير للمالك
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Roof Report Card */}
-              {roofReport && (
-                <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                  <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Blocks className="w-7 h-7 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                        <CardDescription className="text-emerald-100">
-                          السقف
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    {roofReport?.concreteData && (
-                      <div className="space-y-4 mb-6">
-                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                          <span className="text-slate-600">حجم السقف</span>
-                          <span className="font-bold text-emerald-600">
-                            {roofReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                          </span>
-                        </div>
-                        {roofReport.concreteData.roofData && (
-                          <>
-                            {roofReport.concreteData.roofData.area && (
-                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                                <span className="text-slate-600">مساحة السقف</span>
-                                <span className="font-bold text-emerald-600">
-                                  {roofReport.concreteData.roofData.area.toFixed(2)} م²
-                                </span>
-                              </div>
-                            )}
-                            {roofReport.concreteData.roofData.roofType && (
-                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                                <span className="text-slate-600">نوع السقف</span>
-                                <span className="font-bold text-emerald-600">
-                                  {roofReport.concreteData.roofData.roofType === 'with-ribs' ? 'مع ربس' : 'بدون ربس'}
-                                </span>
-                              </div>
-                            )}
-                          </>
-                        )}
-                        <Separator />
-                        <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                          <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                          <span className="text-2xl font-black text-emerald-600">
-                            {roofReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-3">
-                      <Button
-                        onClick={() => downloadPDF(roofReport._id, 'concrete')}
-                        disabled={downloading === `${roofReport._id}-concrete`}
-                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                      >
-                        {downloading === `${roofReport._id}-concrete` ? (
-                          <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                        ) : (
-                          <Printer className="w-5 h-5 ml-2" />
-                        )}
-                        طباعة تقرير الخرسانة PDF
-                      </Button>
-                      
-                      <Button
-                        onClick={() => handleSendToOwner(roofReport._id)}
-                        disabled={sendingToOwner === roofReport._id || roofReport.sentToOwner}
-                        className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                          roofReport.sentToOwner
-                            ? 'bg-green-600 hover:bg-green-700 text-white'
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                        }`}
-                      >
-                        {sendingToOwner === roofReport._id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                            جاري الإرسال...
-                          </>
-                        ) : roofReport.sentToOwner ? (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 ml-2" />
-                            تم الإرسال للمالك
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-4 h-4 ml-2" />
-                            إرسال التقرير للمالك
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Ground Bridges Report Card */}
-              {groundBridgesReport && (
-                <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                  <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Blocks className="w-7 h-7 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                        <CardDescription className="text-emerald-100">
-                          الجسور الأرضية
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    {groundBridgesReport?.concreteData && (
-                      <div className="space-y-4 mb-6">
-                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                          <span className="text-slate-600">حجم الجسور الأرضية</span>
-                          <span className="font-bold text-emerald-600">
-                            {groundBridgesReport.concreteData.totalVolume?.toFixed(3) || 
-                             groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                          </span>
-                        </div>
-                        {groundBridgesReport.concreteData.bridgesCount && (
-                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                            <span className="text-slate-600">عدد الجسور</span>
-                            <span className="font-bold text-emerald-600">
-                              {groundBridgesReport.concreteData.bridgesCount}
-                            </span>
-                          </div>
-                        )}
-                        <Separator />
-                        <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                          <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                          <span className="text-2xl font-black text-emerald-600">
-                            {groundBridgesReport.concreteData.totalVolume?.toFixed(3) || 
-                             groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-3">
-                      <Button
-                        onClick={() => downloadPDF(groundBridgesReport._id, 'concrete')}
-                        disabled={downloading === `${groundBridgesReport._id}-concrete`}
-                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                      >
-                        {downloading === `${groundBridgesReport._id}-concrete` ? (
-                          <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                        ) : (
-                          <Printer className="w-5 h-5 ml-2" />
-                        )}
-                        طباعة تقرير الخرسانة PDF
-                      </Button>
-                      
-                      <Button
-                        onClick={() => handleSendToOwner(groundBridgesReport._id)}
-                        disabled={sendingToOwner === groundBridgesReport._id || groundBridgesReport.sentToOwner}
-                        className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                          groundBridgesReport.sentToOwner
-                            ? 'bg-green-600 hover:bg-green-700 text-white'
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                        }`}
-                      >
-                        {sendingToOwner === groundBridgesReport._id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                            جاري الإرسال...
-                          </>
-                        ) : groundBridgesReport.sentToOwner ? (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 ml-2" />
-                            تم الإرسال للمالك
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-4 h-4 ml-2" />
-                            إرسال التقرير للمالك
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Ground Slab Report Card */}
-              {groundSlabReport && (
-                <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                  <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Blocks className="w-7 h-7 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                        <CardDescription className="text-emerald-100">
-                          أرضية المبنى (المِدّة)
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    {groundSlabReport?.concreteData && (
-                      <div className="space-y-4 mb-6">
-                        <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                          <span className="text-slate-600">حجم أرضية المبنى</span>
-                          <span className="font-bold text-emerald-600">
-                            {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) || 
-                             groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                          </span>
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                          <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                          <span className="text-2xl font-black text-emerald-600">
-                            {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) || 
-                             groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-3">
-                      <Button
-                        onClick={() => downloadPDF(groundSlabReport._id, 'concrete')}
-                        disabled={downloading === `${groundSlabReport._id}-concrete`}
-                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                      >
-                        {downloading === `${groundSlabReport._id}-concrete` ? (
-                          <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                        ) : (
-                          <Printer className="w-5 h-5 ml-2" />
-                        )}
-                        طباعة تقرير الخرسانة PDF
-                      </Button>
-                      
-                      <Button
-                        onClick={() => handleSendToOwner(groundSlabReport._id)}
-                        disabled={sendingToOwner === groundSlabReport._id || groundSlabReport.sentToOwner}
-                        className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                          groundSlabReport.sentToOwner
-                            ? 'bg-green-600 hover:bg-green-700 text-white'
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                        }`}
-                      >
-                        {sendingToOwner === groundSlabReport._id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                            جاري الإرسال...
-                          </>
-                        ) : groundSlabReport.sentToOwner ? (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 ml-2" />
-                            تم الإرسال للمالك
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-4 h-4 ml-2" />
-                            إرسال التقرير للمالك
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            {/* Report History */}
-            <Card className="border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-slate-600" />
-                  سجل التقارير
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {reports.map((report) => (
-                    <div 
-                      key={report._id}
-                      className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            {/* Tabs for different views */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+              <TabsList className="grid w-full grid-cols-3 bg-white/80 backdrop-blur-sm shadow-md">
+                <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                  <BarChart3 className="w-4 h-4 ml-2" />
+                  نظرة عامة
+                </TabsTrigger>
+                <TabsTrigger value="reports" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                  <FileText className="w-4 h-4 ml-2" />
+                  التقارير
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                  <TrendingUp className="w-4 h-4 ml-2" />
+                  التحليلات
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="overview" className="mt-6">
+                {/* Statistics Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                  <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-slate-800">
-                            تقرير {report.calculationType === 'foundation' ? 'القواعد وصبة النظافة' : 
-                                   report.calculationType === 'column-footings' ? 'شروش الأعمدة' : 
-                                   report.calculationType === 'columns' ? 'الأعمدة' : 
-                                   report.calculationType === 'roof' ? 'السقف' : 
-                                   report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : 
-                                   report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' : 
-                                   report.calculationType}
-                          </p>
-                          <p className="text-sm text-slate-500 flex items-center gap-2">
-                            <Calendar className="w-3 h-3" />
-                            {formatDate(report.updatedAt)}
+                          <p className="text-slate-500 text-sm mb-1">إجمالي التقارير</p>
+                          <p className="text-3xl font-bold text-slate-800">{reports.length}</p>
+                          <p className="text-xs text-slate-500 mt-1 flex items-center">
+                            <Activity className="w-3 h-3 ml-1" />
+                            نشط
                           </p>
                         </div>
+                        <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
+                          <FileText className="w-7 h-7 text-blue-600" />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="bg-white">
-                          {(() => {
-                            if (report.calculationType === 'column-footings') {
-                              return (report.concreteData?.totalFootingsVolume || 
-                                      report.concreteData?.totalConcrete || 0).toFixed(2);
-                            } else if (report.calculationType === 'columns') {
-                              return (report.concreteData?.columnsVolume || 
-                                      report.concreteData?.totalConcrete || 0).toFixed(2);
-                            } else if (report.calculationType === 'roof') {
-                              return (report.concreteData?.totalConcrete || 0).toFixed(2);
-                            } else if (report.calculationType === 'ground-bridges') {
-                              return (report.concreteData?.totalVolume || 
-                                      report.concreteData?.totalConcrete || 0).toFixed(2);
-                            } else if (report.calculationType === 'ground-slab') {
-                              return (report.concreteData?.groundSlabVolume || 
-                                      report.concreteData?.totalConcrete || 0).toFixed(2);
-                            } else {
-                              const cleaning = report.concreteData?.cleaningVolume || 0;
-                              const foundations = report.concreteData?.foundationsVolume || 0;
-                              const groundSlab = report.concreteData?.groundSlabVolume || 0;
-                              return (cleaning + foundations + groundSlab).toFixed(2);
-                            }
-                          })()} م³
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteReport(report._id)}
-                          disabled={deleting === report._id}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300"
-                        >
-                          {deleting === report._id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-slate-500 text-sm mb-1">إجمالي الخرسانة</p>
+                          <p className="text-3xl font-bold text-emerald-600">{totalConcreteVolume.toFixed(2)}</p>
+                          <p className="text-xs text-slate-500 mt-1">م³</p>
+                        </div>
+                        <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
+                          <Blocks className="w-7 h-7 text-emerald-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-slate-500 text-sm mb-1">إجمالي الحديد</p>
+                          <p className="text-3xl font-bold text-indigo-600">{totalSteelWeight.toFixed(2)}</p>
+                          <p className="text-xs text-slate-500 mt-1">كجم</p>
+                        </div>
+                        <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center">
+                          <Package className="w-7 h-7 text-indigo-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-slate-500 text-sm mb-1">تم الإرسال للمالك</p>
+                          <p className="text-3xl font-bold text-blue-600">{sentReportsCount}</p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {reports.length > 0 ? `${((sentReportsCount / reports.length) * 100).toFixed(0)}%` : '0%'}
+                          </p>
+                        </div>
+                        <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
+                          <Send className="w-7 h-7 text-blue-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Chart Placeholder */}
+                <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md">
+                  <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b">
+                    <CardTitle className="flex items-center gap-3 text-slate-800">
+                      <BarChart3 className="w-5 h-5 text-blue-600" />
+                      نظرة عامة على كميات المواد
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-emerald-800 mb-4">كميات الخرسانة حسب النوع</h3>
+                        <div className="space-y-3">
+                          {foundationReport && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-emerald-700">صبة النظافة والقواعد</span>
+                              <span className="font-bold text-emerald-800">
+                                {(() => {
+                                  const cleaning = foundationReport.concreteData?.cleaningVolume || 0;
+                                  const foundations = foundationReport.concreteData?.foundationsVolume || 0;
+                                  const groundSlab = foundationReport.concreteData?.groundSlabVolume || 0;
+                                  return (cleaning + foundations + groundSlab).toFixed(2);
+                                })()} م³
+                              </span>
+                            </div>
                           )}
-                        </Button>
+                          {columnFootingsReport && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-emerald-700">شروش الأعمدة</span>
+                              <span className="font-bold text-emerald-800">
+                                {(columnFootingsReport.concreteData?.totalFootingsVolume || 
+                                 columnFootingsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                              </span>
+                            </div>
+                          )}
+                          {columnsReport && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-emerald-700">الأعمدة</span>
+                              <span className="font-bold text-emerald-800">
+                                {(columnsReport.concreteData?.columnsVolume || 
+                                 columnsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                              </span>
+                            </div>
+                          )}
+                          {roofReport && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-emerald-700">السقف</span>
+                              <span className="font-bold text-emerald-800">
+                                {(roofReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                              </span>
+                            </div>
+                          )}
+                          {groundBridgesReport && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-emerald-700">الجسور الأرضية</span>
+                              <span className="font-bold text-emerald-800">
+                                {(groundBridgesReport.concreteData?.totalVolume || 
+                                 groundBridgesReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                              </span>
+                            </div>
+                          )}
+                          {groundSlabReport && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-emerald-700">أرضية المبنى (المِدّة)</span>
+                              <span className="font-bold text-emerald-800">
+                                {(groundSlabReport.concreteData?.groundSlabVolume || 
+                                 groundSlabReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-indigo-800 mb-4">معلومات المشروع</h3>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-indigo-700">اسم المشروع</span>
+                            <span className="font-bold text-indigo-800">{projectInfo?.name}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-indigo-700">المهندس المسؤول</span>
+                            <span className="font-bold text-indigo-800">{projectInfo?.engineerName}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-indigo-700">المالك</span>
+                            <span className="font-bold text-indigo-800">{projectInfo?.ownerName}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-indigo-700">عدد التقارير</span>
+                            <span className="font-bold text-indigo-800">{reports.length}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-indigo-700">تم الإرسال للمالك</span>
+                            <span className="font-bold text-indigo-800">{sentReportsCount}/{reports.length}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  ))}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="reports" className="mt-6">
+                {/* Delete All Reports Button */}
+                {reports.length > 0 && (
+                  <div className="mb-6 flex justify-end">
+                    <Button
+                      onClick={() => setDeleteAllDialog(true)}
+                      disabled={deletingAll}
+                      variant="destructive"
+                      className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all"
+                    >
+                      {deletingAll ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                          جاري حذف جميع التقارير...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-4 h-4 ml-2" />
+                          حذف جميع التقارير ({reports.length})
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Reports Cards - Side by Side */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+                  {/* Foundation Report Card */}
+                  {foundationReport && (
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <Blocks className="w-7 h-7 text-white" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                              <CardDescription className="text-emerald-100">
+                                صبة النظافة والقواعد
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        {foundationReport?.concreteData && (
+                          <div className="space-y-4 mb-6">
+                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                              <span className="text-slate-600 font-medium">حجم صبة النظافة</span>
+                              <span className="font-bold text-emerald-600">
+                                {foundationReport.concreteData.cleaningVolume?.toFixed(3) || 0} م³
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                              <span className="text-slate-600 font-medium">حجم القواعد</span>
+                              <span className="font-bold text-emerald-600">
+                                {foundationReport.concreteData.foundationsVolume?.toFixed(3) || 0} م³
+                              </span>
+                            </div>
+                            {foundationReport.concreteData.groundSlabVolume && foundationReport.concreteData.groundSlabVolume > 0 && (
+                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                <span className="text-slate-600 font-medium">حجم أرضية المبنى</span>
+                                <span className="font-bold text-emerald-600">
+                                  {foundationReport.concreteData.groundSlabVolume.toFixed(3)} م³
+                                </span>
+                              </div>
+                            )}
+                            <Separator className="my-2" />
+                            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                              <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
+                              <span className="text-2xl font-black text-emerald-600">
+                                {(() => {
+                                  const cleaning = foundationReport.concreteData.cleaningVolume || 0;
+                                  const foundations = foundationReport.concreteData.foundationsVolume || 0;
+                                  const groundSlab = foundationReport.concreteData.groundSlabVolume || 0;
+                                  const total = cleaning + foundations + groundSlab;
+                                  return total.toFixed(3);
+                                })()} م³
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="space-y-3">
+                          <Button
+                            onClick={() => downloadPDF(foundationReport._id, 'concrete')}
+                            disabled={downloading === `${foundationReport._id}-concrete`}
+                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {downloading === `${foundationReport._id}-concrete` ? (
+                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                            ) : (
+                              <Printer className="w-5 h-5 ml-2" />
+                            )}
+                            طباعة تقرير الخرسانة PDF
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleSendToOwner(foundationReport._id)}
+                            disabled={sendingToOwner === foundationReport._id || foundationReport.sentToOwner}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
+                              foundationReport.sentToOwner
+                                ? 'bg-green-600 hover:bg-green-700 text-white'
+                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                            }`}
+                          >
+                            {sendingToOwner === foundationReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الإرسال...
+                              </>
+                            ) : foundationReport.sentToOwner ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 ml-2" />
+                                تم الإرسال للمالك
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 ml-2" />
+                                إرسال التقرير للمالك
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleDeleteReport(foundationReport._id)}
+                            disabled={deleting === foundationReport._id}
+                            variant="destructive"
+                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {deleting === foundationReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الحذف...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4 ml-2" />
+                                حذف التقرير
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Column Footings Report Card */}
+                  {columnFootingsReport && (
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <Blocks className="w-7 h-7 text-white" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                              <CardDescription className="text-emerald-100">
+                                شروش الأعمدة
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        {columnFootingsReport?.concreteData && (
+                          <div className="space-y-4 mb-6">
+                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                              <span className="text-slate-600 font-medium">حجم شروش الأعمدة</span>
+                              <span className="font-bold text-emerald-600">
+                                {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) || 
+                                 columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                              </span>
+                            </div>
+                            {columnFootingsReport.concreteData.numberOfColumns && (
+                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                <span className="text-slate-600 font-medium">عدد الأعمدة</span>
+                                <span className="font-bold text-emerald-600">
+                                  {columnFootingsReport.concreteData.numberOfColumns}
+                                </span>
+                              </div>
+                            )}
+                            {columnFootingsReport.concreteData.finalColumnDimensions?.displayText && (
+                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                <span className="text-slate-600 font-medium">أبعاد العمود</span>
+                                <span className="font-bold text-emerald-600">
+                                  {columnFootingsReport.concreteData.finalColumnDimensions.displayText}
+                                </span>
+                              </div>
+                            )}
+                            <Separator className="my-2" />
+                            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                              <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
+                              <span className="text-2xl font-black text-emerald-600">
+                                {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) || 
+                                 columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="space-y-3">
+                          <Button
+                            onClick={() => downloadPDF(columnFootingsReport._id, 'concrete')}
+                            disabled={downloading === `${columnFootingsReport._id}-concrete`}
+                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {downloading === `${columnFootingsReport._id}-concrete` ? (
+                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                            ) : (
+                              <Printer className="w-5 h-5 ml-2" />
+                            )}
+                            طباعة تقرير الخرسانة PDF
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleSendToOwner(columnFootingsReport._id)}
+                            disabled={sendingToOwner === columnFootingsReport._id || columnFootingsReport.sentToOwner}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
+                              columnFootingsReport.sentToOwner
+                                ? 'bg-green-600 hover:bg-green-700 text-white'
+                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                            }`}
+                          >
+                            {sendingToOwner === columnFootingsReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الإرسال...
+                              </>
+                            ) : columnFootingsReport.sentToOwner ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 ml-2" />
+                                تم الإرسال للمالك
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 ml-2" />
+                                إرسال التقرير للمالك
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleDeleteReport(columnFootingsReport._id)}
+                            disabled={deleting === columnFootingsReport._id}
+                            variant="destructive"
+                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {deleting === columnFootingsReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الحذف...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4 ml-2" />
+                                حذف التقرير
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Columns Report Card */}
+                  {columnsReport && (
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <Blocks className="w-7 h-7 text-white" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                              <CardDescription className="text-emerald-100">
+                                الأعمدة
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        {columnsReport?.concreteData && (
+                          <div className="space-y-4 mb-6">
+                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                              <span className="text-slate-600 font-medium">حجم الأعمدة</span>
+                              <span className="font-bold text-emerald-600">
+                                {columnsReport.concreteData.columnsVolume?.toFixed(3) || 
+                                 columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                              </span>
+                            </div>
+                            {columnsReport.concreteData.columnsData && columnsReport.concreteData.columnsData.length > 0 && (
+                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                <span className="text-slate-600 font-medium">عدد الأعمدة</span>
+                                <span className="font-bold text-emerald-600">
+                                  {columnsReport.concreteData.columnsData.length}
+                                </span>
+                              </div>
+                            )}
+                            <Separator className="my-2" />
+                            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                              <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
+                              <span className="text-2xl font-black text-emerald-600">
+                                {columnsReport.concreteData.columnsVolume?.toFixed(3) || 
+                                 columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="space-y-3">
+                          <Button
+                            onClick={() => downloadPDF(columnsReport._id, 'concrete')}
+                            disabled={downloading === `${columnsReport._id}-concrete`}
+                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {downloading === `${columnsReport._id}-concrete` ? (
+                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                            ) : (
+                              <Printer className="w-5 h-5 ml-2" />
+                            )}
+                            طباعة تقرير الخرسانة PDF
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleSendToOwner(columnsReport._id)}
+                            disabled={sendingToOwner === columnsReport._id || columnsReport.sentToOwner}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
+                              columnsReport.sentToOwner
+                                ? 'bg-green-600 hover:bg-green-700 text-white'
+                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                            }`}
+                          >
+                            {sendingToOwner === columnsReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الإرسال...
+                              </>
+                            ) : columnsReport.sentToOwner ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 ml-2" />
+                                تم الإرسال للمالك
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 ml-2" />
+                                إرسال التقرير للمالك
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleDeleteReport(columnsReport._id)}
+                            disabled={deleting === columnsReport._id}
+                            variant="destructive"
+                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {deleting === columnsReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الحذف...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4 ml-2" />
+                                حذف التقرير
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Roof Report Card */}
+                  {roofReport && (
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <Blocks className="w-7 h-7 text-white" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                              <CardDescription className="text-emerald-100">
+                                السقف
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        {roofReport?.concreteData && (
+                          <div className="space-y-4 mb-6">
+                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                              <span className="text-slate-600 font-medium">حجم السقف</span>
+                              <span className="font-bold text-emerald-600">
+                                {roofReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                              </span>
+                            </div>
+                            {roofReport.concreteData.roofData && (
+                              <>
+                                {roofReport.concreteData.roofData.area && (
+                                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                    <span className="text-slate-600 font-medium">مساحة السقف</span>
+                                    <span className="font-bold text-emerald-600">
+                                      {roofReport.concreteData.roofData.area.toFixed(2)} م²
+                                    </span>
+                                  </div>
+                                )}
+                                {roofReport.concreteData.roofData.roofType && (
+                                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                    <span className="text-slate-600 font-medium">نوع السقف</span>
+                                    <span className="font-bold text-emerald-600">
+                                      {roofReport.concreteData.roofData.roofType === 'with-ribs' ? 'مع ربس' : 'بدون ربس'}
+                                    </span>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            <Separator className="my-2" />
+                            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                              <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
+                              <span className="text-2xl font-black text-emerald-600">
+                                {roofReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="space-y-3">
+                          <Button
+                            onClick={() => downloadPDF(roofReport._id, 'concrete')}
+                            disabled={downloading === `${roofReport._id}-concrete`}
+                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {downloading === `${roofReport._id}-concrete` ? (
+                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                            ) : (
+                              <Printer className="w-5 h-5 ml-2" />
+                            )}
+                            طباعة تقرير الخرسانة PDF
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleSendToOwner(roofReport._id)}
+                            disabled={sendingToOwner === roofReport._id || roofReport.sentToOwner}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
+                              roofReport.sentToOwner
+                                ? 'bg-green-600 hover:bg-green-700 text-white'
+                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                            }`}
+                          >
+                            {sendingToOwner === roofReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الإرسال...
+                              </>
+                            ) : roofReport.sentToOwner ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 ml-2" />
+                                تم الإرسال للمالك
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 ml-2" />
+                                إرسال التقرير للمالك
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleDeleteReport(roofReport._id)}
+                            disabled={deleting === roofReport._id}
+                            variant="destructive"
+                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {deleting === roofReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الحذف...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4 ml-2" />
+                                حذف التقرير
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Ground Bridges Report Card */}
+                  {groundBridgesReport && (
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <Blocks className="w-7 h-7 text-white" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                              <CardDescription className="text-emerald-100">
+                                الجسور الأرضية
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        {groundBridgesReport?.concreteData && (
+                          <div className="space-y-4 mb-6">
+                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                              <span className="text-slate-600 font-medium">حجم الجسور الأرضية</span>
+                              <span className="font-bold text-emerald-600">
+                                {groundBridgesReport.concreteData.totalVolume?.toFixed(3) || 
+                                 groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                              </span>
+                            </div>
+                            {groundBridgesReport.concreteData.bridgesCount && (
+                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                                <span className="text-slate-600 font-medium">عدد الجسور</span>
+                                <span className="font-bold text-emerald-600">
+                                  {groundBridgesReport.concreteData.bridgesCount}
+                                </span>
+                              </div>
+                            )}
+                            <Separator className="my-2" />
+                            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                              <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
+                              <span className="text-2xl font-black text-emerald-600">
+                                {groundBridgesReport.concreteData.totalVolume?.toFixed(3) || 
+                                 groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="space-y-3">
+                          <Button
+                            onClick={() => downloadPDF(groundBridgesReport._id, 'concrete')}
+                            disabled={downloading === `${groundBridgesReport._id}-concrete`}
+                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {downloading === `${groundBridgesReport._id}-concrete` ? (
+                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                            ) : (
+                              <Printer className="w-5 h-5 ml-2" />
+                            )}
+                            طباعة تقرير الخرسانة PDF
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleSendToOwner(groundBridgesReport._id)}
+                            disabled={sendingToOwner === groundBridgesReport._id || groundBridgesReport.sentToOwner}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
+                              groundBridgesReport.sentToOwner
+                                ? 'bg-green-600 hover:bg-green-700 text-white'
+                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                            }`}
+                          >
+                            {sendingToOwner === groundBridgesReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الإرسال...
+                              </>
+                            ) : groundBridgesReport.sentToOwner ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 ml-2" />
+                                تم الإرسال للمالك
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 ml-2" />
+                                إرسال التقرير للمالك
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleDeleteReport(groundBridgesReport._id)}
+                            disabled={deleting === groundBridgesReport._id}
+                            variant="destructive"
+                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {deleting === groundBridgesReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الحذف...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4 ml-2" />
+                                حذف التقرير
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Ground Slab Report Card */}
+                  {groundSlabReport && (
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                        <div className="relative z-10">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                              <Blocks className="w-7 h-7 text-white" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                              <CardDescription className="text-emerald-100">
+                                أرضية المبنى (المِدّة)
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        {groundSlabReport?.concreteData && (
+                          <div className="space-y-4 mb-6">
+                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                              <span className="text-slate-600 font-medium">حجم أرضية المبنى</span>
+                              <span className="font-bold text-emerald-600">
+                                {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) || 
+                                 groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                              </span>
+                            </div>
+                            <Separator className="my-2" />
+                            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
+                              <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
+                              <span className="text-2xl font-black text-emerald-600">
+                                {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) || 
+                                 groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="space-y-3">
+                          <Button
+                            onClick={() => downloadPDF(groundSlabReport._id, 'concrete')}
+                            disabled={downloading === `${groundSlabReport._id}-concrete`}
+                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {downloading === `${groundSlabReport._id}-concrete` ? (
+                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                            ) : (
+                              <Printer className="w-5 h-5 ml-2" />
+                            )}
+                            طباعة تقرير الخرسانة PDF
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleSendToOwner(groundSlabReport._id)}
+                            disabled={sendingToOwner === groundSlabReport._id || groundSlabReport.sentToOwner}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
+                              groundSlabReport.sentToOwner
+                                ? 'bg-green-600 hover:bg-green-700 text-white'
+                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                            }`}
+                          >
+                            {sendingToOwner === groundSlabReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الإرسال...
+                              </>
+                            ) : groundSlabReport.sentToOwner ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 ml-2" />
+                                تم الإرسال للمالك
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 ml-2" />
+                                إرسال التقرير للمالك
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Button
+                            onClick={() => handleDeleteReport(groundSlabReport._id)}
+                            disabled={deleting === groundSlabReport._id}
+                            variant="destructive"
+                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {deleting === groundSlabReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الحذف...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4 ml-2" />
+                                حذف التقرير
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+
+
+              </TabsContent>
+              
+              <TabsContent value="analytics" className="mt-6">
+                {/* Analytics Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                  <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-md">
+                    <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b">
+                      <CardTitle className="flex items-center gap-3 text-slate-800">
+                        <BarChart3 className="w-5 h-5 text-blue-600" />
+                        تحليل كميات الخرسانة
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        {foundationReport && (
+                          <div className="flex items-center gap-4">
+                            <div className="w-4 h-4 bg-emerald-500 rounded-full"></div>
+                            <div className="flex-1">
+                              <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium">صبة النظافة والقواعد</span>
+                                <span className="text-sm font-bold">
+                                  {(() => {
+                                    const cleaning = foundationReport.concreteData?.cleaningVolume || 0;
+                                    const foundations = foundationReport.concreteData?.foundationsVolume || 0;
+                                    const groundSlab = foundationReport.concreteData?.groundSlabVolume || 0;
+                                    return (cleaning + foundations + groundSlab).toFixed(2);
+                                  })()} م³
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-2">
+                                <div 
+                                  className="bg-emerald-500 h-2 rounded-full" 
+                                  style={{width: `${totalConcreteVolume > 0 ? ((() => {
+                                    const cleaning = foundationReport.concreteData?.cleaningVolume || 0;
+                                    const foundations = foundationReport.concreteData?.foundationsVolume || 0;
+                                    const groundSlab = foundationReport.concreteData?.groundSlabVolume || 0;
+                                    return (cleaning + foundations + groundSlab);
+                                  })() / totalConcreteVolume) * 100 : 0}%`}}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {columnFootingsReport && (
+                          <div className="flex items-center gap-4">
+                            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                            <div className="flex-1">
+                              <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium">شروش الأعمدة</span>
+                                <span className="text-sm font-bold">
+                                  {(columnFootingsReport.concreteData?.totalFootingsVolume || 
+                                   columnFootingsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-500 h-2 rounded-full" 
+                                  style={{width: `${totalConcreteVolume > 0 ? ((columnFootingsReport.concreteData?.totalFootingsVolume || 
+                                   columnFootingsReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`}}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {columnsReport && (
+                          <div className="flex items-center gap-4">
+                            <div className="w-4 h-4 bg-indigo-500 rounded-full"></div>
+                            <div className="flex-1">
+                              <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium">الأعمدة</span>
+                                <span className="text-sm font-bold">
+                                  {(columnsReport.concreteData?.columnsVolume || 
+                                   columnsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-2">
+                                <div 
+                                  className="bg-indigo-500 h-2 rounded-full" 
+                                  style={{width: `${totalConcreteVolume > 0 ? ((columnsReport.concreteData?.columnsVolume || 
+                                   columnsReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`}}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {roofReport && (
+                          <div className="flex items-center gap-4">
+                            <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
+                            <div className="flex-1">
+                              <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium">السقف</span>
+                                <span className="text-sm font-bold">
+                                  {(roofReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-2">
+                                <div 
+                                  className="bg-purple-500 h-2 rounded-full" 
+                                  style={{width: `${totalConcreteVolume > 0 ? ((roofReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`}}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {groundBridgesReport && (
+                          <div className="flex items-center gap-4">
+                            <div className="w-4 h-4 bg-pink-500 rounded-full"></div>
+                            <div className="flex-1">
+                              <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium">الجسور الأرضية</span>
+                                <span className="text-sm font-bold">
+                                  {(groundBridgesReport.concreteData?.totalVolume || 
+                                   groundBridgesReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-2">
+                                <div 
+                                  className="bg-pink-500 h-2 rounded-full" 
+                                  style={{width: `${totalConcreteVolume > 0 ? ((groundBridgesReport.concreteData?.totalVolume || 
+                                   groundBridgesReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`}}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {groundSlabReport && (
+                          <div className="flex items-center gap-4">
+                            <div className="w-4 h-4 bg-amber-500 rounded-full"></div>
+                            <div className="flex-1">
+                              <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium">أرضية المبنى (المِدّة)</span>
+                                <span className="text-sm font-bold">
+                                  {(groundSlabReport.concreteData?.groundSlabVolume || 
+                                   groundSlabReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-2">
+                                <div 
+                                  className="bg-amber-500 h-2 rounded-full" 
+                                  style={{width: `${totalConcreteVolume > 0 ? ((groundSlabReport.concreteData?.groundSlabVolume || 
+                                   groundSlabReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`}}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-md">
+                    <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b">
+                      <CardTitle className="flex items-center gap-3 text-slate-800">
+                        <TrendingUp className="w-5 h-5 text-blue-600" />
+                        إحصائيات المشروع
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <FileText className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-slate-500">إجمالي التقارير</p>
+                              <p className="text-2xl font-bold text-slate-800">{reports.length}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-slate-500">معدل الإرسال</p>
+                            <p className="text-2xl font-bold text-blue-600">
+                              {reports.length > 0 ? `${((sentReportsCount / reports.length) * 100).toFixed(0)}%` : '0%'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                              <Blocks className="w-5 h-5 text-emerald-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-slate-500">إجمالي الخرسانة</p>
+                              <p className="text-2xl font-bold text-slate-800">{totalConcreteVolume.toFixed(2)} م³</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-slate-500">إجمالي الحديد</p>
+                            <p className="text-2xl font-bold text-indigo-600">{totalSteelWeight.toFixed(2)} كجم</p>
+                          </div>
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                              <Calendar className="w-5 h-5 text-purple-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm text-slate-500">آخر تقرير</p>
+                              <p className="text-lg font-bold text-slate-800">
+                                {reports.length > 0 ? formatDate(reports.sort((a, b) => 
+                                  new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+                                )[0].updatedAt) : 'لا يوجد'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-slate-500">الحالة</p>
+                            <p className="text-lg font-bold text-green-600">
+                              {sentReportsCount === reports.length && reports.length > 0 ? 'مكتمل' : 'قيد التنفيذ'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+
+              </TabsContent>
+            </Tabs>
           </>
         )}
       </div>
@@ -1563,6 +2151,69 @@ export default function ProjectReportsPage() {
                 <>
                   <Trash2 className="w-4 h-4 ml-2" />
                   حذف التقرير
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete All Reports Dialog */}
+      <AlertDialog open={deleteAllDialog} onOpenChange={setDeleteAllDialog}>
+        <AlertDialogContent className="max-w-lg" dir="rtl">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center animate-pulse">
+                <AlertTriangle className="w-7 h-7 text-red-600" />
+              </div>
+              <AlertDialogTitle className="text-right text-xl font-bold">
+                تأكيد حذف جميع التقارير
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-right text-base leading-relaxed">
+                <p>هل أنت متأكد من حذف جميع التقارير؟</p>
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                  <div className="font-bold text-amber-800 text-lg mb-2">
+                    سيتم حذف {reports.length} تقرير
+                  </div>
+                  <div className="text-amber-700 text-sm">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      <span>المشروع: {projectInfo?.name}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="text-red-800 font-medium flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    هذا الإجراء لا يمكن التراجع عنه
+                  </div>
+                  <div className="text-red-700 text-sm mt-1">
+                    سيتم حذف جميع التقارير وبياناتها بشكل دائم
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3 mt-6">
+            <AlertDialogCancel className="flex-1 h-12 text-base font-medium">
+              <X className="w-4 h-4 ml-2" />
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAllReports}
+              className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white text-base font-medium"
+            >
+              {deletingAll ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  جاري الحذف...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 ml-2" />
+                  حذف جميع التقارير
                 </>
               )}
             </AlertDialogAction>

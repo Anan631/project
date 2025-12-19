@@ -26,7 +26,12 @@ import {
     PlayCircle,
     CheckCircle,
     BarChartHorizontal,
-    UserCircle
+    UserCircle,
+    FileText,
+    Camera,
+    Clock,
+    MessageSquare,
+    BookOpen
 } from "lucide-react";
 import {
   Tooltip,
@@ -65,12 +70,25 @@ const accordionItems = [
     ],
   },
   {
+    value: "reports",
+    title: "التقارير والمتابعة",
+    icon: FileText,
+    color: "text-indigo-500",
+    links: [
+      { href: "/owner/quantity-reports", label: "تقارير الكميات", icon: FileText },
+      { href: "/owner/projects", label: "التقدم البصري", icon: Camera },
+      { href: "/owner/projects", label: "التعليقات والاستفسارات", icon: MessageSquare },
+    ],
+  },
+
+  {
     value: "tools",
-    title: "الأدوات والتقارير",
+    title: "الأدوات والحاسبات",
     icon: Calculator,
     color: "text-green-500",
     links: [
-      { href: "/owner/cost-estimator", label: "حاسبة أسعار المواد", icon: Coins },
+      { href: "/owner/cost-estimator", label: "حاسبة التكاليف", icon: Calculator },
+      { href: "/owner/building-guidelines", label: "إرشادات البناء", icon: BookOpen },
     ],
   },
   {
@@ -314,6 +332,8 @@ export default function OwnerSidebar({ isOpen, onToggle }: OwnerSidebarProps) {
                 </div>
             </div>
           )}
+
+
           
           <div>
              <h3 className={cn("px-3 py-2 text-xs font-bold uppercase text-muted-foreground", isOpen ? "" : "text-center")}>

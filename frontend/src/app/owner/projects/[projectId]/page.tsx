@@ -828,12 +828,62 @@ export default function OwnerProjectDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Quantity Reports Card */}
-            <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+            {/* Timeline Card */}
+            <Card className="border-0 shadow-lg bg-white">
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-semibold flex items-center gap-3 text-gray-900">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Blocks className="h-4 w-4 text-blue-600" />
+                  <div className="p-2 bg-indigo-100 rounded-lg">
+                    <GanttChartSquare className="h-4 w-4 text-indigo-600" />
+                  </div>
+                  الجدول الزمني
+                </CardTitle>
+                <CardDescription className="text-sm text-gray-600">
+                  تابع مراحل تقدم المشروع والجدول الزمني
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">إجمالي المهام</span>
+                    <span className="text-sm font-medium text-gray-900">{project.timelineTasks?.length || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">المهام المكتملة</span>
+                    <span className="text-sm font-medium text-green-600">
+                      {project.timelineTasks?.filter(task => {
+                        const now = new Date();
+                        const end = new Date(task.endDate);
+                        return now > end;
+                      }).length || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-gray-600">المهام الجارية</span>
+                    <span className="text-sm font-medium text-blue-600">
+                      {project.timelineTasks?.filter(task => {
+                        const now = new Date();
+                        const start = new Date(task.startDate);
+                        const end = new Date(task.endDate);
+                        return now >= start && now <= end;
+                      }).length || 0}
+                    </span>
+                  </div>
+                </div>
+                <Button asChild className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium">
+                  <Link href={`/owner/projects/${projectId}/timeline`}>
+                    <GanttChartSquare className="ml-2 h-4 w-4" />
+                    عرض الجدول الزمني التفصيلي
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Quantity Reports Card */}
+            <Card className="border-0 shadow-lg bg-white">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold flex items-center gap-3 text-gray-900">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <Blocks className="h-4 w-4 text-orange-600" />
                   </div>
                   تقارير الكميات
                 </CardTitle>
@@ -842,8 +892,8 @@ export default function OwnerProjectDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium">
-                  <Link href={`/owner/projects/${projectId}/quantity-reports`}>
+                <Button asChild className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-medium">
+                  <Link href={`/owner/quantity-reports/${projectId}`}>
                     <Blocks className="ml-2 h-4 w-4" />
                     عرض تقارير الكميات
                   </Link>
@@ -853,6 +903,8 @@ export default function OwnerProjectDetailPage() {
                 </p>
               </CardContent>
             </Card>
+
+
           </div>
         </div>
       </div>

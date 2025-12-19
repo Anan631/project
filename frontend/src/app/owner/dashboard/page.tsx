@@ -113,7 +113,7 @@ export default function OwnerDashboardPage() {
     {
       title: "تقارير الكميات",
       description: "عرض ملخصات وتقارير كميات المواد والأعمال المنجزة.",
-      href: "/owner/projects",
+      href: "/owner/quantity-reports",
       icon: FileText,
       iconColorClass: "text-indigo-500",
       buttonClass: "border-indigo-500 text-indigo-600 hover:bg-indigo-500 hover:text-white",
