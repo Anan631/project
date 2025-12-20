@@ -136,13 +136,15 @@ export default function SteelCalculationsPage() {
       {/* Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
         {calculationCards.map((card, index) => (
-          <div
+          <Link
             key={card.id}
+            href={card.id === 'ground-slab' ? `/engineer/projects/${projectId}/steel-calculations/ground-slab` : '#'}
             className={cn(
-              "group block h-full cursor-not-allowed",
-              "opacity-80"
+              "group block h-full",
+              card.id === 'ground-slab' ? 'cursor-pointer' : 'cursor-not-allowed',
+              card.id !== 'ground-slab' && 'opacity-80'
             )}
-            aria-disabled
+            aria-disabled={card.id !== 'ground-slab'}
           >
             <div className={cn(
               "relative h-full rounded-2xl overflow-hidden",
@@ -268,7 +270,7 @@ export default function SteelCalculationsPage() {
               )} />
 
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
