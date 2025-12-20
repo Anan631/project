@@ -147,14 +147,16 @@ export default function SteelCalculationsPage() {
                     ? `/engineer/projects/${projectId}/steel-calculations/roof-ribs`
                     : card.id === 'foundation'
                       ? `/engineer/projects/${projectId}/steel-calculations/foundation`
-                      : '#'
+                      : card.id === 'ground-beams'
+                        ? `/engineer/projects/${projectId}/steel-calculations/ground-beams`
+                        : '#'
             }
             className={cn(
               "group block h-full",
-              (card.id === 'ground-slab' || card.id === 'roof-slab' || card.id === 'roof-ribs' || card.id === 'foundation') ? 'cursor-pointer' : 'cursor-not-allowed',
-              card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs' && card.id !== 'foundation' && 'opacity-80'
+              (card.id === 'ground-slab' || card.id === 'roof-slab' || card.id === 'roof-ribs' || card.id === 'foundation' || card.id === 'ground-beams') ? 'cursor-pointer' : 'cursor-not-allowed',
+              card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs' && card.id !== 'foundation' && card.id !== 'ground-beams' && 'opacity-80'
             )}
-            aria-disabled={card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs' && card.id !== 'foundation'}
+            aria-disabled={card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs' && card.id !== 'foundation' && card.id !== 'ground-beams'}
           >
             <div className={cn(
               "relative h-full rounded-2xl overflow-hidden",
