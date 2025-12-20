@@ -55,7 +55,7 @@ export default function SteelCalculationsPage() {
     },
     {
       id: 'ground-slab',
-      title: 'أرضية المبنى (المدّة)',
+      title: 'أرضية المبنى',
       description: 'حساب كميات الحديد لأرضية المبنى (Slab on Grade)',
       icon: Grid3x3,
       color: 'text-orange-600',
@@ -66,8 +66,8 @@ export default function SteelCalculationsPage() {
     },
     {
       id: 'columns',
-      title: 'الأعمدة',
-      description: 'حساب كميات الحديد للأعمدة الخرسانية',
+      title: 'الأعمدة والكانات (الأساور)',
+      description: 'حساب كميات الحديد للأعمدة الخرسانية والكانات',
       icon: Columns,
       color: 'text-pink-600',
       bgColor: 'bg-pink-50',
@@ -76,15 +76,37 @@ export default function SteelCalculationsPage() {
       gradient: 'from-pink-500 to-rose-600'
     },
     {
-      id: 'roof',
-      title: 'السقف',
-      description: 'حساب كميات الحديد للأسقف والبلاطات الخرسانية',
+      id: 'roof-beam',
+      title: ' جسر السقف',
+      description: 'حساب كميات الحديد لجسور السقف الخرسانية',
       icon: LayoutDashboard,
       color: 'text-cyan-600',
       bgColor: 'bg-cyan-50',
       borderColor: 'border-cyan-200',
       hoverBorder: 'hover:border-cyan-500',
       gradient: 'from-cyan-500 to-blue-600'
+    },
+    {
+      id: 'roof-ribs',
+      title: 'أعصاب السقف',
+      description: 'حساب كميات الحديد لأعصاب السقف والبلاطات المفرغة',
+      icon: Layers,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
+      borderColor: 'border-purple-200',
+      hoverBorder: 'hover:border-purple-500',
+      gradient: 'from-purple-500 to-indigo-600'
+    },
+    {
+      id: 'roof-slab',
+      title: 'السقف',
+      description: 'حساب كميات الحديد للأسقف والبلاطات الخرسانية',
+      icon: Grid3x3,
+      color: 'text-red-600',
+      bgColor: 'bg-red-50',
+      borderColor: 'border-red-200',
+      hoverBorder: 'hover:border-red-500',
+      gradient: 'from-red-500 to-rose-600'
     },
   ];
 
