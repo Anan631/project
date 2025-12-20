@@ -599,7 +599,7 @@ export default function FoundationCalculationPage() {
                                             <Button
                                                 onClick={addFoundation}
                                                 variant="outline"
-                                                className="w-full h-12 border-2 border-green-300 hover:border-green-500 hover:bg-green-50 text-green-700"
+                                                className="w-full h-12 border-2 border-green-300 hover:border-blue-600 hover:bg-blue-600 hover:text-white text-green-700 transition-all duration-300"
                                             >
                                                 <Plus className="w-5 h-5 ml-2" />
                                                 إضافة قاعدة
