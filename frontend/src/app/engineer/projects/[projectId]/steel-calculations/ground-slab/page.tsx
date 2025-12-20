@@ -1,521 +1,736 @@
 "use client";
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import {
-  Building2,
-  ArrowRight,
-  Grid3x3,
-  Calculator,
-  AlertCircle
-} from "lucide-react";
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import {
+  ArrowRight,
+  Calculator,
+  Grid3x3,
+  Grid,
+  Layers,
+  Ruler,
+  TrendingUp,
+  CheckCircle2,
+  AlertCircle,
+  Send
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from '@/components/ui/badge';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-type ReinforcementType = 'mesh' | 'separate' | null;
-
-interface MeshCalculation {
-  slabArea: number;
-  meshLength: number;
-  meshWidth: number;
-}
-
-interface SeparateCalculation {
-  floorWidth: number;
-  floorLength: number;
-  spacing: number;
-  barLength: number;
-}
-
-interface Results {
-  longitudinalBars?: number;
-  transverseBars?: number;
-  totalBars?: number;
-  meshBars?: number;
-}
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export default function GroundSlabCalculationPage() {
   const params = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
   const projectId = params.projectId as string;
 
-  const [reinforcementType, setReinforcementType] = useState<ReinforcementType>(null);
-  const [meshData, setMeshData] = useState<MeshCalculation>({
-    slabArea: 0,
-    meshLength: 0,
-    meshWidth: 0,
+  const [saving, setSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [existingReportDialog, setExistingReportDialog] = useState<{
+    open: boolean;
+    reportId: string | null;
+  }>({
+    open: false,
+    reportId: null,
   });
-  const [separateData, setSeparateData] = useState<SeparateCalculation>({
-    floorWidth: 0,
-    floorLength: 0,
-    spacing: 0,
-    barLength: 0,
+
+  const [reinforcementType, setReinforcementType] = useState<'mesh' | 'separate' | null>(null);
+  const [meshData, setMeshData] = useState({
+    slabArea: '',
+    meshLength: '',
+    meshWidth: '',
   });
-  const [results, setResults] = useState<Results | null>(null);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [separateData, setSeparateData] = useState({
+    floorWidth: '',
+    floorLength: '',
+    spacing: '',
+    barLength: '',
+  });
+
+  const [results, setResults] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const validateMeshInputs = (): boolean => {
-    const newErrors: string[] = [];
-    if (meshData.slabArea <= 0) newErrors.push('مساحة أرضية المبنى يجب أن تكون أكبر من صفر');
-    if (meshData.meshLength <= 0) newErrors.push('طول شبك الحديد يجب أن يكون أكبر من صفر');
-    if (meshData.meshWidth <= 0) newErrors.push('عرض شبك الحديد يجب أن يكون أكبر من صفر');
-    setErrors(newErrors);
-    return newErrors.length === 0;
+    const slabArea = parseFloat(meshData.slabArea);
+    const meshLength = parseFloat(meshData.meshLength);
+    const meshWidth = parseFloat(meshData.meshWidth);
+
+    if (isNaN(slabArea) || slabArea <= 0) {
+      setError('مساحة أرضية المبنى يجب أن تكون أكبر من صفر');
+      return false;
+    }
+    if (isNaN(meshLength) || meshLength <= 0) {
+      setError('طول شبك الحديد يجب أن يكون أكبر من صفر');
+      return false;
+    }
+    if (isNaN(meshWidth) || meshWidth <= 0) {
+      setError('عرض شبك الحديد يجب أن يكون أكبر من صفر');
+      return false;
+    }
+    return true;
   };
 
   const validateSeparateInputs = (): boolean => {
-    const newErrors: string[] = [];
-    if (separateData.floorWidth <= 0) newErrors.push('عرض الأرضي�� يجب أن يكون أكبر من صفر');
-    if (separateData.floorLength <= 0) newErrors.push('طول الأرضية يجب أن يكون أكبر من صفر');
-    if (separateData.spacing <= 0) newErrors.push('المسافة بين القضبان يجب أن تكون أكبر من صفر');
-    if (separateData.barLength <= 0) newErrors.push('طول القضيب يجب أن يكون أكبر من صفر');
-    setErrors(newErrors);
-    return newErrors.length === 0;
+    const floorWidth = parseFloat(separateData.floorWidth);
+    const floorLength = parseFloat(separateData.floorLength);
+    const spacing = parseFloat(separateData.spacing);
+    const barLength = parseFloat(separateData.barLength);
+
+    if (isNaN(floorWidth) || floorWidth <= 0) {
+      setError('عرض الأرضية يجب أن يكون أكبر من صفر');
+      return false;
+    }
+    if (isNaN(floorLength) || floorLength <= 0) {
+      setError('طول الأرضية يجب أن يكون أكبر من صفر');
+      return false;
+    }
+    if (isNaN(spacing) || spacing <= 0) {
+      setError('المسافة بين القضبان يجب أن تكون أكبر من صفر');
+      return false;
+    }
+    if (isNaN(barLength) || barLength <= 0) {
+      setError('طول القضيب يجب أن يكون أكبر من صفر');
+      return false;
+    }
+    return true;
   };
 
-  const calculateMesh = () => {
-    if (!validateMeshInputs()) return;
+  const calculate = async () => {
+    setError(null);
+    setIsLoading(true);
 
-    // طريقة الحساب:
-    // 1. يتم أخذ مساحة أرضية المبنى
-    // 2. يتم طرح 0.2 متر من طول الشبك
-    // 3. يتم طرح 0.2 متر من عرض الشبك
-    // 4. يتم ضرب ناتج الطول بعد الطرح في ناتج العرض بعد الطرح
-    // 5. يتم قسمة مساحة الأرضية على ناتج الضرب السابق
-    // الناتج هو عدد قضبان الحديد باستخدام الشبك
+    try {
+      // Check if report already exists
+      try {
+        const reportsResponse = await fetch(`${API_BASE_URL}/api/steel-reports/project/${projectId}`);
+        if (reportsResponse.ok) {
+          const reportsData = await reportsResponse.json();
+          if (reportsData.success && reportsData.reports?.length > 0) {
+            const existingReport = reportsData.reports.find((r: any) => 
+              r.calculationType === 'ground-slab-steel'
+            );
+            if (existingReport) {
+              setExistingReportDialog({
+                open: true,
+                reportId: existingReport._id,
+              });
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not check for existing reports:', err);
+      }
 
-    const adjustedLength = meshData.meshLength - 0.2;
-    const adjustedWidth = meshData.meshWidth - 0.2;
-    const meshArea = adjustedLength * adjustedWidth;
-    const meshBars = Math.ceil(meshData.slabArea / meshArea);
+      if (reinforcementType === 'mesh') {
+        if (!validateMeshInputs()) {
+          setIsLoading(false);
+          return;
+        }
 
-    setResults({
-      meshBars,
-    });
-  };
+        const slabArea = parseFloat(meshData.slabArea);
+        const meshLength = parseFloat(meshData.meshLength);
+        const meshWidth = parseFloat(meshData.meshWidth);
 
-  const calculateSeparate = () => {
-    if (!validateSeparateInputs()) return;
+        const adjustedLength = meshLength - 0.2;
+        const adjustedWidth = meshWidth - 0.2;
+        const meshArea = adjustedLength * adjustedWidth;
+        const meshBars = Math.ceil(slabArea / meshArea);
 
-    // أولًا: حساب عدد قضبان الحديد الطولية
-    // 1. يتم قسمة عرض الأرضية على المسافة بين القضبان
-    // 2. يتم ضرب ناتج القسمة في طول الأرضية
-    // 3. يتم إضافة واحد إلى الناتج
-    // 4. يتم قسمة الناتج النهائي على طول القضيب
+        setResults({
+          type: 'mesh',
+          meshBars,
+          details: {
+            adjustedLength,
+            adjustedWidth,
+            meshArea,
+            slabArea
+          }
+        });
 
-    const longitudinalCount = (separateData.floorWidth / separateData.spacing) * separateData.floorLength + 1;
-    const longitudinalBars = Math.ceil(longitudinalCount / separateData.barLength);
+        toast({
+          title: 'تم الحساب بنجاح',
+          description: 'تم حساب كميات شبك الحديد',
+        });
+      } else if (reinforcementType === 'separate') {
+        if (!validateSeparateInputs()) {
+          setIsLoading(false);
+          return;
+        }
 
-    // ثانيًا: حساب عدد قضبان الحديد العرضية
-    // 1. يتم قسمة طول الأرضية على المسافة بين القضبان
-    // 2. يتم ضرب ناتج القسمة في عرض الأرضية
-    // 3. يتم إضافة واحد إلى الناتج
-    // 4. يتم قسمة الناتج النهائي على طول القضيب
+        const floorWidth = parseFloat(separateData.floorWidth);
+        const floorLength = parseFloat(separateData.floorLength);
+        const spacing = parseFloat(separateData.spacing);
+        const barLength = parseFloat(separateData.barLength);
 
-    const transverseCount = (separateData.floorLength / separateData.spacing) * separateData.floorWidth + 1;
-    const transverseBars = Math.ceil(transverseCount / separateData.barLength);
+        const longitudinalCount = (floorWidth / spacing) * floorLength + 1;
+        const longitudinalBars = Math.ceil(longitudinalCount / barLength);
 
-    // ثالثًا: حساب كمية الحديد الكلية في الأرضية
-    // يتم جمع عدد القضبان الطولية مع عدد القض��ان العرضية
+        const transverseCount = (floorLength / spacing) * floorWidth + 1;
+        const transverseBars = Math.ceil(transverseCount / barLength);
 
-    const totalBars = longitudinalBars + transverseBars;
+        const totalBars = longitudinalBars + transverseBars;
 
-    setResults({
-      longitudinalBars,
-      transverseBars,
-      totalBars,
-    });
-  };
+        setResults({
+          type: 'separate',
+          longitudinalBars,
+          transverseBars,
+          totalBars,
+          details: {
+            longitudinalCount,
+            transverseCount,
+            floorArea: floorWidth * floorLength
+          }
+        });
 
-  const handleCalculate = () => {
-    if (reinforcementType === 'mesh') {
-      calculateMesh();
-    } else if (reinforcementType === 'separate') {
-      calculateSeparate();
+        toast({
+          title: 'تم الحساب بنجاح',
+          description: 'تم حساب كميات الحديد المفرق',
+        });
+      }
+    } catch (e) {
+      setError('حدث خطأ في الحساب. يرجى التحقق من المدخلات.');
+      console.error('Calculation error:', e);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const resetForm = () => {
+  const handleRecalculate = async () => {
+    if (!existingReportDialog.reportId) {
+      setExistingReportDialog({ open: false, reportId: null });
+      calculate();
+      return;
+    }
+
+    try {
+      const deleteResponse = await fetch(`${API_BASE_URL}/api/steel-reports/${existingReportDialog.reportId}`, {
+        method: 'DELETE'
+      });
+
+      if (deleteResponse.ok) {
+        toast({
+          title: 'تم حذف التقرير السابق',
+          description: 'تم حذف التقرير السابق بنجاح',
+        });
+      }
+
+      setExistingReportDialog({ open: false, reportId: null });
+      calculate();
+    } catch (error) {
+      console.error('Error deleting existing report:', error);
+      toast({
+        title: 'تحذير',
+        description: 'لم يتم حذف التقرير السابق، سيتم تحديث التقرير الحالي',
+        variant: 'destructive'
+      });
+      setExistingReportDialog({ open: false, reportId: null });
+      calculate();
+    }
+  };
+
+  const reset = () => {
     setReinforcementType(null);
-    setMeshData({ slabArea: 0, meshLength: 0, meshWidth: 0 });
-    setSeparateData({ floorWidth: 0, floorLength: 0, spacing: 0, barLength: 0 });
+    setMeshData({ slabArea: '', meshLength: '', meshWidth: '' });
+    setSeparateData({ floorWidth: '', floorLength: '', spacing: '', barLength: '' });
     setResults(null);
-    setErrors([]);
+    setError(null);
+  };
+
+  const saveToReports = async () => {
+    if (!results) {
+      toast({ 
+        title: 'لا توجد نتائج', 
+        description: 'يرجى إجراء الحسابات أولاً', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const engineerId = localStorage.getItem('userId') || '';
+      const engineerName = localStorage.getItem('userName') || 'المهندس';
+
+      const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+      
+      if (!projectRes.ok) {
+        throw new Error(`HTTP error! status: ${projectRes.status}`);
+      }
+      
+      const projectContentType = projectRes.headers.get('content-type');
+      if (!projectContentType || !projectContentType.includes('application/json')) {
+        throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح.');
+      }
+      
+      const projectData = await projectRes.json();
+      const project = projectData.project || projectData;
+
+      const reportData = {
+        projectId,
+        projectName: project?.name || `مشروع #${projectId}`,
+        engineerId,
+        engineerName,
+        ownerName: project?.clientName || '',
+        ownerEmail: project?.linkedOwnerEmail || '',
+        calculationType: 'ground-slab',
+        steelData: {
+          totalSteelWeight: results.type === 'mesh' ? results.meshBars : results.totalBars,
+          foundationSteel: 0,
+          columnSteel: 0,
+          beamSteel: 0,
+          slabSteel: results.type === 'mesh' ? results.meshBars : results.totalBars,
+          details: {
+            reinforcementType: reinforcementType,
+            inputs: reinforcementType === 'mesh' ? meshData : separateData,
+            results: results,
+            timestamp: new Date().toISOString()
+          }
+        },
+        calculationData: {
+          reinforcementType: reinforcementType,
+          inputs: reinforcementType === 'mesh' ? meshData : separateData,
+          results: results,
+          timestamp: new Date().toISOString()
+        },
+        status: 'saved',
+        sentToOwner: false
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(reportData),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast({ 
+          title: 'تم الحفظ بنجاح', 
+          description: 'تم ترحيل النتائج إلى صفحة تقارير الكميات' 
+        });
+        
+        router.push(`/engineer/quantity-reports/${projectId}`);
+      } else {
+        throw new Error(data.message || 'فشل في حفظ التقرير');
+      }
+    } catch (error) {
+      console.error('Error saving report:', error);
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ أثناء حفظ التقرير';
+      toast({ 
+        title: 'خطأ في الحفظ', 
+        description: errorMessage, 
+        variant: 'destructive' 
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="container mx-auto py-12 px-4 min-h-screen bg-gray-50/50" dir="rtl">
-      {/* Header Section */}
-      <div className="mb-12 text-center space-y-4">
-        <div className="inline-block p-3 rounded-2xl bg-white shadow-sm mb-4">
-          <Grid3x3 className="w-12 h-12 text-orange-600" />
-        </div>
-        <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">
-          حساب حديد أرضية المبنى
-        </h1>
-        <p className="max-w-2xl mx-auto text-lg text-gray-600">
-          احسب كمية الحديد المطلوبة لأرضية المبنى باختيار نوع التسليح المناسب.
-        </p>
-
-        <Link href={`/engineer/projects/${projectId}/steel-calculations`}>
-          <Button variant="outline" className="mt-6 gap-2 hover:bg-gray-100 transition-colors">
-            <ArrowRight className="w-4 h-4 ml-2" />
-            العودة لحاسبة الحديد
-          </Button>
-        </Link>
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-indigo-50" dir="rtl">
+      <div className="fixed inset-0 opacity-20">
+        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,transparent_0%,transparent_30%,black_50%)] bg-center bg-repeat" />
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto">
-        {/* Reinforcement Type Selection */}
-        <Card className="bg-white shadow-xl border-t-4 border-t-orange-500 rounded-lg overflow-hidden mb-8">
-          <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
-            <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <Grid3x3 size={28} /> اختر نوع التسليح
-            </CardTitle>
-            <CardDescription className="text-gray-600 mt-2">
-              اختر بين شبك الحديد أو الحديد المفرق
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button
-                onClick={() => {
-                  setReinforcementType('mesh');
-                  setResults(null);
-                  setErrors([]);
-                }}
-                className={cn(
-                  "p-6 rounded-xl border-2 transition-all duration-300 text-center",
-                  reinforcementType === 'mesh'
-                    ? 'border-orange-500 bg-orange-50 shadow-lg'
-                    : 'border-gray-200 bg-white hover:border-orange-300'
-                )}
-              >
-                <div className="text-3xl mb-2">🔗</div>
-                <h3 className="font-bold text-lg text-gray-800 mb-1">شبك حديد</h3>
-                <p className="text-sm text-gray-600">استخدام شبك حديد موحد</p>
-              </button>
-
-              <button
-                onClick={() => {
-                  setReinforcementType('separate');
-                  setResults(null);
-                  setErrors([]);
-                }}
-                className={cn(
-                  "p-6 rounded-xl border-2 transition-all duration-300 text-center",
-                  reinforcementType === 'separate'
-                    ? 'border-orange-500 bg-orange-50 shadow-lg'
-                    : 'border-gray-200 bg-white hover:border-orange-300'
-                )}
-              >
-                <div className="text-3xl mb-2">📊</div>
-                <h3 className="font-bold text-lg text-gray-800 mb-1">حديد مفرق</h3>
-                <p className="text-sm text-gray-600">قضبان حديد منفصلة</p>
-              </button>
+      <div className="relative z-10 container mx-auto px-4 py-8 lg:py-12 lg:px-8 max-w-7xl">
+        {/* Header */}
+        <div className="mb-12 lg:mb-16">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <div className="flex items-center gap-3">
+              <Link href={`/engineer/projects/${projectId}/steel-calculations`}>
+                <Button variant="ghost" size="sm" className="border-2 border-emerald-200/50 bg-white/80 backdrop-blur-sm hover:border-emerald-300 hover:bg-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-emerald-800 hover:text-emerald-900">
+                  <ArrowRight className="w-4 h-4 rotate-180" />
+                  العودة إلى حاسبة الحديد
+                </Button>
+              </Link>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Mesh Calculation Form */}
-        {reinforcementType === 'mesh' && (
-          <Card className="bg-white shadow-xl border-t-4 border-t-orange-500 rounded-lg overflow-hidden mb-8">
-            <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
-              <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <Calculator size={28} /> حساب شبك الحديد
-              </CardTitle>
-              <CardDescription className="text-gray-600 mt-2">
-                أدخل البيانات المطلوبة لحساب كمية شبك الحديد
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-6">
-              {errors.length > 0 && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    <ul className="list-disc list-inside space-y-1">
-                      {errors.map((error, idx) => (
-                        <li key={idx}>{error}</li>
-                      ))}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="slabArea" className="font-semibold text-gray-700">
-                    مساحة أرضية المبنى (متر مربع)
-                  </Label>
-                  <Input
-                    id="slabArea"
-                    type="number"
-                    placeholder="مثال: 100"
-                    value={meshData.slabArea || ''}
-                    onChange={(e) =>
-                      setMeshData({ ...meshData, slabArea: parseFloat(e.target.value) || 0 })
-                    }
-                    className="focus:border-orange-500 focus:ring-orange-500"
-                  />
+          <div className="relative group">
+            <div className="flex items-start lg:items-center gap-6 p-2">
+              <div className="relative">
+                <div className="w-20 h-20 lg:w-24 lg:h-24 p-5 lg:p-6 bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 rounded-2xl shadow-2xl border-4 border-white/40 group-hover:scale-105 transition-all duration-700 flex items-center justify-center">
+                  <Grid3x3 className="w-10 h-10 lg:w-12 lg:h-12 text-white drop-shadow-2xl" />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="meshLength" className="font-semibold text-gray-700">
-                    طول شبك الحديد (متر)
-                  </Label>
-                  <Input
-                    id="meshLength"
-                    type="number"
-                    placeholder="مثال: 2"
-                    value={meshData.meshLength || ''}
-                    onChange={(e) =>
-                      setMeshData({ ...meshData, meshLength: parseFloat(e.target.value) || 0 })
-                    }
-                    className="focus:border-orange-500 focus:ring-orange-500"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="meshWidth" className="font-semibold text-gray-700">
-                    عرض شبك الحديد (متر)
-                  </Label>
-                  <Input
-                    id="meshWidth"
-                    type="number"
-                    placeholder="مثال: 2"
-                    value={meshData.meshWidth || ''}
-                    onChange={(e) =>
-                      setMeshData({ ...meshData, meshWidth: parseFloat(e.target.value) || 0 })
-                    }
-                    className="focus:border-orange-500 focus:ring-orange-500"
-                  />
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-orange-400 to-red-400 border-4 border-white rounded-xl shadow-xl flex items-center justify-center">
+                  <Layers className="w-3 h-3 text-white" />
                 </div>
               </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button
-                  onClick={handleCalculate}
-                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-6 text-lg"
-                >
-                  <Calculator className="w-5 h-5 ml-2" />
-                  حساب الكميات
-                </Button>
-                <Button
-                  onClick={resetForm}
-                  variant="outline"
-                  className="flex-1 border-orange-600 text-orange-600 hover:bg-orange-50 font-semibold py-6 text-lg"
-                >
-                  إعادة تعيين
-                </Button>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-orange-800 bg-clip-text text-transparent leading-tight mb-4">
+                  حساب حديد أرضية المبنى
+                </h1>
+                <p className="text-lg lg:text-xl text-slate-600 font-semibold leading-relaxed max-w-2xl">
+                  احسب كميات الحديد المطلوبة لأرضية المبنى بدقة عالية
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+            <div className="absolute -inset-4 bg-gradient-to-r from-orange-400/20 via-amber-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
+          </div>
+        </div>
 
-        {/* Separate Calculation Form */}
-        {reinforcementType === 'separate' && (
-          <Card className="bg-white shadow-xl border-t-4 border-t-orange-500 rounded-lg overflow-hidden mb-8">
-            <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
-              <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <Calculator size={28} /> حساب الحديد المفرق
-              </CardTitle>
-              <CardDescription className="text-gray-600 mt-2">
-                أدخل البيانات المطلوبة لحساب كمية الحديد المفرق
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-6">
-              {errors.length > 0 && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    <ul className="list-disc list-inside space-y-1">
-                      {errors.map((error, idx) => (
-                        <li key={idx}>{error}</li>
-                      ))}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="floorWidth" className="font-semibold text-gray-700">
-                    عرض الأرضية (متر)
-                  </Label>
-                  <Input
-                    id="floorWidth"
-                    type="number"
-                    placeholder="مثال: 10"
-                    value={separateData.floorWidth || ''}
-                    onChange={(e) =>
-                      setSeparateData({ ...separateData, floorWidth: parseFloat(e.target.value) || 0 })
-                    }
-                    className="focus:border-orange-500 focus:ring-orange-500"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="floorLength" className="font-semibold text-gray-700">
-                    طول الأرضية (متر)
-                  </Label>
-                  <Input
-                    id="floorLength"
-                    type="number"
-                    placeholder="مثال: 15"
-                    value={separateData.floorLength || ''}
-                    onChange={(e) =>
-                      setSeparateData({ ...separateData, floorLength: parseFloat(e.target.value) || 0 })
-                    }
-                    className="focus:border-orange-500 focus:ring-orange-500"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="spacing" className="font-semibold text-gray-700">
-                    المسافة بين القضبان (متر)
-                  </Label>
-                  <Input
-                    id="spacing"
-                    type="number"
-                    placeholder="مثال: 0.2"
-                    value={separateData.spacing || ''}
-                    onChange={(e) =>
-                      setSeparateData({ ...separateData, spacing: parseFloat(e.target.value) || 0 })
-                    }
-                    className="focus:border-orange-500 focus:ring-orange-500"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="barLength" className="font-semibold text-gray-700">
-                    طول القضيب (متر)
-                  </Label>
-                  <Input
-                    id="barLength"
-                    type="number"
-                    placeholder="مثال: 12"
-                    value={separateData.barLength || ''}
-                    onChange={(e) =>
-                      setSeparateData({ ...separateData, barLength: parseFloat(e.target.value) || 0 })
-                    }
-                    className="focus:border-orange-500 focus:ring-orange-500"
-                  />
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 items-start">
+          {/* Left Column - Inputs & Forms */}
+          <div className="xl:col-span-8 space-y-6 lg:space-y-8">
+            {/* Error Alert */}
+            {error && (
+              <div className="p-4 lg:p-6 bg-gradient-to-r from-rose-50 to-red-50 border-2 border-red-200 rounded-2xl shadow-xl">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-7 h-7 text-red-500" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-red-900 mb-2">{error}</p>
+                    <p className="text-red-600">تحقق من جميع الحقول وأعد المحاولة</p>
+                  </div>
                 </div>
               </div>
+            )}
 
-              <div className="flex gap-3 pt-4">
-                <Button
-                  onClick={handleCalculate}
-                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-6 text-lg"
-                >
-                  <Calculator className="w-5 h-5 ml-2" />
-                  حساب الكميات
-                </Button>
-                <Button
-                  onClick={resetForm}
-                  variant="outline"
-                  className="flex-1 border-orange-600 text-orange-600 hover:bg-orange-50 font-semibold py-6 text-lg"
-                >
-                  إعادة تعيين
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Results Section */}
-        {results && (
-          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 shadow-xl border-t-4 border-t-green-500 rounded-lg overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-green-100 to-emerald-100">
-              <CardTitle className="text-2xl font-bold text-green-800 flex items-center gap-2">
-                ✓ نتائج الحساب
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {reinforcementType === 'mesh' && results.meshBars !== undefined && (
-                <div className="space-y-4">
-                  <div className="p-6 bg-white rounded-xl border-2 border-green-200 shadow-sm">
-                    <p className="text-gray-600 text-sm mb-2">عدد قطع شبك الحديد المطلوبة</p>
-                    <p className="text-4xl font-bold text-green-700">
-                      {results.meshBars.toLocaleString('ar')}
-                    </p>
-                    <p className="text-gray-500 text-xs mt-2">شبكة</p>
+            {/* Reinforcement Type Selection */}
+            <Card className="border-0 shadow-xl shadow-orange-200/50 hover:shadow-orange-300/60 transition-all duration-500 overflow-hidden bg-white/90 backdrop-blur-sm">
+              <CardHeader className="bg-gradient-to-br from-orange-600 via-amber-600 to-yellow-600 text-white py-6 px-6 border-b border-white/30">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 bg-white/20 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/40">
+                    <Layers className="w-6 h-6 text-white" />
                   </div>
-
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      <strong>ملاحظة:</strong> هذا الحساب يعتمد على طرح 0.2 متر من طول وعرض الشبك لحساب المساحة الفعلية.
-                    </p>
+                  <div>
+                    <CardTitle className="text-xl font-bold">اختر نوع التسليح</CardTitle>
+                    <CardDescription className="text-orange-100 text-base">
+                      اختر طريقة حساب حديد أرضية المبنى
+                    </CardDescription>
                   </div>
                 </div>
-              )}
-
-              {reinforcementType === 'separate' && results.totalBars !== undefined && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-6 bg-white rounded-xl border-2 border-blue-200 shadow-sm">
-                      <p className="text-gray-600 text-sm mb-2">القضبان الطولية</p>
-                      <p className="text-3xl font-bold text-blue-700">
-                        {results.longitudinalBars?.toLocaleString('ar')}
-                      </p>
-                      <p className="text-gray-500 text-xs mt-2">قضيب</p>
-                    </div>
-
-                    <div className="p-6 bg-white rounded-xl border-2 border-purple-200 shadow-sm">
-                      <p className="text-gray-600 text-sm mb-2">القضبان العرضية</p>
-                      <p className="text-3xl font-bold text-purple-700">
-                        {results.transverseBars?.toLocaleString('ar')}
-                      </p>
-                      <p className="text-gray-500 text-xs mt-2">قضيب</p>
-                    </div>
-
-                    <div className="p-6 bg-white rounded-xl border-2 border-green-200 shadow-sm">
-                      <p className="text-gray-600 text-sm mb-2">إجمالي القضبان</p>
-                      <p className="text-3xl font-bold text-green-700">
-                        {results.totalBars?.toLocaleString('ar')}
-                      </p>
-                      <p className="text-gray-500 text-xs mt-2">قضيب</p>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      <strong>ملاحظة:</strong> يتم إضافة قضيب واحد إضافي في كل اتجاه، وتقسيم النتيجة على طول القضيب الواحد.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6 flex gap-3">
-                <Button
-                  onClick={resetForm}
-                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-6"
-                >
-                  حساب جديد
-                </Button>
-                <Link href={`/engineer/projects/${projectId}/steel-calculations`} className="flex-1">
-                  <Button
-                    variant="outline"
-                    className="w-full border-orange-600 text-orange-600 hover:bg-orange-50 font-semibold py-6"
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <button
+                    onClick={() => {
+                      setReinforcementType('mesh');
+                      setResults(null);
+                      setError(null);
+                    }}
+                    className={`p-8 rounded-2xl border-2 transition-all duration-300 text-center group hover:shadow-lg ${
+                      reinforcementType === 'mesh'
+                        ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-amber-50 shadow-lg'
+                        : 'border-gray-200 bg-white hover:border-orange-300'
+                    }`}
                   >
-                    العودة للقائمة
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div className="text-2xl text-white">🔗</div>
+                    </div>
+                    <h3 className="font-bold text-xl text-gray-800 mb-2">شبك حديد</h3>
+                    <p className="text-gray-600 text-sm">استخدام شبك حديد موحد</p>
+                    {reinforcementType === 'mesh' && (
+                      <Badge className="mt-3 bg-orange-500">محدد</Badge>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setReinforcementType('separate');
+                      setResults(null);
+                      setError(null);
+                    }}
+                    className={`p-8 rounded-2xl border-2 transition-all duration-300 text-center group hover:shadow-lg ${
+                      reinforcementType === 'separate'
+                        ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-amber-50 shadow-lg'
+                        : 'border-gray-200 bg-white hover:border-orange-300'
+                    }`}
+                  >
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div className="text-2xl text-white">📊</div>
+                    </div>
+                    <h3 className="font-bold text-xl text-gray-800 mb-2">حديد مفرق</h3>
+                    <p className="text-gray-600 text-sm">قضبان حديد منفصلة</p>
+                    {reinforcementType === 'separate' && (
+                      <Badge className="mt-3 bg-orange-500">محدد</Badge>
+                    )}
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Calculation Forms */}
+            {reinforcementType && (
+              <Card className="border-0 shadow-xl shadow-orange-200/50 hover:shadow-orange-300/60 transition-all duration-500 overflow-hidden bg-white/90 backdrop-blur-sm">
+                <CardHeader className="bg-gradient-to-br from-orange-600 via-amber-600 to-yellow-600 text-white py-6 px-6 border-b border-white/30">
+                  <div className="flex items-center gap-4">
+                    <div className="p-4 bg-white/20 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/40">
+                      <Calculator className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold">بيانات الحساب</CardTitle>
+                      <CardDescription className="text-orange-100 text-base">
+                        {reinforcementType === 'mesh' ? 'بيانات شبك الحديد' : 'بيانات الحديد المفرق'}
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                  {reinforcementType === 'mesh' ? (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <InputField
+                          id="slabArea"
+                          label="مساحة الأرضية"
+                          value={meshData.slabArea}
+                          onChange={(v) => setMeshData({ ...meshData, slabArea: v })}
+                          unit="م²"
+                          icon={Grid}
+                        />
+                        <InputField
+                          id="meshLength"
+                          label="طول الشبك"
+                          value={meshData.meshLength}
+                          onChange={(v) => setMeshData({ ...meshData, meshLength: v })}
+                          unit="متر"
+                          icon={Ruler}
+                        />
+                        <InputField
+                          id="meshWidth"
+                          label="عرض الشبك"
+                          value={meshData.meshWidth}
+                          onChange={(v) => setMeshData({ ...meshData, meshWidth: v })}
+                          unit="متر"
+                          icon={Ruler}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <InputField
+                        id="floorWidth"
+                        label="عرض الأرضية"
+                        value={separateData.floorWidth}
+                        onChange={(v) => setSeparateData({ ...separateData, floorWidth: v })}
+                        unit="متر"
+                        icon={Ruler}
+                      />
+                      <InputField
+                        id="floorLength"
+                        label="طول الأرضية"
+                        value={separateData.floorLength}
+                        onChange={(v) => setSeparateData({ ...separateData, floorLength: v })}
+                        unit="متر"
+                        icon={Ruler}
+                      />
+                      <InputField
+                        id="spacing"
+                        label="المسافة بين القضبان"
+                        value={separateData.spacing}
+                        onChange={(v) => setSeparateData({ ...separateData, spacing: v })}
+                        unit="متر"
+                        icon={Ruler}
+                      />
+                      <InputField
+                        id="barLength"
+                        label="طول القضيب"
+                        value={separateData.barLength}
+                        onChange={(v) => setSeparateData({ ...separateData, barLength: v })}
+                        unit="متر"
+                        icon={Ruler}
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex gap-4 mt-8">
+                    <Button
+                      onClick={calculate}
+                      disabled={isLoading}
+                      className="flex-1 h-14 bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-700 hover:via-amber-700 hover:to-yellow-700 text-white font-bold text-lg shadow-xl hover:shadow-2xl"
+                    >
+                      {isLoading ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          جاري الحساب...
+                        </>
+                      ) : (
+                        <>
+                          <Calculator className="w-5 h-5 ml-2" />
+                          إجراء الحسابات
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={reset}
+                      variant="outline"
+                      className="h-14 border-2 border-slate-300 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-800 shadow-xl"
+                    >
+                      <CheckCircle2 className="w-5 h-5 ml-2" />
+                      إعادة تعيين
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Right Column - Results & Reports */}
+          <div className="xl:col-span-4 space-y-6">
+            {/* Results Panel */}
+            <Card className="border-0 shadow-xl shadow-indigo-200/50 hover:shadow-indigo-300/60 backdrop-blur-sm bg-white/90 transition-all duration-500 overflow-hidden">
+              <CardHeader className="bg-gradient-to-br from-indigo-600 via-purple-700 to-pink-600 text-white py-6 border-b border-white/30">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl shadow-xl border border-white/40">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-bold">النتائج</CardTitle>
+                    <CardDescription className="text-indigo-100">
+                      نتائج حساب الحديد
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                {results ? (
+                  <div className="space-y-6">
+                    <div className="group relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 rounded-3xl blur-xl -z-10 opacity-75 group-hover:opacity-100 transition-all duration-500" />
+                      <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white p-6 rounded-2xl shadow-2xl border border-white/40 backdrop-blur-md text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-white/30 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-xl">
+                          <Calculator className="w-8 h-8 text-white drop-shadow-2xl" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-indigo-100 font-bold text-lg">
+                            {results.type === 'mesh' ? 'عدد قطع الشبك' : 'إجمالي القضبان'}
+                          </Label>
+                          <div className="text-4xl font-black bg-gradient-to-r from-white via-indigo-50 to-white bg-clip-text text-transparent drop-shadow-3xl">
+                            {(results.type === 'mesh' ? results.meshBars : results.totalBars)?.toLocaleString('ar')}
+                          </div>
+                          <div className="text-lg font-bold text-indigo-100">
+                            {results.type === 'mesh' ? 'شبكة' : 'قضيب'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Report Actions */}
+                    <div className="space-y-4">
+                      <Button
+                        onClick={saveToReports}
+                        disabled={saving}
+                        className="w-full h-14 bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:via-teal-700 hover:to-blue-700 text-white font-bold text-lg shadow-xl hover:shadow-2xl"
+                      >
+                        {saving ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            جاري الحفظ...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-5 h-5 ml-2" />
+                            ترحيل إلى التقارير
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 px-4">
+                    <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center shadow-xl backdrop-blur-sm border-2 border-slate-200">
+                      <Calculator className="w-10 h-10 text-slate-400" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-800 mb-4">جاهز للحسابات</h3>
+                    <p className="text-slate-600 max-w-md mx-auto">
+                      املأ البيانات واضغط "إجراء الحسابات" للحصول على النتائج
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Alert Dialog for Existing Report */}
+      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => {
+        if (!open) setExistingReportDialog({ open: false, reportId: null });
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تحذير: تقرير موجود مسبقاً</AlertDialogTitle>
+            <AlertDialogDescription>
+              تم حساب حديد أرضية المبنى مسبقاً والتقرير جاهز. هل تريد حذف التقرير السابق وحساب أرضية المبنى من جديد؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRecalculate}>
+              نعم، احذف التقرير السابق وأعد الحساب
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function InputField({ 
+  id, 
+  label, 
+  value, 
+  onChange,
+  unit, 
+  icon: Icon, 
+  type = "number",
+  containerClassName = ""
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  unit?: string;
+  icon?: any;
+  type?: string;
+  containerClassName?: string;
+}) {
+  return (
+    <div className={`group ${containerClassName}`}>
+      <Label htmlFor={id} className="text-base font-bold text-slate-900 mb-4 block flex items-center gap-2">
+        {Icon && <Icon className="w-5 h-5 text-orange-500" />}
+        {label}
+      </Label>
+      <div className="relative">
+        <Input
+          id={id}
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-14 text-lg font-bold text-right pr-4 bg-gradient-to-r from-white/80 to-slate-50/80 hover:from-white hover:to-slate-50 border-2 border-slate-200 hover:border-orange-300 focus:border-orange-500 shadow-xl focus:shadow-orange-200/50 transition-all duration-400 rounded-2xl backdrop-blur-sm"
+        />
+        {unit && (
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold bg-slate-100 px-3 py-1 rounded-xl shadow-md">
+            {unit}
+          </span>
         )}
       </div>
     </div>

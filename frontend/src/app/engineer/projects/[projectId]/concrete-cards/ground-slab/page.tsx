@@ -15,6 +15,8 @@ import {
   TrendingUp,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -473,23 +475,50 @@ export default function GroundSlabPage() {
         </div>
       </div>
 
-      {/* Alert Dialog for Existing Report */}
-      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => {
-        if (!open) {
-          setExistingReportDialog({ open: false, reportId: null });
-        }
-      }}>
-        <AlertDialogContent>
+      {/* Existing Report Warning Dialog */}
+      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => 
+        setExistingReportDialog(prev => ({ ...prev, open }))
+      }>
+        <AlertDialogContent className="max-w-lg" dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>تحذير: تقرير موجود مسبقاً</AlertDialogTitle>
-            <AlertDialogDescription>
-              تم حساب أرضية المبنى مسبقاً والتقرير جاهز. هل تريد حذف التقرير السابق وحساب أرضية المبنى من جديد؟
-            </AlertDialogDescription>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-7 h-7 text-amber-600" />
+              </div>
+              <AlertDialogTitle className="text-right text-xl font-bold">
+                تحذير: تقرير موجود مسبقاً
+              </AlertDialogTitle>
+            </div>
+            <div className="text-right text-base leading-relaxed space-y-3">
+              <p className="text-slate-700">
+                تم إجراء الحسابات وحفظ التقرير مسبقاً لهذا المشروع.
+              </p>
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                <p className="text-amber-800 font-medium">
+                  إذا قمت بإعادة الحسابات، سيتم:
+                </p>
+                <ul className="list-disc list-inside text-amber-700 text-sm mt-2 space-y-1">
+                  <li>حذف التقرير السابق من عند المهندس</li>
+                  <li>حذف التقرير السابق من عند المالك (إذا كان قد تم إرساله)</li>
+                  <li>حفظ التقرير الجديد</li>
+                </ul>
+              </div>
+              <p className="text-slate-600">
+                هل تريد المتابعة وإعادة الحسابات؟
+              </p>
+            </div>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRecalculate}>
-              نعم، احذف التقرير السابق وأعد الحساب
+          <AlertDialogFooter className="flex gap-3 mt-6">
+            <AlertDialogCancel className="flex-1 h-12 text-base font-medium">
+              <X className="w-4 h-4 ml-2" />
+              إلغاء
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRecalculate}
+              className="flex-1 h-12 bg-amber-600 hover:bg-amber-700 text-white text-base font-medium"
+            >
+              <Calculator className="w-4 h-4 ml-2" />
+              إعادة الحسابات
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
