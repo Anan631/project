@@ -138,13 +138,19 @@ export default function SteelCalculationsPage() {
         {calculationCards.map((card, index) => (
           <Link
             key={card.id}
-            href={card.id === 'ground-slab' ? `/engineer/projects/${projectId}/steel-calculations/ground-slab` : '#'}
+            href={
+              card.id === 'ground-slab'
+                ? `/engineer/projects/${projectId}/steel-calculations/ground-slab`
+                : card.id === 'roof-slab'
+                ? `/engineer/projects/${projectId}/steel-calculations/roof-slab`
+                : '#'
+            }
             className={cn(
               "group block h-full",
-              card.id === 'ground-slab' ? 'cursor-pointer' : 'cursor-not-allowed',
-              card.id !== 'ground-slab' && 'opacity-80'
+              (card.id === 'ground-slab' || card.id === 'roof-slab') ? 'cursor-pointer' : 'cursor-not-allowed',
+              card.id !== 'ground-slab' && card.id !== 'roof-slab' && 'opacity-80'
             )}
-            aria-disabled={card.id !== 'ground-slab'}
+            aria-disabled={card.id !== 'ground-slab' && card.id !== 'roof-slab'}
           >
             <div className={cn(
               "relative h-full rounded-2xl overflow-hidden",
