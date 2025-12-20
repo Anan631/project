@@ -612,6 +612,27 @@ export default function RoofRibsCalculationPage() {
                             <CardContent className="p-6">
                                 {results ? (
                                     <div className="space-y-6">
+                                        {/* Number of Bars - Main Result */}
+                                        <div className="group relative">
+                                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 rounded-3xl blur-xl -z-10 opacity-75 group-hover:opacity-100 transition-all duration-500" />
+                                            <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white p-6 rounded-2xl shadow-2xl border border-white/40 backdrop-blur-md text-center">
+                                                <div className="w-16 h-16 mx-auto mb-4 bg-white/30 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-xl">
+                                                    <Calculator className="w-8 h-8 text-white drop-shadow-2xl" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-indigo-100 font-bold text-lg">
+                                                        عدد القضبان لجميع الأعصاب
+                                                    </Label>
+                                                    <div className="text-4xl font-black bg-gradient-to-r from-white via-indigo-50 to-white bg-clip-text text-transparent drop-shadow-3xl">
+                                                        {results.numberOfBars.toLocaleString('ar')}
+                                                    </div>
+                                                    <div className="text-lg font-bold text-indigo-100">
+                                                        قضيب
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         {/* Total Load */}
                                         <ResultCard
                                             label="الحمل الكلي الموزع"
@@ -632,27 +653,6 @@ export default function RoofRibsCalculationPage() {
                                             value={parseFloat(results.requiredBarArea).toLocaleString('ar')}
                                             unit="cm²"
                                         />
-
-                                        {/* Number of Bars */}
-                                        <div className="group relative">
-                                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 rounded-3xl blur-xl -z-10 opacity-75 group-hover:opacity-100 transition-all duration-500" />
-                                            <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white p-6 rounded-2xl shadow-2xl border border-white/40 backdrop-blur-md text-center">
-                                                <div className="w-16 h-16 mx-auto mb-4 bg-white/30 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-xl">
-                                                    <Calculator className="w-8 h-8 text-white drop-shadow-2xl" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label className="text-indigo-100 font-bold text-lg">
-                                                        عدد القضبان لجميع الأعصاب
-                                                    </Label>
-                                                    <div className="text-4xl font-black bg-gradient-to-r from-white via-indigo-50 to-white bg-clip-text text-transparent drop-shadow-3xl">
-                                                        {results.numberOfBars.toLocaleString('ar')}
-                                                    </div>
-                                                    <div className="text-lg font-bold text-indigo-100">
-                                                        قضيب
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
 
                                         {/* Report Actions */}
                                         <div className="space-y-4">
