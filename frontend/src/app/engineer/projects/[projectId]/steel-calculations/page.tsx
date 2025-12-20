@@ -142,17 +142,19 @@ export default function SteelCalculationsPage() {
               card.id === 'ground-slab'
                 ? `/engineer/projects/${projectId}/steel-calculations/ground-slab`
                 : card.id === 'roof-slab'
-                ? `/engineer/projects/${projectId}/steel-calculations/roof-slab`
-                : card.id === 'roof-ribs'
-                ? `/engineer/projects/${projectId}/steel-calculations/roof-ribs`
-                : '#'
+                  ? `/engineer/projects/${projectId}/steel-calculations/roof-slab`
+                  : card.id === 'roof-ribs'
+                    ? `/engineer/projects/${projectId}/steel-calculations/roof-ribs`
+                    : card.id === 'foundation'
+                      ? `/engineer/projects/${projectId}/steel-calculations/foundation`
+                      : '#'
             }
             className={cn(
               "group block h-full",
-              (card.id === 'ground-slab' || card.id === 'roof-slab' || card.id === 'roof-ribs') ? 'cursor-pointer' : 'cursor-not-allowed',
-              card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs' && 'opacity-80'
+              (card.id === 'ground-slab' || card.id === 'roof-slab' || card.id === 'roof-ribs' || card.id === 'foundation') ? 'cursor-pointer' : 'cursor-not-allowed',
+              card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs' && card.id !== 'foundation' && 'opacity-80'
             )}
-            aria-disabled={card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs'}
+            aria-disabled={card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs' && card.id !== 'foundation'}
           >
             <div className={cn(
               "relative h-full rounded-2xl overflow-hidden",
@@ -163,7 +165,7 @@ export default function SteelCalculationsPage() {
               "hover:border-transparent",
               "hover:-translate-y-1 hover:scale-[1.02]"
             )}>
-              
+
               {/* Gradient Overlay on Hover */}
               <div className={cn(
                 "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700",
@@ -174,10 +176,10 @@ export default function SteelCalculationsPage() {
 
               {/* Content Container */}
               <div className="relative p-7 flex flex-col h-full">
-                
+
                 {/* Header Section */}
                 <div className="flex items-start justify-between mb-6">
-                  
+
                   {/* Icon with Animated Background */}
                   <div className="relative">
                     <div className={cn(
@@ -227,7 +229,7 @@ export default function SteelCalculationsPage() {
                     "bg-gradient-to-r from-transparent via-gray-200 to-transparent",
                     "group-hover:via-gray-300"
                   )} />
-                  
+
                   {/* CTA Button */}
                   <div className="flex items-center justify-between">
                     <span className={cn(
