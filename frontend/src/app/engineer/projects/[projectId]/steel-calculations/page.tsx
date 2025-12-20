@@ -143,14 +143,16 @@ export default function SteelCalculationsPage() {
                 ? `/engineer/projects/${projectId}/steel-calculations/ground-slab`
                 : card.id === 'roof-slab'
                 ? `/engineer/projects/${projectId}/steel-calculations/roof-slab`
+                : card.id === 'roof-ribs'
+                ? `/engineer/projects/${projectId}/steel-calculations/roof-ribs`
                 : '#'
             }
             className={cn(
               "group block h-full",
-              (card.id === 'ground-slab' || card.id === 'roof-slab') ? 'cursor-pointer' : 'cursor-not-allowed',
-              card.id !== 'ground-slab' && card.id !== 'roof-slab' && 'opacity-80'
+              (card.id === 'ground-slab' || card.id === 'roof-slab' || card.id === 'roof-ribs') ? 'cursor-pointer' : 'cursor-not-allowed',
+              card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs' && 'opacity-80'
             )}
-            aria-disabled={card.id !== 'ground-slab' && card.id !== 'roof-slab'}
+            aria-disabled={card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs'}
           >
             <div className={cn(
               "relative h-full rounded-2xl overflow-hidden",
