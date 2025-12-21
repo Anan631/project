@@ -375,6 +375,26 @@ export default function ProjectReportsPage() {
                         </tr>
                       </tbody>
                     </table>
+
+                    <div class="section-title" style="margin-top: 20px; font-size: 18px;">التسليح العلوي والسفلي</div>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>طول القضيب (م)</th>
+                          <th>عدد القضبان</th>
+                          <th>نوع التسليح</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${foundation.reinforcement?.map((row: any) => `
+                          <tr>
+                            <td>${row.barLength?.toFixed(2) || 0}</td>
+                            <td>${row.numberOfBars || 0}</td>
+                            <td>${row.type || ''}</td>
+                          </tr>
+                        `).join('') || ''}
+                      </tbody>
+                    </table>
                   </div>
                 `).join('') || ''}
               `;

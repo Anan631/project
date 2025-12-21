@@ -227,6 +227,11 @@ export default function OwnerQuantityReportsPage() {
                       <tr><td>${foundation.uSteelCount || 0} قطعة</td><td>عدد قطع حديد U</td></tr>
                       <tr><td>${foundation.totalUSteelLength?.toFixed(2) || 0} متر</td><td>الطول الكلي لحديد U</td></tr>
                     </tbody></table>
+                    
+                    <div class="section-title" style="margin-top: 20px; font-size: 18px;">التسليح العلوي والسفلي</div>
+                    <table><thead><tr><th>طول القضيب (م)</th><th>عدد القضبان</th><th>نوع التسليح</th></tr></thead><tbody>
+                      ${foundation.reinforcement?.map((row: any) => `<tr><td>${row.barLength?.toFixed(2) || 0}</td><td>${row.numberOfBars || 0}</td><td>${row.type || ''}</td></tr>`).join('') || ''}
+                    </tbody></table>
                   </div>
                 `).join('') || ''}
               `}
