@@ -9,7 +9,7 @@ const quantityReportSchema = new Schema(
     engineerName: { type: String, required: true },
     ownerName: { type: String, default: '' },
     ownerEmail: { type: String, default: '' },
-    
+
     // Concrete calculations
     concreteData: {
       cleaningVolume: { type: Number, default: 0 },
@@ -41,7 +41,7 @@ const quantityReportSchema = new Schema(
         height: Number,
         volume: Number
       }],
-      
+
       // Ground slab data (أرضية المبنى - المِدّة)
       groundSlabData: {
         buildingArea: { type: Number }, // مساحة المبنى الكلية (م²)
@@ -50,7 +50,7 @@ const quantityReportSchema = new Schema(
         totalWithWastage: { type: Number }   // الكمية الكلية مع الهدر (م³)
       }
     },
-    
+
     // Steel calculations
     steelData: {
       totalSteelWeight: { type: Number, default: 0 },
@@ -60,19 +60,19 @@ const quantityReportSchema = new Schema(
       slabSteel: { type: Number, default: 0 },
       details: { type: Schema.Types.Mixed }
     },
-    
-    calculationType: { 
-      type: String, 
-      enum: ['foundation', 'cleaning-slab', 'ground-slab', 'columns', 'beams', 'slabs', 'full', 'column-footings', 'ground-bridges', 'roof'],
+
+    calculationType: {
+      type: String,
+      enum: ['foundation', 'cleaning-slab', 'ground-slab', 'columns', 'beams', 'slabs', 'full', 'column-footings', 'ground-bridges', 'roof', 'foundation-steel'],
       default: 'foundation'
     },
-    
+
     sentToOwner: { type: Boolean, default: false },
     sentToOwnerAt: { type: Date },
-    
+
     deleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
-    
+
     notes: { type: String, default: '' }
   },
   { timestamps: true }

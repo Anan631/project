@@ -35,6 +35,16 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -89,7 +99,11 @@ export default function FoundationCalculationPage() {
     const [results, setResults] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
 
-    // Fetch iron bars data
+    // Existing report detection
+    const [existingReportId, setExistingReportId] = useState<string | null>(null);
+    const [showRecalculationWarning, setShowRecalculationWarning] = useState(false);
+
+    // Fetch iron bars data and check for existing reports
     useEffect(() => {
         const fetchIronBars = async () => {
             try {
@@ -108,8 +122,26 @@ export default function FoundationCalculationPage() {
             }
         };
 
+        const checkExistingReport = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+                const data = await response.json();
+                if (data.success && data.reports) {
+                    const foundationSteelReport = data.reports.find(
+                        (report: any) => report.calculationType === 'foundation-steel' && !report.deleted
+                    );
+                    if (foundationSteelReport) {
+                        setExistingReportId(foundationSteelReport._id);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking existing report:', error);
+            }
+        };
+
         fetchIronBars();
-    }, []);
+        checkExistingReport();
+    }, [projectId]);
 
     const handleBarDiameterChange = (diameter: string) => {
         setSelectedBarDiameter(diameter);
@@ -228,6 +260,12 @@ export default function FoundationCalculationPage() {
         setError(null);
         if (!validateInputs()) return;
 
+        // Check if there's an existing report
+        if (existingReportId && !showRecalculationWarning) {
+            setShowRecalculationWarning(true);
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -272,6 +310,27 @@ export default function FoundationCalculationPage() {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleRecalculate = async () => {
+        // Soft delete the existing report first
+        if (existingReportId) {
+            try {
+                await fetch(`${API_BASE_URL}/api/quantity-reports/${existingReportId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                setExistingReportId(null);
+            } catch (error) {
+                console.error('Error deleting old report:', error);
+            }
+        }
+
+        setShowRecalculationWarning(false);
+        // Now proceed with calculation
+        calculate();
     };
 
     const reset = () => {
@@ -802,6 +861,42 @@ export default function FoundationCalculationPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Recalculation Warning Dialog */}
+            <AlertDialog open={showRecalculationWarning} onOpenChange={setShowRecalculationWarning}>
+                <AlertDialogContent dir="rtl" className="bg-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-2xl font-bold text-orange-600 flex items-center gap-2">
+                            <AlertCircle className="w-6 h-6" />
+                            تحذير: تقرير موجود مسبقاً
+                        </AlertDialogTitle>
+                        <div className="text-lg text-slate-700 leading-relaxed space-y-3 mt-4">
+                            <p className="font-semibold">
+                                يوجد تقرير سابق لحديد القواعد لهذا المشروع.
+                            </p>
+                            <p>
+                                في حال اختيار إعادة الحساب، سيتم حذف التقرير السابق واستبداله بالتقرير الجديد.
+                            </p>
+                            <div className="bg-orange-50 border-r-4 border-orange-400 p-4 rounded-lg">
+                                <p className="text-orange-800 font-semibold">
+                                    ⚠️ ملاحظة: لن يكون بالإمكان استرجاع التقرير القديم بعد الحذف.
+                                </p>
+                            </div>
+                        </div>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-2">
+                        <AlertDialogCancel className="border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50">
+                            إلغاء
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleRecalculate}
+                            className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-bold"
+                        >
+                            إعادة الحساب واستبدال التقرير
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

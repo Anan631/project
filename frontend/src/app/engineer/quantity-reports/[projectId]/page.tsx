@@ -92,7 +92,7 @@ export default function ProjectReportsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const projectId = params.projectId as string;
-  
+
   const [reports, setReports] = useState<QuantityReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -114,10 +114,10 @@ export default function ProjectReportsPage() {
     reportType: null,
     reportDate: null,
   });
-  
+
   const [deleteAllDialog, setDeleteAllDialog] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
-  
+
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
@@ -128,7 +128,7 @@ export default function ProjectReportsPage() {
     try {
       const response = await fetch(`http://localhost:5000/api/quantity-reports/project/${projectId}`);
       const data = await response.json();
-      
+
       if (data.success) {
         setReports(data.reports);
         if (data.reports.length > 0) {
@@ -165,6 +165,353 @@ export default function ProjectReportsPage() {
         throw new Error('Report not found');
       }
 
+      // Check if this is a foundation-steel report
+      if (report.calculationType === 'foundation-steel') {
+        // Generate Steel Foundation Report PDF
+        const steelData = report.steelData?.details;
+        const results = steelData?.results;
+        const inputs = steelData?.inputs;
+
+        const htmlContent = `
+          <!DOCTYPE html>
+          <html dir="rtl" lang="ar">
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
+              
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              
+              body {
+                direction: rtl;
+                font-family: 'Tajawal', sans-serif;
+                font-size: 18px;
+                line-height: 1.8;
+                color: #1a1a1a;
+                background: white;
+                padding: 25mm;
+              }
+              
+              .header {
+                background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+                color: white;
+                padding: 40px 30px;
+                border-radius: 12px;
+                margin-bottom: 40px;
+                text-align: center;
+              }
+              
+              .header h1 {
+                font-size: 36px;
+                margin-bottom: 10px;
+                font-weight: 900;
+              }
+              
+              .header p {
+                font-size: 20px;
+                opacity: 0.95;
+              }
+              
+              .project-name {
+                background: linear-gradient(to right, #f0fdf4, #dcfce7);
+                border-right: 6px solid #059669;
+                padding: 25px 30px;
+                margin-bottom: 30px;
+                border-radius: 8px;
+              }
+              
+              .project-name h2 {
+                color: #2d3748;
+                font-size: 24px;
+                font-weight: 700;
+              }
+              
+              .info-boxes {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 25px;
+                margin-bottom: 40px;
+              }
+              
+              .info-box {
+                background: white;
+                border: 2px solid #d1fae5;
+                padding: 25px;
+                border-radius: 10px;
+                text-align: center;
+              }
+              
+              .info-box label {
+                display: block;
+                font-size: 16px;
+                color: #718096;
+                margin-bottom: 8px;
+                font-weight: 500;
+              }
+              
+              .info-box .value {
+                font-size: 20px;
+                color: #2d3748;
+                font-weight: 700;
+              }
+              
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 40px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+                border-radius: 10px;
+                overflow: hidden;
+              }
+              
+              thead {
+                background: linear-gradient(135deg, #059669, #10b981);
+                color: white;
+              }
+              
+              th {
+                padding: 20px 15px;
+                text-align: right;
+                font-weight: 700;
+                font-size: 20px;
+              }
+              
+              td {
+                padding: 18px 15px;
+                text-align: right;
+                border-bottom: 1px solid #e2e8f0;
+                font-size: 18px;
+                font-weight: 500;
+              }
+              
+              tbody tr:nth-child(even) {
+                background: #f0fdf4;
+              }
+              
+              .total-box {
+                background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+                border: 3px solid #059669;
+                border-radius: 12px;
+                padding: 30px;
+                margin-bottom: 40px;
+                text-align: center;
+              }
+              
+              .total-box label {
+                display: block;
+                font-size: 20px;
+                color: #2d3748;
+                margin-bottom: 12px;
+                font-weight: 600;
+              }
+              
+              .total-box .value {
+                font-size: 32px;
+                font-weight: 900;
+                color: #059669;
+              }
+
+              .section-title {
+                background: #f0fdf4;
+                border-right: 4px solid #059669;
+                padding: 15px 20px;
+                margin: 30px 0 20px 0;
+                font-size: 22px;
+                font-weight: 700;
+                color: #065f46;
+              }
+              
+              .footer {
+                border-top: 2px solid #e2e8f0;
+                padding-top: 25px;
+                text-align: center;
+                font-size: 14px;
+                color: #718096;
+                margin-top: 50px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>تقرير حديد القواعد</h1>
+                <p>حساب كميات حديد القواعد وفق المعايير الهندسية</p>
+              </div>
+
+              <div class="project-name">
+                <h2>المشروع: ${report.projectName}</h2>
+              </div>
+
+              <div class="info-boxes">
+                <div class="info-box">
+                  <label>المهندس المسؤول</label>
+                  <div class="value">${report.engineerName}</div>
+                </div>
+                <div class="info-box">
+                  <label>المالك / العميل</label>
+                  <div class="value">${report.ownerName || 'غير محدد'}</div>
+                </div>
+              </div>
+
+              <div class="info-boxes">
+                <div class="info-box">
+                  <label>نوع الحساب</label>
+                  <div class="value">${results?.type === 'similar' ? 'قواعد متشابهة' : 'قواعد مختلفة'}</div>
+                </div>
+                <div class="info-box">
+                  <label>قطر القضيب</label>
+                  <div class="value">${inputs?.barDiameter || 'N/A'} ملم</div>
+                </div>
+              </div>
+
+              ${results?.type === 'similar' ? `
+                <div class="section-title">معلومات القواعد</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${results.numberOfFoundations || 0}</td>
+                      <td>عدد القواعد</td>
+                    </tr>
+                    <tr>
+                      <td>${results.foundationLength || 0} متر</td>
+                      <td>طول القاعدة</td>
+                    </tr>
+                    <tr>
+                      <td>${results.foundationWidth || 0} متر</td>
+                      <td>عرض القاعدة</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs?.uSteelSpacing || 0} متر</td>
+                      <td>المسافة بين حديد U</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">نتائج حديد U</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${results.uSteelCount || 0} قطعة</td>
+                      <td>عدد قطع حديد U</td>
+                    </tr>
+                    <tr>
+                      <td>${results.bendLength?.toFixed(2) || 0} متر</td>
+                      <td>طول الثنية</td>
+                    </tr>
+                    <tr>
+                      <td>${results.seaLength?.toFixed(2) || 0} متر</td>
+                      <td>طول البحر</td>
+                    </tr>
+                    <tr style="background: #d1fae5; font-weight: bold;">
+                      <td>${results.totalUSteelLength?.toFixed(2) || 0} متر</td>
+                      <td>الطول الكلي لحديد U</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">التسليح العلوي والسفلي</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>طول القضيب (م)</th>
+                      <th>عدد القضبان</th>
+                      <th>نوع التسليح</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${results.reinforcement?.map((row: any) => `
+                      <tr>
+                        <td>${row.barLength?.toFixed(2) || 0}</td>
+                        <td>${row.numberOfBars || 0}</td>
+                        <td>${row.type || ''}</td>
+                      </tr>
+                    `).join('') || ''}
+                  </tbody>
+                </table>
+              ` : `
+                <div class="section-title">نتائج القواعد المختلفة</div>
+                ${results?.foundations?.map((foundation: any, idx: number) => `
+                  <div style="margin-bottom: 30px;">
+                    <h3 style="background: #f0fdf4; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px;">قاعدة ${foundation.id}</h3>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>القيمة</th>
+                          <th>البيان</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>${foundation.foundationLength || 0} متر</td>
+                          <td>الطول</td>
+                        </tr>
+                        <tr>
+                          <td>${foundation.foundationWidth || 0} متر</td>
+                          <td>العرض</td>
+                        </tr>
+                        <tr>
+                          <td>${foundation.uSteelCount || 0} قطعة</td>
+                          <td>عدد قطع حديد U</td>
+                        </tr>
+                        <tr>
+                          <td>${foundation.totalUSteelLength?.toFixed(2) || 0} متر</td>
+                          <td>الطول الكلي لحديد U</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                `).join('') || ''}
+              `}
+
+              <div class="footer">
+                <p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p>
+                <p>© 2025 جميع الحقوق محفوظة</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `;
+
+        const printWindow = window.open('', '_blank', 'width=1000,height=800');
+        if (!printWindow) {
+          throw new Error('Could not open print window');
+        }
+
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.print();
+          }, 500);
+        };
+
+        toast({
+          title: 'تم فتح التقرير',
+          description: 'تم فتح تقرير حديد القواعد للطباعة',
+        });
+
+        setDownloading(null);
+        return;
+      }
+
+      // Original concrete report code continues here...
       const htmlContent = `
         <!DOCTYPE html>
         <html dir="rtl" lang="ar">
@@ -333,9 +680,9 @@ export default function ProjectReportsPage() {
             }
             
             .total-box {
-              background: ${type === 'concrete' 
-                ? 'linear-gradient(135deg, #d4f4dd, #bbf7d0)' 
-                : 'linear-gradient(135deg, #2563eb, #1e40af)'};
+              background: ${type === 'concrete'
+          ? 'linear-gradient(135deg, #d4f4dd, #bbf7d0)'
+          : 'linear-gradient(135deg, #2563eb, #1e40af)'};
               border: 3px solid ${type === 'concrete' ? '#22c55e' : '#2563eb'};
               border-radius: 12px;
               padding: 30px;
@@ -501,10 +848,9 @@ export default function ProjectReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                ${
-                  type === 'concrete' && report.concreteData
-                    ? report.calculationType === 'column-footings'
-                      ? `
+                ${type === 'concrete' && report.concreteData
+          ? report.calculationType === 'column-footings'
+            ? `
                         <tr>
                           <td>${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                           <td>${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
@@ -516,8 +862,8 @@ export default function ProjectReportsPage() {
                           <td>إجمالي الخرسانة</td>
                         </tr>
                       `
-                      : report.calculationType === 'columns'
-                      ? `
+            : report.calculationType === 'columns'
+              ? `
                         <tr>
                           <td>${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                           <td>${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
@@ -529,8 +875,8 @@ export default function ProjectReportsPage() {
                           <td>إجمالي الخرسانة</td>
                         </tr>
                       `
-                      : report.calculationType === 'roof'
-                      ? `
+              : report.calculationType === 'roof'
+                ? `
                         <tr>
                           <td>${(report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                           <td>${(report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
@@ -542,8 +888,8 @@ export default function ProjectReportsPage() {
                           <td>إجمالي الخرسانة</td>
                         </tr>
                       `
-                      : report.calculationType === 'ground-bridges'
-                      ? `
+                : report.calculationType === 'ground-bridges'
+                  ? `
                         <tr>
                           <td>${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                           <td>${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
@@ -555,8 +901,8 @@ export default function ProjectReportsPage() {
                           <td>إجمالي الخرسانة</td>
                         </tr>
                       `
-                      : report.calculationType === 'ground-slab'
-                      ? `
+                  : report.calculationType === 'ground-slab'
+                    ? `
                         <tr>
                           <td>${(report.concreteData.groundSlabVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                           <td>${(report.concreteData.groundSlabVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
@@ -568,7 +914,7 @@ export default function ProjectReportsPage() {
                           <td>إجمالي الخرسانة</td>
                         </tr>
                       `
-                      : `
+                    : `
                         <tr>
                           <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
                           <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
@@ -588,48 +934,47 @@ export default function ProjectReportsPage() {
                         ` : ''}
                         <tr>
                           <td>${(() => {
-                            const cleaning = report.concreteData.cleaningVolume || 0;
-                            const foundations = report.concreteData.foundationsVolume || 0;
-                            const groundSlab = report.concreteData.groundSlabVolume || 0;
-                            return (cleaning + foundations + groundSlab).toFixed(2);
-                          })()} م³</td>
+                      const cleaning = report.concreteData.cleaningVolume || 0;
+                      const foundations = report.concreteData.foundationsVolume || 0;
+                      const groundSlab = report.concreteData.groundSlabVolume || 0;
+                      return (cleaning + foundations + groundSlab).toFixed(2);
+                    })()} م³</td>
                           <td>${(() => {
-                            const cleaning = report.concreteData.cleaningVolume || 0;
-                            const foundations = report.concreteData.foundationsVolume || 0;
-                            const groundSlab = report.concreteData.groundSlabVolume || 0;
-                            return (cleaning + foundations + groundSlab).toFixed(2);
-                          })()} م³</td>
+                      const cleaning = report.concreteData.cleaningVolume || 0;
+                      const foundations = report.concreteData.foundationsVolume || 0;
+                      const groundSlab = report.concreteData.groundSlabVolume || 0;
+                      return (cleaning + foundations + groundSlab).toFixed(2);
+                    })()} م³</td>
                           <td>إجمالي الخرسانة</td>
                         </tr>
                       `
-                    : ''
-                }
+          : ''
+        }
               </tbody>
             </table>
 
             <div class="total-box">
               <label>المجموع الكلي:</label>
               <div class="value">
-                ${
-                  type === 'concrete' && report.concreteData
-                    ? report.calculationType === 'column-footings'
-                      ? `${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
-                      : report.calculationType === 'columns'
-                      ? `${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
-                      : report.calculationType === 'roof'
-                      ? `${(report.concreteData.totalConcrete || 0).toFixed(2)} م³`
-                      : report.calculationType === 'ground-bridges'
-                      ? `${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
-                      : report.calculationType === 'ground-slab'
-                      ? `${(report.concreteData.groundSlabVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
-                      : `${(() => {
-                          const cleaning = report.concreteData.cleaningVolume || 0;
-                          const foundations = report.concreteData.foundationsVolume || 0;
-                          const groundSlab = report.concreteData.groundSlabVolume || 0;
-                          return (cleaning + foundations + groundSlab).toFixed(2);
-                        })()} م³`
-                    : `${(report.steelData?.totalSteelWeight || 0).toFixed(2)} كجم`
-                }
+                ${type === 'concrete' && report.concreteData
+          ? report.calculationType === 'column-footings'
+            ? `${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+            : report.calculationType === 'columns'
+              ? `${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+              : report.calculationType === 'roof'
+                ? `${(report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+                : report.calculationType === 'ground-bridges'
+                  ? `${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+                  : report.calculationType === 'ground-slab'
+                    ? `${(report.concreteData.groundSlabVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
+                    : `${(() => {
+                      const cleaning = report.concreteData.cleaningVolume || 0;
+                      const foundations = report.concreteData.foundationsVolume || 0;
+                      const groundSlab = report.concreteData.groundSlabVolume || 0;
+                      return (cleaning + foundations + groundSlab).toFixed(2);
+                    })()} م³`
+          : `${(report.steelData?.totalSteelWeight || 0).toFixed(2)} كجم`
+        }
               </div>
             </div>
 
@@ -704,20 +1049,21 @@ export default function ProjectReportsPage() {
     setDeleteDialog({
       open: true,
       reportId,
-      reportType: report.calculationType === 'foundation' ? 'القواعد وصبة النظافة' : 
-                 report.calculationType === 'column-footings' ? 'شروش الأعمدة' : 
-                 report.calculationType === 'columns' ? 'الأعمدة' : 
-                 report.calculationType === 'roof' ? 'السقف' : 
-                 report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : 
-                 report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' : 
-                 report.calculationType,
+      reportType: report.calculationType === 'foundation' ? 'القواعد وصبة النظافة' :
+        report.calculationType === 'column-footings' ? 'شروش الأعمدة' :
+          report.calculationType === 'columns' ? 'الأعمدة' :
+            report.calculationType === 'roof' ? 'السقف' :
+              report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' :
+                report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' :
+                  report.calculationType === 'foundation-steel' ? 'حديد القواعد' :
+                    report.calculationType,
       reportDate: formatDate(report.updatedAt),
     });
   };
 
   const confirmDeleteReport = async () => {
     if (!deleteDialog.reportId) return;
-    
+
     setDeleting(deleteDialog.reportId);
     try {
       const response = await fetch(`http://localhost:5000/api/quantity-reports/${deleteDialog.reportId}`, {
@@ -725,7 +1071,7 @@ export default function ProjectReportsPage() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setReports(prev => prev.filter(report => report._id !== deleteDialog.reportId));
         toast({
@@ -757,11 +1103,11 @@ export default function ProjectReportsPage() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         // Update the report in state
-        setReports(prev => prev.map(report => 
-          report._id === reportId 
+        setReports(prev => prev.map(report =>
+          report._id === reportId
             ? { ...report, sentToOwner: true, sentToOwnerAt: new Date().toISOString() }
             : report
         ));
@@ -797,7 +1143,7 @@ export default function ProjectReportsPage() {
   const handleDeleteAllReports = async () => {
     setDeletingAll(true);
     try {
-      const deletePromises = reports.map(report => 
+      const deletePromises = reports.map(report =>
         fetch(`http://localhost:5000/api/quantity-reports/${report._id}`, {
           method: 'DELETE'
         })
@@ -805,9 +1151,9 @@ export default function ProjectReportsPage() {
 
       const responses = await Promise.all(deletePromises);
       const results = await Promise.all(responses.map(res => res.json()));
-      
+
       const failedDeletes = results.filter(result => !result.success);
-      
+
       if (failedDeletes.length === 0) {
         setReports([]);
         toast({
@@ -865,6 +1211,7 @@ export default function ProjectReportsPage() {
   const roofReport = reports.find(r => r.calculationType === 'roof');
   const groundBridgesReport = reports.find(r => r.calculationType === 'ground-bridges');
   const groundSlabReport = reports.find(r => r.calculationType === 'ground-slab');
+  const foundationSteelReport = reports.find(r => r.calculationType === 'foundation-steel');
 
   if (loading) {
     return (
@@ -878,7 +1225,7 @@ export default function ProjectReportsPage() {
             <p className="text-slate-600">يرجى الانتظار بينما نحضر بيانات التقارير...</p>
           </div>
           <div className="w-full bg-slate-200 rounded-full h-2">
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full animate-pulse" style={{width: '70%'}}></div>
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
           </div>
         </div>
       </div>
@@ -888,7 +1235,7 @@ export default function ProjectReportsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl" style={{ fontSize: '16px' }}>
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        
+
         {/* Back Button */}
         <div className="mb-6">
           <Link href="/engineer/quantity-reports">
@@ -965,7 +1312,7 @@ export default function ProjectReportsPage() {
                   التحليلات
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="overview" className="mt-6">
                 {/* Statistics Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -986,7 +1333,7 @@ export default function ProjectReportsPage() {
                       </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all duration-300">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
@@ -1001,7 +1348,7 @@ export default function ProjectReportsPage() {
                       </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all duration-300">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
@@ -1016,7 +1363,7 @@ export default function ProjectReportsPage() {
                       </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all duration-300">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
@@ -1065,8 +1412,8 @@ export default function ProjectReportsPage() {
                             <div className="flex justify-between items-center">
                               <span className="text-emerald-700">شروش الأعمدة</span>
                               <span className="font-bold text-emerald-800">
-                                {(columnFootingsReport.concreteData?.totalFootingsVolume || 
-                                 columnFootingsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                {(columnFootingsReport.concreteData?.totalFootingsVolume ||
+                                  columnFootingsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
                               </span>
                             </div>
                           )}
@@ -1074,8 +1421,8 @@ export default function ProjectReportsPage() {
                             <div className="flex justify-between items-center">
                               <span className="text-emerald-700">الأعمدة</span>
                               <span className="font-bold text-emerald-800">
-                                {(columnsReport.concreteData?.columnsVolume || 
-                                 columnsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                {(columnsReport.concreteData?.columnsVolume ||
+                                  columnsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
                               </span>
                             </div>
                           )}
@@ -1091,8 +1438,8 @@ export default function ProjectReportsPage() {
                             <div className="flex justify-between items-center">
                               <span className="text-emerald-700">الجسور الأرضية</span>
                               <span className="font-bold text-emerald-800">
-                                {(groundBridgesReport.concreteData?.totalVolume || 
-                                 groundBridgesReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                {(groundBridgesReport.concreteData?.totalVolume ||
+                                  groundBridgesReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
                               </span>
                             </div>
                           )}
@@ -1100,14 +1447,14 @@ export default function ProjectReportsPage() {
                             <div className="flex justify-between items-center">
                               <span className="text-emerald-700">أرضية المبنى (المِدّة)</span>
                               <span className="font-bold text-emerald-800">
-                                {(groundSlabReport.concreteData?.groundSlabVolume || 
-                                 groundSlabReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                {(groundSlabReport.concreteData?.groundSlabVolume ||
+                                  groundSlabReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
                               </span>
                             </div>
                           )}
                         </div>
                       </div>
-                      
+
                       <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6">
                         <h3 className="text-lg font-semibold text-indigo-800 mb-4">معلومات المشروع</h3>
                         <div className="space-y-3">
@@ -1137,7 +1484,7 @@ export default function ProjectReportsPage() {
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="reports" className="mt-6">
                 {/* Delete All Reports Button */}
                 {reports.length > 0 && (
@@ -1222,7 +1569,7 @@ export default function ProjectReportsPage() {
                             </div>
                           </div>
                         )}
-                        
+
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(foundationReport._id, 'concrete')}
@@ -1236,15 +1583,14 @@ export default function ProjectReportsPage() {
                             )}
                             طباعة تقرير الخرسانة PDF
                           </Button>
-                          
+
                           <Button
                             onClick={() => handleSendToOwner(foundationReport._id)}
                             disabled={sendingToOwner === foundationReport._id || foundationReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                              foundationReport.sentToOwner
-                                ? 'bg-green-600 hover:bg-green-700 text-white'
-                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                            }`}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${foundationReport.sentToOwner
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                              }`}
                           >
                             {sendingToOwner === foundationReport._id ? (
                               <>
@@ -1263,7 +1609,7 @@ export default function ProjectReportsPage() {
                               </>
                             )}
                           </Button>
-                          
+
                           <Button
                             onClick={() => handleDeleteReport(foundationReport._id)}
                             disabled={deleting === foundationReport._id}
@@ -1312,8 +1658,8 @@ export default function ProjectReportsPage() {
                             <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                               <span className="text-slate-600 font-medium">حجم شروش الأعمدة</span>
                               <span className="font-bold text-emerald-600">
-                                {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) || 
-                                 columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                                {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) ||
+                                  columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
                               </span>
                             </div>
                             {columnFootingsReport.concreteData.numberOfColumns && (
@@ -1336,13 +1682,13 @@ export default function ProjectReportsPage() {
                             <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
                               <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
                               <span className="text-2xl font-black text-emerald-600">
-                                {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) || 
-                                 columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                                {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) ||
+                                  columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
                               </span>
                             </div>
                           </div>
                         )}
-                        
+
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(columnFootingsReport._id, 'concrete')}
@@ -1356,15 +1702,14 @@ export default function ProjectReportsPage() {
                             )}
                             طباعة تقرير الخرسانة PDF
                           </Button>
-                          
+
                           <Button
                             onClick={() => handleSendToOwner(columnFootingsReport._id)}
                             disabled={sendingToOwner === columnFootingsReport._id || columnFootingsReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                              columnFootingsReport.sentToOwner
-                                ? 'bg-green-600 hover:bg-green-700 text-white'
-                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                            }`}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${columnFootingsReport.sentToOwner
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                              }`}
                           >
                             {sendingToOwner === columnFootingsReport._id ? (
                               <>
@@ -1383,7 +1728,7 @@ export default function ProjectReportsPage() {
                               </>
                             )}
                           </Button>
-                          
+
                           <Button
                             onClick={() => handleDeleteReport(columnFootingsReport._id)}
                             disabled={deleting === columnFootingsReport._id}
@@ -1432,8 +1777,8 @@ export default function ProjectReportsPage() {
                             <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                               <span className="text-slate-600 font-medium">حجم الأعمدة</span>
                               <span className="font-bold text-emerald-600">
-                                {columnsReport.concreteData.columnsVolume?.toFixed(3) || 
-                                 columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                                {columnsReport.concreteData.columnsVolume?.toFixed(3) ||
+                                  columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
                               </span>
                             </div>
                             {columnsReport.concreteData.columnsData && columnsReport.concreteData.columnsData.length > 0 && (
@@ -1448,13 +1793,13 @@ export default function ProjectReportsPage() {
                             <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
                               <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
                               <span className="text-2xl font-black text-emerald-600">
-                                {columnsReport.concreteData.columnsVolume?.toFixed(3) || 
-                                 columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                                {columnsReport.concreteData.columnsVolume?.toFixed(3) ||
+                                  columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
                               </span>
                             </div>
                           </div>
                         )}
-                        
+
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(columnsReport._id, 'concrete')}
@@ -1468,15 +1813,14 @@ export default function ProjectReportsPage() {
                             )}
                             طباعة تقرير الخرسانة PDF
                           </Button>
-                          
+
                           <Button
                             onClick={() => handleSendToOwner(columnsReport._id)}
                             disabled={sendingToOwner === columnsReport._id || columnsReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                              columnsReport.sentToOwner
-                                ? 'bg-green-600 hover:bg-green-700 text-white'
-                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                            }`}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${columnsReport.sentToOwner
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                              }`}
                           >
                             {sendingToOwner === columnsReport._id ? (
                               <>
@@ -1495,7 +1839,7 @@ export default function ProjectReportsPage() {
                               </>
                             )}
                           </Button>
-                          
+
                           <Button
                             onClick={() => handleDeleteReport(columnsReport._id)}
                             disabled={deleting === columnsReport._id}
@@ -1576,7 +1920,7 @@ export default function ProjectReportsPage() {
                             </div>
                           </div>
                         )}
-                        
+
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(roofReport._id, 'concrete')}
@@ -1590,15 +1934,14 @@ export default function ProjectReportsPage() {
                             )}
                             طباعة تقرير الخرسانة PDF
                           </Button>
-                          
+
                           <Button
                             onClick={() => handleSendToOwner(roofReport._id)}
                             disabled={sendingToOwner === roofReport._id || roofReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                              roofReport.sentToOwner
-                                ? 'bg-green-600 hover:bg-green-700 text-white'
-                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                            }`}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${roofReport.sentToOwner
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                              }`}
                           >
                             {sendingToOwner === roofReport._id ? (
                               <>
@@ -1617,7 +1960,7 @@ export default function ProjectReportsPage() {
                               </>
                             )}
                           </Button>
-                          
+
                           <Button
                             onClick={() => handleDeleteReport(roofReport._id)}
                             disabled={deleting === roofReport._id}
@@ -1666,8 +2009,8 @@ export default function ProjectReportsPage() {
                             <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                               <span className="text-slate-600 font-medium">حجم الجسور الأرضية</span>
                               <span className="font-bold text-emerald-600">
-                                {groundBridgesReport.concreteData.totalVolume?.toFixed(3) || 
-                                 groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                                {groundBridgesReport.concreteData.totalVolume?.toFixed(3) ||
+                                  groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
                               </span>
                             </div>
                             {groundBridgesReport.concreteData.bridgesCount && (
@@ -1682,13 +2025,13 @@ export default function ProjectReportsPage() {
                             <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
                               <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
                               <span className="text-2xl font-black text-emerald-600">
-                                {groundBridgesReport.concreteData.totalVolume?.toFixed(3) || 
-                                 groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                                {groundBridgesReport.concreteData.totalVolume?.toFixed(3) ||
+                                  groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
                               </span>
                             </div>
                           </div>
                         )}
-                        
+
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(groundBridgesReport._id, 'concrete')}
@@ -1702,15 +2045,14 @@ export default function ProjectReportsPage() {
                             )}
                             طباعة تقرير الخرسانة PDF
                           </Button>
-                          
+
                           <Button
                             onClick={() => handleSendToOwner(groundBridgesReport._id)}
                             disabled={sendingToOwner === groundBridgesReport._id || groundBridgesReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                              groundBridgesReport.sentToOwner
-                                ? 'bg-green-600 hover:bg-green-700 text-white'
-                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                            }`}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${groundBridgesReport.sentToOwner
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                              }`}
                           >
                             {sendingToOwner === groundBridgesReport._id ? (
                               <>
@@ -1729,7 +2071,7 @@ export default function ProjectReportsPage() {
                               </>
                             )}
                           </Button>
-                          
+
                           <Button
                             onClick={() => handleDeleteReport(groundBridgesReport._id)}
                             disabled={deleting === groundBridgesReport._id}
@@ -1778,21 +2120,21 @@ export default function ProjectReportsPage() {
                             <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                               <span className="text-slate-600 font-medium">حجم أرضية المبنى</span>
                               <span className="font-bold text-emerald-600">
-                                {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) || 
-                                 groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                                {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) ||
+                                  groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
                               </span>
                             </div>
                             <Separator className="my-2" />
                             <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
                               <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
                               <span className="text-2xl font-black text-emerald-600">
-                                {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) || 
-                                 groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
+                                {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) ||
+                                  groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
                               </span>
                             </div>
                           </div>
                         )}
-                        
+
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(groundSlabReport._id, 'concrete')}
@@ -1806,15 +2148,14 @@ export default function ProjectReportsPage() {
                             )}
                             طباعة تقرير الخرسانة PDF
                           </Button>
-                          
+
                           <Button
                             onClick={() => handleSendToOwner(groundSlabReport._id)}
                             disabled={sendingToOwner === groundSlabReport._id || groundSlabReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${
-                              groundSlabReport.sentToOwner
-                                ? 'bg-green-600 hover:bg-green-700 text-white'
-                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                            }`}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${groundSlabReport.sentToOwner
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                              }`}
                           >
                             {sendingToOwner === groundSlabReport._id ? (
                               <>
@@ -1833,7 +2174,7 @@ export default function ProjectReportsPage() {
                               </>
                             )}
                           </Button>
-                          
+
                           <Button
                             onClick={() => handleDeleteReport(groundSlabReport._id)}
                             disabled={deleting === groundSlabReport._id}
@@ -1856,11 +2197,114 @@ export default function ProjectReportsPage() {
                       </CardContent>
                     </Card>
                   )}
+
+                  {/* Foundation Steel Report Card */}
+                  {foundationSteelReport && (
+                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                      <CardHeader className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white border-b border-white/20">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-xl flex items-center gap-3">
+                            <Blocks className="w-6 h-6" />
+                            تقرير حديد القواعد
+                          </CardTitle>
+                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                            {foundationSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
+                          </Badge>
+                        </div>
+                        <CardDescription className="text-green-100 mt-2">
+                          تاريخ التقرير: {formatDate(foundationSteelReport.updatedAt)}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="space-y-4 mb-6">
+                          {foundationSteelReport.steelData?.details?.results && (
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-green-200">
+                                <p className="text-sm text-slate-600 mb-1">نوع الحساب</p>
+                                <p className="text-xl font-black text-green-700">
+                                  {foundationSteelReport.steelData.details.results.type === 'similar'
+                                    ? 'قواعد متشابهة'
+                                    : 'قواعد مختلفة'}
+                                </p>
+                              </div>
+                              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200">
+                                <p className="text-sm text-slate-600 mb-1">قطر القضيب</p>
+                                <p className="text-xl font-black text-blue-700">
+                                  {foundationSteelReport.steelData.details.inputs.barDiameter} ملم
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <Button
+                            onClick={() => downloadPDF(foundationSteelReport._id, 'concrete')}
+                            disabled={downloading === `${foundationSteelReport._id}-concrete`}
+                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {downloading === `${foundationSteelReport._id}-concrete` ? (
+                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                            ) : (
+                              <Printer className="w-5 h-5 ml-2" />
+                            )}
+                            طباعة التقرير PDF
+                          </Button>
+
+                          <Button
+                            onClick={() => handleSendToOwner(foundationSteelReport._id)}
+                            disabled={sendingToOwner === foundationSteelReport._id || foundationSteelReport.sentToOwner}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${foundationSteelReport.sentToOwner
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                              }`}
+                          >
+                            {sendingToOwner === foundationSteelReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الإرسال...
+                              </>
+                            ) : foundationSteelReport.sentToOwner ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 ml-2" />
+                                تم الإرسال للمالك
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 ml-2" />
+                                إرسال التقرير للمالك
+                              </>
+                            )}
+                          </Button>
+
+                          <Button
+                            onClick={() => handleDeleteReport(foundationSteelReport._id)}
+                            disabled={deleting === foundationSteelReport._id}
+                            variant="destructive"
+                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {deleting === foundationSteelReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الحذف...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4 ml-2" />
+                                حذف التقرير
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                 </div>
 
 
               </TabsContent>
-              
+
               <TabsContent value="analytics" className="mt-6">
                 {/* Analytics Charts */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -1889,14 +2333,16 @@ export default function ProjectReportsPage() {
                                 </span>
                               </div>
                               <div className="w-full bg-slate-200 rounded-full h-2">
-                                <div 
-                                  className="bg-emerald-500 h-2 rounded-full" 
-                                  style={{width: `${totalConcreteVolume > 0 ? ((() => {
-                                    const cleaning = foundationReport.concreteData?.cleaningVolume || 0;
-                                    const foundations = foundationReport.concreteData?.foundationsVolume || 0;
-                                    const groundSlab = foundationReport.concreteData?.groundSlabVolume || 0;
-                                    return (cleaning + foundations + groundSlab);
-                                  })() / totalConcreteVolume) * 100 : 0}%`}}
+                                <div
+                                  className="bg-emerald-500 h-2 rounded-full"
+                                  style={{
+                                    width: `${totalConcreteVolume > 0 ? ((() => {
+                                      const cleaning = foundationReport.concreteData?.cleaningVolume || 0;
+                                      const foundations = foundationReport.concreteData?.foundationsVolume || 0;
+                                      const groundSlab = foundationReport.concreteData?.groundSlabVolume || 0;
+                                      return (cleaning + foundations + groundSlab);
+                                    })() / totalConcreteVolume) * 100 : 0}%`
+                                  }}
                                 ></div>
                               </div>
                             </div>
@@ -1909,15 +2355,17 @@ export default function ProjectReportsPage() {
                               <div className="flex justify-between mb-1">
                                 <span className="text-sm font-medium">شروش الأعمدة</span>
                                 <span className="text-sm font-bold">
-                                  {(columnFootingsReport.concreteData?.totalFootingsVolume || 
-                                   columnFootingsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                  {(columnFootingsReport.concreteData?.totalFootingsVolume ||
+                                    columnFootingsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
                                 </span>
                               </div>
                               <div className="w-full bg-slate-200 rounded-full h-2">
-                                <div 
-                                  className="bg-blue-500 h-2 rounded-full" 
-                                  style={{width: `${totalConcreteVolume > 0 ? ((columnFootingsReport.concreteData?.totalFootingsVolume || 
-                                   columnFootingsReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`}}
+                                <div
+                                  className="bg-blue-500 h-2 rounded-full"
+                                  style={{
+                                    width: `${totalConcreteVolume > 0 ? ((columnFootingsReport.concreteData?.totalFootingsVolume ||
+                                      columnFootingsReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`
+                                  }}
                                 ></div>
                               </div>
                             </div>
@@ -1930,15 +2378,17 @@ export default function ProjectReportsPage() {
                               <div className="flex justify-between mb-1">
                                 <span className="text-sm font-medium">الأعمدة</span>
                                 <span className="text-sm font-bold">
-                                  {(columnsReport.concreteData?.columnsVolume || 
-                                   columnsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                  {(columnsReport.concreteData?.columnsVolume ||
+                                    columnsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
                                 </span>
                               </div>
                               <div className="w-full bg-slate-200 rounded-full h-2">
-                                <div 
-                                  className="bg-indigo-500 h-2 rounded-full" 
-                                  style={{width: `${totalConcreteVolume > 0 ? ((columnsReport.concreteData?.columnsVolume || 
-                                   columnsReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`}}
+                                <div
+                                  className="bg-indigo-500 h-2 rounded-full"
+                                  style={{
+                                    width: `${totalConcreteVolume > 0 ? ((columnsReport.concreteData?.columnsVolume ||
+                                      columnsReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`
+                                  }}
                                 ></div>
                               </div>
                             </div>
@@ -1955,9 +2405,9 @@ export default function ProjectReportsPage() {
                                 </span>
                               </div>
                               <div className="w-full bg-slate-200 rounded-full h-2">
-                                <div 
-                                  className="bg-purple-500 h-2 rounded-full" 
-                                  style={{width: `${totalConcreteVolume > 0 ? ((roofReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`}}
+                                <div
+                                  className="bg-purple-500 h-2 rounded-full"
+                                  style={{ width: `${totalConcreteVolume > 0 ? ((roofReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%` }}
                                 ></div>
                               </div>
                             </div>
@@ -1970,15 +2420,17 @@ export default function ProjectReportsPage() {
                               <div className="flex justify-between mb-1">
                                 <span className="text-sm font-medium">الجسور الأرضية</span>
                                 <span className="text-sm font-bold">
-                                  {(groundBridgesReport.concreteData?.totalVolume || 
-                                   groundBridgesReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                  {(groundBridgesReport.concreteData?.totalVolume ||
+                                    groundBridgesReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
                                 </span>
                               </div>
                               <div className="w-full bg-slate-200 rounded-full h-2">
-                                <div 
-                                  className="bg-pink-500 h-2 rounded-full" 
-                                  style={{width: `${totalConcreteVolume > 0 ? ((groundBridgesReport.concreteData?.totalVolume || 
-                                   groundBridgesReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`}}
+                                <div
+                                  className="bg-pink-500 h-2 rounded-full"
+                                  style={{
+                                    width: `${totalConcreteVolume > 0 ? ((groundBridgesReport.concreteData?.totalVolume ||
+                                      groundBridgesReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`
+                                  }}
                                 ></div>
                               </div>
                             </div>
@@ -1991,15 +2443,17 @@ export default function ProjectReportsPage() {
                               <div className="flex justify-between mb-1">
                                 <span className="text-sm font-medium">أرضية المبنى (المِدّة)</span>
                                 <span className="text-sm font-bold">
-                                  {(groundSlabReport.concreteData?.groundSlabVolume || 
-                                   groundSlabReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
+                                  {(groundSlabReport.concreteData?.groundSlabVolume ||
+                                    groundSlabReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
                                 </span>
                               </div>
                               <div className="w-full bg-slate-200 rounded-full h-2">
-                                <div 
-                                  className="bg-amber-500 h-2 rounded-full" 
-                                  style={{width: `${totalConcreteVolume > 0 ? ((groundSlabReport.concreteData?.groundSlabVolume || 
-                                   groundSlabReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`}}
+                                <div
+                                  className="bg-amber-500 h-2 rounded-full"
+                                  style={{
+                                    width: `${totalConcreteVolume > 0 ? ((groundSlabReport.concreteData?.groundSlabVolume ||
+                                      groundSlabReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`
+                                  }}
                                 ></div>
                               </div>
                             </div>
@@ -2008,7 +2462,7 @@ export default function ProjectReportsPage() {
                       </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-md">
                     <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b">
                       <CardTitle className="flex items-center gap-3 text-slate-800">
@@ -2035,9 +2489,9 @@ export default function ProjectReportsPage() {
                             </p>
                           </div>
                         </div>
-                        
+
                         <Separator />
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
@@ -2053,9 +2507,9 @@ export default function ProjectReportsPage() {
                             <p className="text-2xl font-bold text-indigo-600">{totalSteelWeight.toFixed(2)} كجم</p>
                           </div>
                         </div>
-                        
+
                         <Separator />
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -2064,7 +2518,7 @@ export default function ProjectReportsPage() {
                             <div>
                               <p className="text-sm text-slate-500">آخر تقرير</p>
                               <p className="text-lg font-bold text-slate-800">
-                                {reports.length > 0 ? formatDate(reports.sort((a, b) => 
+                                {reports.length > 0 ? formatDate(reports.sort((a, b) =>
                                   new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
                                 )[0].updatedAt) : 'لا يوجد'}
                               </p>
@@ -2081,7 +2535,7 @@ export default function ProjectReportsPage() {
                     </CardContent>
                   </Card>
                 </div>
-                
+
 
               </TabsContent>
             </Tabs>
@@ -2090,7 +2544,7 @@ export default function ProjectReportsPage() {
       </div>
 
       {/* Enhanced Delete Report Dialog */}
-      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => 
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) =>
         setDeleteDialog(prev => ({ ...prev, open }))
       }>
         <AlertDialogContent className="max-w-lg" dir="rtl">
