@@ -239,6 +239,42 @@ export default function GroundBeamsCalculationPage() {
         setError(null);
     };
 
+    // Check for existing report
+    const [existingReport, setExistingReport] = useState<any>(null);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+    useEffect(() => {
+        const checkExistingReport = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+                const data = await response.json();
+                if (data.success) {
+                    const report = data.reports.find((r: any) => r.calculationType === 'ground-beams-steel' && !r.deleted);
+                    if (report) {
+                        setExistingReport(report);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking existing report:', error);
+            }
+        };
+
+        checkExistingReport();
+    }, [projectId]);
+
+    const handleCalculateClick = () => {
+        if (existingReport) {
+            setShowConfirmDialog(true);
+        } else {
+            calculate();
+        }
+    };
+
+    const confirmRecalculate = () => {
+        setShowConfirmDialog(false);
+        calculate();
+    };
+
     const saveToReports = async () => {
         if (!results) {
             toast({
@@ -271,7 +307,7 @@ export default function GroundBeamsCalculationPage() {
                 ownerEmail: project?.linkedOwnerEmail || '',
                 calculationType: 'ground-beams-steel',
                 steelData: {
-                    totalSteelWeight: results.totalBars,
+                    totalSteelWeight: results.totalBars, // Using total bars count as weight proxy for now based on request context, usually needs weight calc
                     foundationSteel: 0,
                     columnSteel: 0,
                     beamSteel: results.totalBars,
@@ -286,7 +322,7 @@ export default function GroundBeamsCalculationPage() {
                     timestamp: new Date().toISOString()
                 },
                 status: 'saved',
-                sentToOwner: false
+                sentToOwner: existingReport ? existingReport.sentToOwner : false
             };
 
             const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
@@ -323,6 +359,36 @@ export default function GroundBeamsCalculationPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50" dir="rtl">
+            {/* Confirmation Dialog */}
+            {showConfirmDialog && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 border-2 border-orange-100">
+                        <div className="flex items-center gap-4 mb-4 text-orange-600">
+                            <AlertCircle className="w-8 h-8" />
+                            <h3 className="text-xl font-bold">تنبيه إعادة الحساب</h3>
+                        </div>
+                        <p className="text-slate-600 mb-6 text-lg leading-relaxed">
+                            يوجد تقرير سابق محفوظ لهذا المشروع. إجراء عملية الحساب مرة أخرى سيؤدي إلى <span className="font-bold text-red-600">استبدال التقرير الحالي</span> بالنتائج الجديدة.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowConfirmDialog(false)}
+                                className="border-slate-300 hover:bg-slate-50"
+                            >
+                                إلغاء
+                            </Button>
+                            <Button
+                                onClick={confirmRecalculate}
+                                className="bg-orange-600 hover:bg-orange-700 text-white"
+                            >
+                                متابعة واستبدال
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="fixed inset-0 opacity-20">
                 <div className="absolute inset-0 bg-grid-slate-100 [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,transparent_0%,transparent_30%,black_50%)] bg-center bg-repeat" />
             </div>
@@ -534,7 +600,7 @@ export default function GroundBeamsCalculationPage() {
 
                                     <div className="flex gap-4 mt-8">
                                         <Button
-                                            onClick={calculate}
+                                            onClick={handleCalculateClick}
                                             disabled={isLoading}
                                             className="flex-1 h-14 bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-700 hover:via-amber-700 hover:to-yellow-700 text-white font-bold text-lg shadow-xl hover:shadow-2xl"
                                         >
