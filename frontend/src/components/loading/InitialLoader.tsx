@@ -276,12 +276,12 @@ const InitialLoader = ({ children }: InitialLoaderProps) => {
 
         {/* النص السفلي المحسن */}
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-          <div className="flex items-center space-x-3 text-gray-400 text-sm">
-            <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-red-400 rounded-full animate-pulse" />
-            <span className="animate-pulse">جاري التحميل...</span>
-            <div className="w-3 h-3 bg-gradient-to-r from-red-400 to-yellow-400 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
-            <span className="animate-pulse" style={{ animationDelay: '1s' }}>المرجو الانتظار</span>
-            <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-red-400 rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="flex items-center space-x-3 text-gray-400 text-lg font-bold">
+            <div className="w-4 h-4 bg-gradient-to-r from-yellow-400 to-red-400 rounded-full animate-pulse shadow-lg" />
+            <span className="animate-pulse text-yellow-400 drop-shadow-lg">جاري التحميل...</span>
+            <div className="w-4 h-4 bg-gradient-to-r from-red-400 to-yellow-400 rounded-full animate-pulse shadow-lg" style={{ animationDelay: '0.5s' }} />
+            <span className="animate-pulse text-red-400 drop-shadow-lg" style={{ animationDelay: '1s' }}>المرجو الانتظار</span>
+            <div className="w-4 h-4 bg-gradient-to-r from-yellow-400 to-red-400 rounded-full animate-pulse shadow-lg" style={{ animationDelay: '1s' }} />
           </div>
         </div>
       </div>
