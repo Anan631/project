@@ -542,17 +542,7 @@ export default function RoofSlabCalculationPage() {
                         />
                       </div>
                       
-                      <div className="md:col-span-2 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-2xl">
-                        <div className="flex items-start gap-3">
-                          <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <h4 className="font-bold text-blue-800 mb-1">معادلة الحساب:</h4>
-                            <p className="text-blue-700 text-sm">
-                              عدد القضبان = 2 × (√(مساحة السقف ÷ المسافة بين القضبان) + 1)
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                      
                     </div>
                   )}
 
@@ -662,10 +652,6 @@ export default function RoofSlabCalculationPage() {
                           <div className="flex justify-between">
                             <span>المسافة بين القضبان:</span>
                             <span className="font-bold">{results.details.spacing.toFixed(2)} م</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>الجذر التربيعي:</span>
-                            <span className="font-bold">{results.details.sqrtValue.toFixed(2)}</span>
                           </div>
                         </div>
                       )}
