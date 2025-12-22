@@ -519,6 +519,86 @@ export default function OwnerQuantityReportsPage() {
         return;
       }
 
+      // Check if this is a roof-ribs-steel report
+      if (report.calculationType === 'roof-ribs-steel') {
+        const steelData = report.steelData?.details;
+        const results = steelData?.results;
+
+        const steelHtmlContent = `
+          <!DOCTYPE html>
+          <html dir="rtl" lang="ar">
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { direction: rtl; font-family: 'Tajawal', sans-serif; font-size: 18px; line-height: 1.8; color: #1a1a1a; background: white; padding: 25mm; }
+              .header { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
+              .header h1 { font-size: 36px; margin-bottom: 10px; font-weight: 900; }
+              .header p { font-size: 20px; opacity: 0.95; }
+              .project-name { background: linear-gradient(to right, #faf5ff, #f3e8ff); border-right: 6px solid #7c3aed; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
+              .project-name h2 { color: #2d3748; font-size: 24px; font-weight: 700; }
+              .info-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px; }
+              .info-box { background: white; border: 2px solid #d8b4fe; padding: 25px; border-radius: 10px; text-align: center; }
+              .info-box label { display: block; font-size: 16px; color: #718096; margin-bottom: 8px; font-weight: 500; }
+              .info-box .value { font-size: 20px; color: #2d3748; font-weight: 700; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border-radius: 10px; overflow: hidden; }
+              thead { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; }
+              th { padding: 20px 15px; text-align: right; font-weight: 700; font-size: 20px; }
+              td { padding: 18px 15px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 500; }
+              tbody tr:nth-child(even) { background: #faf5ff; }
+              .section-title { background: #faf5ff; border-right: 4px solid #7c3aed; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #6b21a8; }
+              .footer { border-top: 2px solid #e2e8f0; padding-top: 25px; text-align: center; font-size: 14px; color: #718096; margin-top: 50px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>تقرير حديد أعصاب السقف</h1>
+                <p>حساب كميات حديد أعصاب السقف وفق المعايير الهندسية</p>
+              </div>
+              <div class="project-name"><h2>المشروع: ${report.projectName}</h2></div>
+              <div class="info-boxes">
+                <div class="info-box"><label>المهندس المسؤول</label><div class="value">${report.engineerName}</div></div>
+                <div class="info-box"><label>المالك / العميل</label><div class="value">${report.ownerName || 'غير محدد'}</div></div>
+              </div>
+
+               <div class="section-title">نتائج حديد أعصاب السقف</div>
+                 <table>
+                   <thead>
+                     <tr>
+                       <th>القيمة</th>
+                       <th>البيان</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     <tr>
+                       <td>${results.requiredBarArea || 0} سم²</td>
+                       <td>المساحة المطلوبة</td>
+                     </tr>
+                     <tr>
+                       <td>${results.numberOfBars || 0}</td>
+                       <td>عدد القضبان لجميع الأعصاب</td>
+                     </tr>
+                   </tbody>
+                 </table>
+
+              <div class="footer"><p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p><p>© 2025 جميع الحقوق محفوظة</p></div>
+            </div>
+          </body>
+          </html>
+        `;
+
+        const printWindow = window.open('', '_blank', 'width=1000,height=800');
+        if (!printWindow) throw new Error('Could not open print window');
+        printWindow.document.write(steelHtmlContent);
+        printWindow.document.close();
+        printWindow.onload = () => { setTimeout(() => { printWindow.print(); }, 500); };
+        toast({ title: 'تم فتح التقرير', description: 'تم فتح تقرير حديد أعصاب السقف للطباعة' });
+        setDownloading(null);
+        return;
+      }
+
       const htmlContent = `
         <!DOCTYPE html>
         <html dir="rtl" lang="ar">
@@ -908,6 +988,7 @@ export default function OwnerQuantityReportsPage() {
       case 'foundation-steel': return 'حديد القواعد';
       case 'ground-beams-steel': return 'حديد الجسور الأرضية';
       case 'ground-slab-steel': return 'حديد أرضية المبنى';
+      case 'roof-ribs-steel': return 'حديد أعصاب السقف';
       default: return type;
     }
   };
@@ -921,6 +1002,7 @@ export default function OwnerQuantityReportsPage() {
       case 'ground-bridges': return <Blocks className="w-5 h-5" />;
       case 'ground-slab': return <Blocks className="w-5 h-5" />;
       case 'ground-slab-steel': return <Blocks className="w-5 h-5" />;
+      case 'roof-ribs-steel': return <Blocks className="w-5 h-5" />;
       default: return <FileText className="w-5 h-5" />;
     }
   };
@@ -965,6 +1047,7 @@ export default function OwnerQuantityReportsPage() {
   const foundationSteelReport = reports.find(r => r.calculationType === 'foundation-steel');
   const groundBeamsSteelReport = reports.find(r => r.calculationType === 'ground-beams-steel');
   const groundSlabSteelReport = reports.find(r => r.calculationType === 'ground-slab-steel');
+  const roofRibsSteelReport = reports.find(r => r.calculationType === 'roof-ribs-steel');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl" style={{ fontSize: '16px' }}>
@@ -1724,6 +1807,65 @@ export default function OwnerQuantityReportsPage() {
                           <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
                             <Calendar className="w-4 h-4" />
                             <span>تم الإرسال: {formatDate(groundSlabSteelReport.sentToOwnerAt)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Roof Ribs Steel Report Card */}
+                {roofRibsSteelReport && (
+                  <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+                    <CardHeader className="bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600 text-white">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Blocks className="w-7 h-7 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-xl">تقرير حديد أعصاب السقف</CardTitle>
+                          <CardDescription className="text-purple-100">
+                            كميات حديد أعصاب السقف
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      {roofRibsSteelReport?.steelData?.details?.results && (
+                        <div className="space-y-4 mb-6">
+                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <span className="text-slate-600">المساحة المطلوبة</span>
+                            <span className="font-bold text-purple-600">
+                              {roofRibsSteelReport.steelData.details.results.requiredBarArea || 0} سم²
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <span className="text-slate-600">عدد القضبان</span>
+                            <span className="font-bold text-purple-600">
+                              {roofRibsSteelReport.steelData.details.results.numberOfBars || 0}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-3">
+                        <Button
+                          onClick={() => downloadPDF(roofRibsSteelReport._id)}
+                          disabled={downloading === roofRibsSteelReport._id}
+                          className="w-full h-14 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                        >
+                          {downloading === roofRibsSteelReport._id ? (
+                            <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                          ) : (
+                            <Printer className="w-5 h-5 ml-2" />
+                          )}
+                          طباعة التقرير
+                        </Button>
+
+                        {roofRibsSteelReport.sentToOwnerAt && (
+                          <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            <span>تم الإرسال: {formatDate(roofRibsSteelReport.sentToOwnerAt)}</span>
                           </div>
                         )}
                       </div>

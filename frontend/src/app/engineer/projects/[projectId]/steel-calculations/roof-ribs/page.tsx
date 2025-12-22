@@ -26,6 +26,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -72,6 +82,67 @@ export default function RoofRibsCalculationPage() {
     // Results
     const [results, setResults] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
+
+    // Recalculation State
+    const [existingReportId, setExistingReportId] = useState<string | null>(null);
+    const [showRecalculationWarning, setShowRecalculationWarning] = useState(false);
+
+    // Check for existing reports
+    useEffect(() => {
+        const checkExistingReport = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.reports) {
+                        const existingReport = data.reports.find(
+                            (r: any) => r.calculationType === 'roof-ribs-steel' && !r.deleted
+                        );
+                        if (existingReport) {
+                            setExistingReportId(existingReport._id);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking existing reports:', error);
+            }
+        };
+
+        checkExistingReport();
+    }, [projectId]);
+
+    const handleRecalculate = async () => {
+        if (!existingReportId) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/quantity-reports/${existingReportId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (response.ok) {
+                toast({
+                    title: "تم الحذف",
+                    description: "تم حذف التقرير السابق بنجاح. جاري إجراء الحسابات الجديدة...",
+                });
+                setExistingReportId(null);
+                setShowRecalculationWarning(false);
+                // Proceed with calculation
+                calculate();
+            } else {
+                throw new Error('فشل في حذف التقرير السابق');
+            }
+        } catch (error) {
+            console.error('Error deleting report:', error);
+            toast({
+                title: "خطأ",
+                description: "حدث خطأ أثناء حذف التقرير السابق",
+                variant: "destructive"
+            });
+        }
+    };
 
     // Fetch iron bars data
     useEffect(() => {
@@ -202,6 +273,12 @@ export default function RoofRibsCalculationPage() {
     const calculate = () => {
         setError(null);
         if (!validateInputs()) return;
+
+        // Check for existing report before calculating
+        if (existingReportId && !showRecalculationWarning) {
+            setShowRecalculationWarning(true);
+            return;
+        }
 
         setIsLoading(true);
 
@@ -694,6 +771,54 @@ export default function RoofRibsCalculationPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Alert Dialog for Existing Report */}
+            <AlertDialog open={showRecalculationWarning} onOpenChange={setShowRecalculationWarning}>
+                <AlertDialogContent className="max-w-2xl border-0 shadow-2xl shadow-purple-200/50 backdrop-blur-sm bg-white/95">
+                    <AlertDialogHeader className="space-y-4 pb-6">
+                        <div className="flex items-center gap-4 p-2">
+                            <div className="relative">
+                                <div className="w-16 h-16 p-4 bg-gradient-to-br from-purple-500 via-indigo-500 to-pink-500 rounded-2xl shadow-2xl border-4 border-white/40 flex items-center justify-center">
+                                    <AlertCircle className="w-8 h-8 text-white drop-shadow-2xl" />
+                                </div>
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-red-400 to-orange-400 border-2 border-white rounded-full shadow-xl flex items-center justify-center">
+                                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                                </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <AlertDialogTitle className="text-2xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-purple-800 bg-clip-text text-transparent leading-tight">
+                                    تحذير: تقرير موجود مسبقاً
+                                </AlertDialogTitle>
+                                <div className="mt-4 space-y-4">
+                                    <p className="text-lg text-slate-600 font-semibold leading-relaxed">
+                                        تم إجراء الحسابات وحفظ التقرير مسبقاً لهذا المشروع.
+                                    </p>
+                                    <div className="text-right space-y-2 text-slate-600">
+                                        <p className="font-bold">إذا قمت بإعادة الحسابات، سيتم:</p>
+                                        <ul className="list-disc list-inside space-y-1 mr-4">
+                                            <li>حذف التقرير السابق من عند المهندس</li>
+                                            <li>حذف التقرير السابق من عند المالك (إذا كان قد تم إرساله)</li>
+                                            <li>حفظ التقرير الجديد</li>
+                                        </ul>
+                                        <p className="font-bold mt-4">هل تريد المتابعة وإعادة الحسابات؟</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="gap-4 pt-4">
+                        <AlertDialogCancel className="h-14 px-8 text-lg font-bold border-2 border-slate-300 hover:border-purple-400 hover:bg-purple-50 hover:text-purple-800 shadow-xl transition-all duration-300">
+                            إلغاء
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleRecalculate}
+                            className="h-14 px-8 text-lg font-bold bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-700 hover:via-indigo-700 hover:to-pink-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300"
+                        >
+                            إعادة الحسابات
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
