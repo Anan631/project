@@ -165,17 +165,18 @@ export default function ProjectReportsPage() {
         throw new Error('Report not found');
       }
 
-      // Check if this is a foundation-steel report or ground-beams-steel report
-      if (report.calculationType === 'foundation-steel' || report.calculationType === 'ground-beams-steel') {
+      // Check if this is a foundation-steel report or ground-beams-steel report or ground-slab-steel report
+      if (report.calculationType === 'foundation-steel' || report.calculationType === 'ground-beams-steel' || report.calculationType === 'ground-slab-steel') {
         const isGroundBeams = report.calculationType === 'ground-beams-steel';
-        // Generate Steel Report PDF (Foundation or Ground Beams)
+        const isGroundSlab = report.calculationType === 'ground-slab-steel';
+        // Generate Steel Report PDF (Foundation or Ground Beams or Ground Slab)
         const steelData = report.steelData?.details;
         const results = steelData?.results;
         const inputs = steelData?.inputs || {}; // Inputs might be in results for ground beams
 
         // Prepare data specific to report type
-        const reportTitle = isGroundBeams ? 'تقرير حديد الجسور الأرضية' : 'تقرير حديد القواعد';
-        const reportSubtitle = isGroundBeams ? 'حساب كميات حديد الجسور الأرضية وفق المعايير الهندسية' : 'حساب كميات حديد القواعد وفق المعايير الهندسية';
+        const reportTitle = isGroundBeams ? 'تقرير حديد الجسور الأرضية' : isGroundSlab ? 'تقرير حديد أرضية المبنى' : 'تقرير حديد القواعد';
+        const reportSubtitle = isGroundBeams ? 'حساب كميات حديد الجسور الأرضية وفق المعايير الهندسية' : isGroundSlab ? 'حساب كميات حديد أرضية المبنى وفق المعايير الهندسية' : 'حساب كميات حديد القواعد وفق المعايير الهندسية';
 
         let specificTablesHtml = '';
 
@@ -266,6 +267,103 @@ export default function ProjectReportsPage() {
             }
           }
 
+        } else if (isGroundSlab) {
+          const type = results?.type;
+
+          if (type === 'mesh') {
+            specificTablesHtml = `
+               <div class="section-title">بيانات شبك الحديد</div>
+               <table>
+                 <thead>
+                   <tr>
+                     <th>القيمة</th>
+                     <th>البيان</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   <tr>
+                     <td>${results.details?.slabArea || 0} م²</td>
+                     <td>مساحة الأرضية</td>
+                   </tr>
+                   <tr>
+                     <td>${results.details?.meshArea?.toFixed(2) || 0} م²</td>
+                     <td>مساحة الشبك الواحد (بعد الخصم)</td>
+                   </tr>
+                   <tr>
+                     <td>${inputs.meshLength || 0} * ${inputs.meshWidth || 0} متر</td>
+                     <td>أبعاد الشبك</td>
+                   </tr>
+                 </tbody>
+               </table>
+
+               <div class="section-title">النتائج</div>
+               <table>
+                   <thead>
+                       <tr>
+                           <th>القيمة</th>
+                           <th>البيان</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                        <tr style="background: #fff7ed; font-weight: bold; color: #ea580c;">
+                           <td>${results.meshBars || 0} شبكة</td>
+                           <td>عدد قطع الشبك المطلوبة</td>
+                       </tr>
+                   </tbody>
+               </table>
+             `;
+          } else {
+            // Separate
+            specificTablesHtml = `
+               <div class="section-title">بيانات الحديد المفرق</div>
+               <table>
+                 <thead>
+                   <tr>
+                     <th>القيمة</th>
+                     <th>البيان</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   <tr>
+                     <td>${results.details?.floorArea || 0} م²</td>
+                     <td>مساحة الأرضية</td>
+                   </tr>
+                   <tr>
+                     <td>${inputs.barLength || 0} متر</td>
+                     <td>طول القضيب</td>
+                   </tr>
+                    <tr>
+                     <td>${inputs.spacing || 0} متر</td>
+                     <td>المسافة بين القضبان</td>
+                   </tr>
+                 </tbody>
+               </table>
+
+               <div class="section-title">تفاصيل القضبان</div>
+               <table>
+                   <thead>
+                       <tr>
+                           <th>الكمية</th>
+                           <th>البيان</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                       <tr>
+                           <td>${results.longitudinalBars || 0} قضيب</td>
+                           <td>عدد القضبان الطولية</td>
+                       </tr>
+                       <tr>
+                           <td>${results.transverseBars || 0} قضيب</td>
+                           <td>عدد القضبان العرضية</td>
+                       </tr>
+                        <tr style="background: #fff7ed; font-weight: bold; color: #ea580c;">
+                           <td>${results.totalBars || 0} قضيب</td>
+                           <td>المجموع الكلي للقضبان</td>
+                       </tr>
+                   </tbody>
+               </table>
+             `;
+          }
         } else {
           // Foundation Steel Logic (Existing)
           specificTablesHtml = results?.type === 'similar' ? `
@@ -425,7 +523,7 @@ export default function ProjectReportsPage() {
               }
               
               .header {
-                background: linear-gradient(135deg, ${isGroundBeams ? '#ea580c' : '#059669'} 0%, ${isGroundBeams ? '#c2410c' : '#10b981'} 100%);
+                background: linear-gradient(135deg, ${isGroundBeams || isGroundSlab ? '#ea580c' : '#059669'} 0%, ${isGroundBeams || isGroundSlab ? '#c2410c' : '#10b981'} 100%);
                 color: white;
                 padding: 40px 30px;
                 border-radius: 12px;
@@ -445,9 +543,12 @@ export default function ProjectReportsPage() {
               }
               
               .project-name {
-                background: linear-gradient(to right, ${isGroundBeams ? '#fff7ed' : '#f0fdf4'}, ${isGroundBeams ? '#ffedd5' : '#dcfce7'});
-                border-right: 6px solid ${isGroundBeams ? '#ea580c' : '#059669'};
+                background: linear-gradient(to right, ${isGroundBeams || isGroundSlab ? '#fff7ed' : '#f0fdf4'}, ${isGroundBeams || isGroundSlab ? '#ffedd5' : '#dcfce7'});
+                border-right: 6px solid ${isGroundBeams || isGroundSlab ? '#ea580c' : '#059669'};
                 padding: 25px 30px;
+                margin-bottom: 30px;
+                border-radius: 8px;
+              }
                 margin-bottom: 30px;
                 border-radius: 8px;
               }
@@ -467,7 +568,7 @@ export default function ProjectReportsPage() {
               
               .info-box {
                 background: white;
-                border: 2px solid ${isGroundBeams ? '#fed7aa' : '#d1fae5'};
+                border: 2px solid ${isGroundBeams || isGroundSlab ? '#fed7aa' : '#d1fae5'};
                 padding: 25px;
                 border-radius: 10px;
                 text-align: center;
@@ -497,7 +598,7 @@ export default function ProjectReportsPage() {
               }
               
               thead {
-                background: linear-gradient(135deg, ${isGroundBeams ? '#ea580c' : '#059669'}, ${isGroundBeams ? '#c2410c' : '#10b981'});
+                background: linear-gradient(135deg, ${isGroundBeams || isGroundSlab ? '#ea580c' : '#059669'}, ${isGroundBeams || isGroundSlab ? '#c2410c' : '#10b981'});
                 color: white;
               }
               
@@ -517,12 +618,12 @@ export default function ProjectReportsPage() {
               }
               
               tbody tr:nth-child(even) {
-                background: ${isGroundBeams ? '#fff7ed' : '#f0fdf4'};
+                background: ${isGroundBeams || isGroundSlab ? '#fff7ed' : '#f0fdf4'};
               }
               
               .total-box {
-                background: linear-gradient(135deg, ${isGroundBeams ? '#ffedd5' : '#d1fae5'}, ${isGroundBeams ? '#fed7aa' : '#a7f3d0'});
-                border: 3px solid ${isGroundBeams ? '#ea580c' : '#059669'};
+                background: linear-gradient(135deg, ${isGroundBeams || isGroundSlab ? '#ffedd5' : '#d1fae5'}, ${isGroundBeams || isGroundSlab ? '#fed7aa' : '#a7f3d0'});
+                border: 3px solid ${isGroundBeams || isGroundSlab ? '#ea580c' : '#059669'};
                 border-radius: 12px;
                 padding: 30px;
                 margin-bottom: 40px;
@@ -540,17 +641,17 @@ export default function ProjectReportsPage() {
               .total-box .value {
                 font-size: 32px;
                 font-weight: 900;
-                color: ${isGroundBeams ? '#ea580c' : '#059669'};
+                color: ${isGroundBeams || isGroundSlab ? '#ea580c' : '#059669'};
               }
 
               .section-title {
-                background: ${isGroundBeams ? '#fff7ed' : '#f0fdf4'};
-                border-right: 4px solid ${isGroundBeams ? '#ea580c' : '#059669'};
+                background: ${isGroundBeams || isGroundSlab ? '#fff7ed' : '#f0fdf4'};
+                border-right: 4px solid ${isGroundBeams || isGroundSlab ? '#ea580c' : '#065f46'};
                 padding: 15px 20px;
                 margin: 30px 0 20px 0;
                 font-size: 22px;
                 font-weight: 700;
-                color: ${isGroundBeams ? '#9a3412' : '#065f46'};
+                color: ${isGroundBeams || isGroundSlab ? '#9a3412' : '#065f46'};
               }
               
               .footer {
@@ -588,7 +689,10 @@ export default function ProjectReportsPage() {
               <div class="info-boxes">
                 <div class="info-box">
                   <label>نوع الحساب</label>
-                  <div class="value">${results?.type === 'similar' ? (isGroundBeams ? 'جسور متشابهة' : 'قواعد متشابهة') : (isGroundBeams ? 'جسور مختلفة' : 'قواعد مختلفة')}</div>
+                  <div class="value">${isGroundSlab
+            ? (results?.type === 'mesh' ? 'شبك حديد' : 'حديد مفرق')
+            : results?.type === 'similar' ? (isGroundBeams ? 'جسور متشابهة' : 'قواعد متشابهة') : (isGroundBeams ? 'جسور مختلفة' : 'قواعد مختلفة')
+          }</div>
                 </div>
                 ${!isGroundBeams || isGroundBeams && results?.type === 'similar' ? `
                 <div class="info-box">
@@ -1178,7 +1282,8 @@ export default function ProjectReportsPage() {
                 report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' :
                   report.calculationType === 'foundation-steel' ? 'حديد القواعد' :
                     report.calculationType === 'ground-beams-steel' ? 'حديد الجسور الأرضية' :
-                      report.calculationType,
+                      report.calculationType === 'ground-slab-steel' ? 'حديد أرضية المبنى' :
+                        report.calculationType,
       reportDate: formatDate(report.updatedAt),
     });
   };
@@ -1335,6 +1440,7 @@ export default function ProjectReportsPage() {
   const groundSlabReport = reports.find(r => r.calculationType === 'ground-slab');
   const foundationSteelReport = reports.find(r => r.calculationType === 'foundation-steel');
   const groundBeamsSteelReport = reports.find(r => r.calculationType === 'ground-beams-steel');
+  const groundSlabSteelReport = reports.find(r => r.calculationType === 'ground-slab-steel');
 
   if (loading) {
     return (
@@ -2511,6 +2617,112 @@ export default function ProjectReportsPage() {
                             className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
                           >
                             {deleting === groundBeamsSteelReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الحذف...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4 ml-2" />
+                                حذف التقرير
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Ground Slab Steel Report Card */}
+                  {groundSlabSteelReport && (
+                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                      <CardHeader className="bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 text-white border-b border-white/20">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-xl flex items-center gap-3">
+                            <Blocks className="w-6 h-6" />
+                            تقرير حديد أرضية المبنى
+                          </CardTitle>
+                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                            {groundSlabSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
+                          </Badge>
+                        </div>
+                        <CardDescription className="text-orange-100 mt-2">
+                          تاريخ التقرير: {formatDate(groundSlabSteelReport.updatedAt)}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="space-y-4 mb-6">
+                          {groundSlabSteelReport.steelData?.details?.results && (
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border-2 border-orange-200">
+                                <p className="text-sm text-slate-600 mb-1">نوع الحساب</p>
+                                <p className="text-xl font-black text-orange-700">
+                                  {groundSlabSteelReport.steelData.details.results.type === 'mesh'
+                                    ? 'شبك حديد'
+                                    : 'حديد مفرق'}
+                                </p>
+                              </div>
+                              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200">
+                                <p className="text-sm text-slate-600 mb-1">
+                                  {groundSlabSteelReport.steelData.details.results.type === 'mesh' ? 'عدد الشبك' : 'عدد القصبان'}
+                                </p>
+                                <p className="text-xl font-black text-blue-700">
+                                  {groundSlabSteelReport.steelData.details.results.type === 'mesh'
+                                    ? (groundSlabSteelReport.steelData.details.results.meshBars || 0)
+                                    : (groundSlabSteelReport.steelData.details.results.totalBars || 0)}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <Button
+                            onClick={() => downloadPDF(groundSlabSteelReport._id, 'concrete')}
+                            disabled={downloading === `${groundSlabSteelReport._id}-concrete`}
+                            className="w-full h-14 bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-700 hover:via-amber-700 hover:to-yellow-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {downloading === `${groundSlabSteelReport._id}-concrete` ? (
+                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                            ) : (
+                              <Printer className="w-5 h-5 ml-2" />
+                            )}
+                            طباعة التقرير PDF
+                          </Button>
+
+                          <Button
+                            onClick={() => handleSendToOwner(groundSlabSteelReport._id)}
+                            disabled={sendingToOwner === groundSlabSteelReport._id || groundSlabSteelReport.sentToOwner}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${groundSlabSteelReport.sentToOwner
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                              }`}
+                          >
+                            {sendingToOwner === groundSlabSteelReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الإرسال...
+                              </>
+                            ) : groundSlabSteelReport.sentToOwner ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 ml-2" />
+                                تم الإرسال للمالك
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 ml-2" />
+                                إرسال التقرير للمالك
+                              </>
+                            )}
+                          </Button>
+
+                          <Button
+                            onClick={() => handleDeleteReport(groundSlabSteelReport._id)}
+                            disabled={deleting === groundSlabSteelReport._id}
+                            variant="destructive"
+                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {deleting === groundSlabSteelReport._id ? (
                               <>
                                 <Loader2 className="w-4 h-4 animate-spin ml-2" />
                                 جاري الحذف...

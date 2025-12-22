@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -42,13 +42,32 @@ export default function GroundSlabCalculationPage() {
 
   const [saving, setSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [existingReportDialog, setExistingReportDialog] = useState<{
-    open: boolean;
-    reportId: string | null;
-  }>({
-    open: false,
-    reportId: null,
-  });
+  // Check for existing reports
+  const [existingReportId, setExistingReportId] = useState<string | null>(null);
+  const [showRecalculationWarning, setShowRecalculationWarning] = useState(false);
+
+  useEffect(() => {
+    checkExistingReport();
+  }, [projectId]);
+
+  const checkExistingReport = async () => {
+    try {
+      const reportsResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+      if (reportsResponse.ok) {
+        const reportsData = await reportsResponse.json();
+        if (reportsData.success && reportsData.reports?.length > 0) {
+          const existingReport = reportsData.reports.find((r: any) =>
+            r.calculationType === 'ground-slab-steel'
+          );
+          if (existingReport) {
+            setExistingReportId(existingReport._id);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Could not check for existing reports:', err);
+    }
+  };
 
   const [reinforcementType, setReinforcementType] = useState<'mesh' | 'separate' | null>(null);
   const [meshData, setMeshData] = useState({
@@ -116,27 +135,11 @@ export default function GroundSlabCalculationPage() {
     setIsLoading(true);
 
     try {
-      // Check if report already exists
-      try {
-        const reportsResponse = await fetch(`${API_BASE_URL}/api/steel-reports/project/${projectId}`);
-        if (reportsResponse.ok) {
-          const reportsData = await reportsResponse.json();
-          if (reportsData.success && reportsData.reports?.length > 0) {
-            const existingReport = reportsData.reports.find((r: any) => 
-              r.calculationType === 'ground-slab-steel'
-            );
-            if (existingReport) {
-              setExistingReportDialog({
-                open: true,
-                reportId: existingReport._id,
-              });
-              setIsLoading(false);
-              return;
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Could not check for existing reports:', err);
+      // Check if there's an existing report
+      if (existingReportId && !showRecalculationWarning) {
+        setShowRecalculationWarning(true);
+        setIsLoading(false);
+        return;
       }
 
       if (reinforcementType === 'mesh') {
@@ -214,36 +217,31 @@ export default function GroundSlabCalculationPage() {
   };
 
   const handleRecalculate = async () => {
-    if (!existingReportDialog.reportId) {
-      setExistingReportDialog({ open: false, reportId: null });
-      calculate();
-      return;
-    }
+    if (existingReportId) {
+      try {
+        const deleteResponse = await fetch(`${API_BASE_URL}/api/steel-reports/${existingReportId}`, {
+          method: 'DELETE'
+        });
 
-    try {
-      const deleteResponse = await fetch(`${API_BASE_URL}/api/steel-reports/${existingReportDialog.reportId}`, {
-        method: 'DELETE'
-      });
-
-      if (deleteResponse.ok) {
+        if (deleteResponse.ok) {
+          toast({
+            title: 'تم حذف التقرير السابق',
+            description: 'تم حذف التقرير السابق بنجاح',
+          });
+          setExistingReportId(null);
+        }
+      } catch (error) {
+        console.error('Error deleting existing report:', error);
         toast({
-          title: 'تم حذف التقرير السابق',
-          description: 'تم حذف التقرير السابق بنجاح',
+          title: 'تحذير',
+          description: 'لم يتم حذف التقرير السابق، سيتم تحديث التقرير الحالي',
+          variant: 'destructive'
         });
       }
-
-      setExistingReportDialog({ open: false, reportId: null });
-      calculate();
-    } catch (error) {
-      console.error('Error deleting existing report:', error);
-      toast({
-        title: 'تحذير',
-        description: 'لم يتم حذف التقرير السابق، سيتم تحديث التقرير الحالي',
-        variant: 'destructive'
-      });
-      setExistingReportDialog({ open: false, reportId: null });
-      calculate();
     }
+
+    setShowRecalculationWarning(false);
+    calculate();
   };
 
   const reset = () => {
@@ -256,10 +254,10 @@ export default function GroundSlabCalculationPage() {
 
   const saveToReports = async () => {
     if (!results) {
-      toast({ 
-        title: 'لا توجد نتائج', 
-        description: 'يرجى إجراء الحسابات أولاً', 
-        variant: 'destructive' 
+      toast({
+        title: 'لا توجد نتائج',
+        description: 'يرجى إجراء الحسابات أولاً',
+        variant: 'destructive'
       });
       return;
     }
@@ -270,16 +268,16 @@ export default function GroundSlabCalculationPage() {
       const engineerName = localStorage.getItem('userName') || 'المهندس';
 
       const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
-      
+
       if (!projectRes.ok) {
         throw new Error(`HTTP error! status: ${projectRes.status}`);
       }
-      
+
       const projectContentType = projectRes.headers.get('content-type');
       if (!projectContentType || !projectContentType.includes('application/json')) {
         throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح.');
       }
-      
+
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
 
@@ -290,7 +288,7 @@ export default function GroundSlabCalculationPage() {
         engineerName,
         ownerName: project?.clientName || '',
         ownerEmail: project?.linkedOwnerEmail || '',
-        calculationType: 'ground-slab',
+        calculationType: 'ground-slab-steel',
         steelData: {
           totalSteelWeight: results.type === 'mesh' ? results.meshBars : results.totalBars,
           foundationSteel: 0,
@@ -316,7 +314,7 @@ export default function GroundSlabCalculationPage() {
 
       const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
@@ -325,11 +323,11 @@ export default function GroundSlabCalculationPage() {
 
       const data = await response.json();
       if (data.success) {
-        toast({ 
-          title: 'تم الحفظ بنجاح', 
-          description: 'تم ترحيل النتائج إلى صفحة تقارير الكميات' 
+        toast({
+          title: 'تم الحفظ بنجاح',
+          description: 'تم ترحيل النتائج إلى صفحة تقارير الكميات'
         });
-        
+
         router.push(`/engineer/quantity-reports/${projectId}`);
       } else {
         throw new Error(data.message || 'فشل في حفظ التقرير');
@@ -337,10 +335,10 @@ export default function GroundSlabCalculationPage() {
     } catch (error) {
       console.error('Error saving report:', error);
       const errorMessage = error instanceof Error ? error.message : 'حدث خطأ أثناء حفظ التقرير';
-      toast({ 
-        title: 'خطأ في الحفظ', 
-        description: errorMessage, 
-        variant: 'destructive' 
+      toast({
+        title: 'خطأ في الحفظ',
+        description: errorMessage,
+        variant: 'destructive'
       });
     } finally {
       setSaving(false);
@@ -431,11 +429,10 @@ export default function GroundSlabCalculationPage() {
                       setResults(null);
                       setError(null);
                     }}
-                    className={`p-8 rounded-2xl border-2 transition-all duration-300 text-center group hover:shadow-lg ${
-                      reinforcementType === 'mesh'
-                        ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-amber-50 shadow-lg'
-                        : 'border-gray-200 bg-white hover:border-orange-300'
-                    }`}
+                    className={`p-8 rounded-2xl border-2 transition-all duration-300 text-center group hover:shadow-lg ${reinforcementType === 'mesh'
+                      ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-amber-50 shadow-lg'
+                      : 'border-gray-200 bg-white hover:border-orange-300'
+                      }`}
                   >
                     <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <div className="text-2xl text-white">🔗</div>
@@ -453,11 +450,10 @@ export default function GroundSlabCalculationPage() {
                       setResults(null);
                       setError(null);
                     }}
-                    className={`p-8 rounded-2xl border-2 transition-all duration-300 text-center group hover:shadow-lg ${
-                      reinforcementType === 'separate'
-                        ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-amber-50 shadow-lg'
-                        : 'border-gray-200 bg-white hover:border-orange-300'
-                    }`}
+                    className={`p-8 rounded-2xl border-2 transition-all duration-300 text-center group hover:shadow-lg ${reinforcementType === 'separate'
+                      ? 'border-orange-500 bg-gradient-to-br from-orange-50 to-amber-50 shadow-lg'
+                      : 'border-gray-200 bg-white hover:border-orange-300'
+                      }`}
                   >
                     <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <div className="text-2xl text-white">📊</div>
@@ -672,9 +668,7 @@ export default function GroundSlabCalculationPage() {
       </div>
 
       {/* Alert Dialog for Existing Report */}
-      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => {
-        if (!open) setExistingReportDialog({ open: false, reportId: null });
-      }}>
+      <AlertDialog open={showRecalculationWarning} onOpenChange={setShowRecalculationWarning}>
         <AlertDialogContent className="max-w-2xl border-0 shadow-2xl shadow-orange-200/50 backdrop-blur-sm bg-white/95">
           <AlertDialogHeader className="space-y-4 pb-6">
             <div className="flex items-center gap-4 p-2">
@@ -690,26 +684,32 @@ export default function GroundSlabCalculationPage() {
                 <AlertDialogTitle className="text-2xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-orange-800 bg-clip-text text-transparent leading-tight">
                   تحذير: تقرير موجود مسبقاً
                 </AlertDialogTitle>
-                <p className="text-lg text-slate-600 font-semibold leading-relaxed mt-2">
-                  تم حساب حديد أرضية المبنى مسبقاً والتقرير جاهز
-                </p>
+                <div className="mt-4 space-y-4">
+                  <p className="text-lg text-slate-600 font-semibold leading-relaxed">
+                    تم إجراء الحسابات وحفظ التقرير مسبقاً لهذا المشروع.
+                  </p>
+                  <div className="text-right space-y-2 text-slate-600">
+                    <p className="font-bold">إذا قمت بإعادة الحسابات، سيتم:</p>
+                    <ul className="list-disc list-inside space-y-1 mr-4">
+                      <li>حذف التقرير السابق من عند المهندس</li>
+                      <li>حذف التقرير السابق من عند المالك (إذا كان قد تم إرساله)</li>
+                      <li>حفظ التقرير الجديد</li>
+                    </ul>
+                    <p className="font-bold mt-4">هل تريد المتابعة وإعادة الحسابات؟</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="p-6 bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50 border-2 border-orange-200 rounded-2xl shadow-xl backdrop-blur-sm">
-              <AlertDialogDescription className="text-base text-slate-700 font-medium leading-relaxed text-center">
-                هل تريد حذف التقرير السابق وحساب حديد أرضية المبنى من جديد؟
-              </AlertDialogDescription>
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-4 pt-4">
             <AlertDialogCancel className="h-14 px-8 text-lg font-bold border-2 border-slate-300 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-800 shadow-xl transition-all duration-300">
               إلغاء
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleRecalculate}
               className="h-14 px-8 text-lg font-bold bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-700 hover:via-amber-700 hover:to-yellow-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300"
             >
-              نعم، احذف التقرير السابق وأعد الحساب
+              إعادة الحسابات
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -718,13 +718,13 @@ export default function GroundSlabCalculationPage() {
   );
 }
 
-function InputField({ 
-  id, 
-  label, 
-  value, 
+function InputField({
+  id,
+  label,
+  value,
   onChange,
-  unit, 
-  icon: Icon, 
+  unit,
+  icon: Icon,
   type = "number",
   containerClassName = ""
 }: {
