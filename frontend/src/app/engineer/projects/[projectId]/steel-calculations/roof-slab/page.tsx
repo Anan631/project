@@ -109,11 +109,11 @@ export default function RoofSlabCalculationPage() {
     try {
       // Check if report already exists
       try {
-        const reportsResponse = await fetch(`${API_BASE_URL}/api/steel-reports/project/${projectId}`);
+        const reportsResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
         if (reportsResponse.ok) {
           const reportsData = await reportsResponse.json();
           if (reportsData.success && reportsData.reports?.length > 0) {
-            const existingReport = reportsData.reports.find((r: any) => 
+            const existingReport = reportsData.reports.find((r: any) =>
               r.calculationType === 'roof-slab-steel'
             );
             if (existingReport) {
@@ -203,7 +203,7 @@ export default function RoofSlabCalculationPage() {
     }
 
     try {
-      const deleteResponse = await fetch(`${API_BASE_URL}/api/steel-reports/${existingReportDialog.reportId}`, {
+      const deleteResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/${existingReportDialog.reportId}`, {
         method: 'DELETE'
       });
 
@@ -238,10 +238,10 @@ export default function RoofSlabCalculationPage() {
 
   const saveToReports = async () => {
     if (!results) {
-      toast({ 
-        title: 'لا توجد نتائج', 
-        description: 'يرجى إجراء الحسابات أولاً', 
-        variant: 'destructive' 
+      toast({
+        title: 'لا توجد نتائج',
+        description: 'يرجى إجراء الحسابات أولاً',
+        variant: 'destructive'
       });
       return;
     }
@@ -252,16 +252,16 @@ export default function RoofSlabCalculationPage() {
       const engineerName = localStorage.getItem('userName') || 'المهندس';
 
       const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
-      
+
       if (!projectRes.ok) {
         throw new Error(`HTTP error! status: ${projectRes.status}`);
       }
-      
+
       const projectContentType = projectRes.headers.get('content-type');
       if (!projectContentType || !projectContentType.includes('application/json')) {
         throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح.');
       }
-      
+
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
 
@@ -296,9 +296,9 @@ export default function RoofSlabCalculationPage() {
         sentToOwner: false
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/steel-reports`, {
+      const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
@@ -307,22 +307,22 @@ export default function RoofSlabCalculationPage() {
 
       const data = await response.json();
       if (data.success) {
-        toast({ 
-          title: 'تم الحفظ بنجاح', 
-          description: 'تم حفظ تقرير حديد السقف بنجاح' 
+        toast({
+          title: 'تم الحفظ بنجاح',
+          description: 'تم حفظ تقرير حديد السقف بنجاح'
         });
-        
-        router.push(`/engineer/projects/${projectId}/steel-reports`);
+
+        router.push(`/engineer/quantity-reports/${projectId}`);
       } else {
         throw new Error(data.message || 'فشل في حفظ التقرير');
       }
     } catch (error) {
       console.error('Error saving report:', error);
       const errorMessage = error instanceof Error ? error.message : 'حدث خطأ أثناء حفظ التقرير';
-      toast({ 
-        title: 'خطأ في الحفظ', 
-        description: errorMessage, 
-        variant: 'destructive' 
+      toast({
+        title: 'خطأ في الحفظ',
+        description: errorMessage,
+        variant: 'destructive'
       });
     } finally {
       setSaving(false);
@@ -420,11 +420,10 @@ export default function RoofSlabCalculationPage() {
                       setResults(null);
                       setError(null);
                     }}
-                    className={`p-8 rounded-2xl border-2 transition-all duration-300 text-center group hover:shadow-lg ${
-                      reinforcementType === 'mesh'
+                    className={`p-8 rounded-2xl border-2 transition-all duration-300 text-center group hover:shadow-lg ${reinforcementType === 'mesh'
                         ? 'border-red-500 bg-gradient-to-br from-red-50 to-orange-50 shadow-lg'
                         : 'border-gray-200 bg-white hover:border-red-300'
-                    }`}
+                      }`}
                   >
                     <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <div className="text-2xl text-white">🔗</div>
@@ -442,11 +441,10 @@ export default function RoofSlabCalculationPage() {
                       setResults(null);
                       setError(null);
                     }}
-                    className={`p-8 rounded-2xl border-2 transition-all duration-300 text-center group hover:shadow-lg ${
-                      reinforcementType === 'separate'
+                    className={`p-8 rounded-2xl border-2 transition-all duration-300 text-center group hover:shadow-lg ${reinforcementType === 'separate'
                         ? 'border-red-500 bg-gradient-to-br from-red-50 to-orange-50 shadow-lg'
                         : 'border-gray-200 bg-white hover:border-red-300'
-                    }`}
+                      }`}
                   >
                     <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <div className="text-2xl text-white">📊</div>
@@ -506,7 +504,7 @@ export default function RoofSlabCalculationPage() {
                           icon={Ruler}
                         />
                       </div>
-                      
+
                       <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl">
                         <div className="flex items-start gap-3">
                           <Shield className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
@@ -541,8 +539,8 @@ export default function RoofSlabCalculationPage() {
                           icon={Ruler}
                         />
                       </div>
-                      
-                      
+
+
                     </div>
                   )}
 
@@ -732,7 +730,7 @@ export default function RoofSlabCalculationPage() {
             <AlertDialogCancel className="h-14 px-8 text-lg font-bold border-2 border-slate-300 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-800 shadow-xl transition-all duration-300">
               إلغاء
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleRecalculate}
               className="h-14 px-8 text-lg font-bold bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-700 hover:via-amber-700 hover:to-yellow-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300"
             >
@@ -745,13 +743,13 @@ export default function RoofSlabCalculationPage() {
   );
 }
 
-function InputField({ 
-  id, 
-  label, 
-  value, 
+function InputField({
+  id,
+  label,
+  value,
   onChange,
-  unit, 
-  icon: Icon, 
+  unit,
+  icon: Icon,
   type = "number",
   containerClassName = ""
 }: {

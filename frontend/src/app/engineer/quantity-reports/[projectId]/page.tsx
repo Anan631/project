@@ -166,18 +166,19 @@ export default function ProjectReportsPage() {
       }
 
       // Check if this is a foundation-steel report or ground-beams-steel report or ground-slab-steel report or roof-ribs-steel report
-      if (report.calculationType === 'foundation-steel' || report.calculationType === 'ground-beams-steel' || report.calculationType === 'ground-slab-steel' || report.calculationType === 'roof-ribs-steel') {
+      if (report.calculationType === 'foundation-steel' || report.calculationType === 'ground-beams-steel' || report.calculationType === 'ground-slab-steel' || report.calculationType === 'roof-ribs-steel' || report.calculationType === 'roof-slab-steel') {
         const isGroundBeams = report.calculationType === 'ground-beams-steel';
         const isGroundSlab = report.calculationType === 'ground-slab-steel';
         const isRoofRibs = report.calculationType === 'roof-ribs-steel';
-        // Generate Steel Report PDF (Foundation or Ground Beams or Ground Slab or Roof Ribs)
+        const isRoofSlab = report.calculationType === 'roof-slab-steel';
+        // Generate Steel Report PDF (Foundation or Ground Beams or Ground Slab or Roof Ribs or Roof Slab)
         const steelData = report.steelData?.details;
         const results = steelData?.results;
         const inputs = steelData?.inputs || {}; // Inputs might be in results for ground beams
 
         // Prepare data specific to report type
-        const reportTitle = isGroundBeams ? 'تقرير حديد الجسور الأرضية' : isGroundSlab ? 'تقرير حديد أرضية المبنى' : isRoofRibs ? 'تقرير حديد أعصاب السقف' : 'تقرير حديد القواعد';
-        const reportSubtitle = isGroundBeams ? 'حساب كميات حديد الجسور الأرضية وفق المعايير الهندسية' : isGroundSlab ? 'حساب كميات حديد أرضية المبنى وفق المعايير الهندسية' : isRoofRibs ? 'حساب كميات حديد أعصاب السقف وفق المعايير الهندسية' : 'حساب كميات حديد القواعد وفق المعايير الهندسية';
+        const reportTitle = isGroundBeams ? 'تقرير حديد الجسور الأرضية' : isGroundSlab ? 'تقرير حديد أرضية المبنى' : isRoofRibs ? 'تقرير حديد أعصاب السقف' : isRoofSlab ? 'تقرير حديد السقف' : 'تقرير حديد القواعد';
+        const reportSubtitle = isGroundBeams ? 'حساب كميات حديد الجسور الأرضية وفق المعايير الهندسية' : isGroundSlab ? 'حساب كميات حديد أرضية المبنى وفق المعايير الهندسية' : isRoofRibs ? 'حساب كميات حديد أعصاب السقف وفق المعايير الهندسية' : isRoofSlab ? 'حساب كميات حديد السقف وفق المعايير الهندسية' : 'حساب كميات حديد القواعد وفق المعايير الهندسية';
 
         let specificTablesHtml = '';
 
@@ -365,28 +366,85 @@ export default function ProjectReportsPage() {
                </table>
              `;
           }
-        } else if (isRoofRibs) {
-          specificTablesHtml = `
-               <div class="section-title">نتائج حديد أعصاب السقف</div>
-               <table>
-                 <thead>
-                   <tr>
-                     <th>القيمة</th>
-                     <th>البيان</th>
-                   </tr>
-                 </thead>
-                 <tbody>
-                   <tr>
-                     <td>${results.requiredBarArea || 0} سم²</td>
-                     <td>المساحة المطلوبة</td>
-                   </tr>
-                   <tr>
-                     <td>${results.numberOfBars || 0}</td>
-                     <td>عدد القضبان لجميع الأعصاب</td>
-                   </tr>
-                 </tbody>
-               </table>
-           `;
+        } else if (isRoofSlab) {
+          const type = results?.type;
+          if (type === 'mesh') {
+            specificTablesHtml = `
+                <div class="section-title">بيانات شبك الحديد</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${results.details?.roofArea || 0} م²</td>
+                      <td>مساحة السقف</td>
+                    </tr>
+                    <tr>
+                      <td>${results.details?.meshArea?.toFixed(2) || 0} م²</td>
+                      <td>مساحة الشبك الواحد (بعد الخصم)</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">النتائج</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>القيمة</th>
+                            <th>البيان</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                         <tr style="background: #fff7ed; font-weight: bold; color: #ea580c;">
+                            <td>${results.meshBars || 0} شبكة</td>
+                            <td>عدد قطع الشبك المطلوبة</td>
+                        </tr>
+                    </tbody>
+                </table>
+             `;
+          } else {
+            specificTablesHtml = `
+                <div class="section-title">بيانات الحديد المفرق</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${results.details?.roofArea || 0} م²</td>
+                      <td>مساحة السقف</td>
+                    </tr>
+                     <tr>
+                      <td>${results.details?.spacing || 0} م</td>
+                      <td>المسافة بين القضبان</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">النتائج</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>القيمة</th>
+                            <th>البيان</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                         <tr style="background: #fff7ed; font-weight: bold; color: #ea580c;">
+                            <td>${results.separateBars || 0} قضيب</td>
+                            <td>عدد القضبان المطلوبة</td>
+                        </tr>
+                    </tbody>
+                </table>
+             `;
+          }
         } else {
           // Foundation Steel Logic (Existing)
           specificTablesHtml = results?.type === 'similar' ? `
@@ -1306,7 +1364,9 @@ export default function ProjectReportsPage() {
                   report.calculationType === 'foundation-steel' ? 'حديد القواعد' :
                     report.calculationType === 'ground-beams-steel' ? 'حديد الجسور الأرضية' :
                       report.calculationType === 'ground-slab-steel' ? 'حديد أرضية المبنى' :
-                        report.calculationType,
+                        report.calculationType === 'roof-ribs-steel' ? 'حديد أعصاب السقف' :
+                          report.calculationType === 'roof-slab-steel' ? 'حديد السقف' :
+                            report.calculationType,
       reportDate: formatDate(report.updatedAt),
     });
   };
@@ -1465,6 +1525,7 @@ export default function ProjectReportsPage() {
   const groundBeamsSteelReport = reports.find(r => r.calculationType === 'ground-beams-steel');
   const groundSlabSteelReport = reports.find(r => r.calculationType === 'ground-slab-steel');
   const roofRibsSteelReport = reports.find(r => r.calculationType === 'roof-ribs-steel');
+  const roofSlabSteelReport = reports.find(r => r.calculationType === 'roof-slab-steel');
 
   if (loading) {
     return (
@@ -2843,6 +2904,112 @@ export default function ProjectReportsPage() {
                             className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
                           >
                             {deleting === roofRibsSteelReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الحذف...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4 ml-2" />
+                                حذف التقرير
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Roof Slab Steel Report Card */}
+                  {roofSlabSteelReport && (
+                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                      <CardHeader className="bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 text-white border-b border-white/20">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-xl flex items-center gap-3">
+                            <Blocks className="w-6 h-6" />
+                            تقرير حديد السقف
+                          </CardTitle>
+                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                            {roofSlabSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
+                          </Badge>
+                        </div>
+                        <CardDescription className="text-rose-100 mt-2">
+                          تاريخ التقرير: {formatDate(roofSlabSteelReport.updatedAt)}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="space-y-4 mb-6">
+                          {roofSlabSteelReport.steelData?.details?.results && (
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-gradient-to-br from-red-50 to-orange-50 p-4 rounded-xl border-2 border-red-200">
+                                <p className="text-sm text-slate-600 mb-1">نوع التسليح</p>
+                                <p className="text-xl font-black text-red-700">
+                                  {roofSlabSteelReport.steelData.details.results.type === 'mesh'
+                                    ? 'شبك حديد'
+                                    : 'حديد مفرق'}
+                                </p>
+                              </div>
+                              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-4 rounded-xl border-2 border-amber-200">
+                                <p className="text-sm text-slate-600 mb-1">
+                                  {roofSlabSteelReport.steelData.details.results.type === 'mesh' ? 'عدد الشبك' : 'عدد القصبان'}
+                                </p>
+                                <p className="text-xl font-black text-amber-700">
+                                  {roofSlabSteelReport.steelData.details.results.type === 'mesh'
+                                    ? (roofSlabSteelReport.steelData.details.results.meshBars || 0)
+                                    : (roofSlabSteelReport.steelData.details.results.separateBars || 0)}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <Button
+                            onClick={() => downloadPDF(roofSlabSteelReport._id, 'steel')}
+                            disabled={downloading === `${roofSlabSteelReport._id}-steel`}
+                            className="w-full h-14 bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 hover:from-red-700 hover:via-orange-700 hover:to-amber-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {downloading === `${roofSlabSteelReport._id}-steel` ? (
+                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                            ) : (
+                              <Printer className="w-5 h-5 ml-2" />
+                            )}
+                            طباعة التقرير PDF
+                          </Button>
+
+                          <Button
+                            onClick={() => handleSendToOwner(roofSlabSteelReport._id)}
+                            disabled={sendingToOwner === roofSlabSteelReport._id || roofSlabSteelReport.sentToOwner}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${roofSlabSteelReport.sentToOwner
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                              }`}
+                          >
+                            {sendingToOwner === roofSlabSteelReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الإرسال...
+                              </>
+                            ) : roofSlabSteelReport.sentToOwner ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 ml-2" />
+                                تم الإرسال للمالك
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 ml-2" />
+                                إرسال التقرير للمالك
+                              </>
+                            )}
+                          </Button>
+
+                          <Button
+                            onClick={() => handleDeleteReport(roofSlabSteelReport._id)}
+                            disabled={deleting === roofSlabSteelReport._id}
+                            variant="destructive"
+                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {deleting === roofSlabSteelReport._id ? (
                               <>
                                 <Loader2 className="w-4 h-4 animate-spin ml-2" />
                                 جاري الحذف...
