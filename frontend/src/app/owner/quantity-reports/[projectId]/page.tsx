@@ -66,6 +66,7 @@ interface QuantityReport {
     [key: string]: any;
   };
   steelData?: {
+    totalSteelWeight?: number;
     details?: {
       results?: any;
       inputs?: any;
@@ -580,6 +581,10 @@ export default function OwnerQuantityReportsPage() {
                        <td>${results.numberOfBars || 0}</td>
                        <td>عدد القضبان لجميع الأعصاب</td>
                      </tr>
+                    <tr style="background: #f3e8ff; font-weight: bold; color: #7c3aed;">
+                       <td>${results.totalBars || 0} قضيب</td>
+                       <td>إجمالي عدد القضبان</td>
+                     </tr>
                    </tbody>
                  </table>
 
@@ -737,6 +742,126 @@ export default function OwnerQuantityReportsPage() {
         setDownloading(null);
         return;
       }
+
+      // Check if this is a column-ties-steel report
+      if (report.calculationType === 'column-ties-steel') {
+        const steelData = report.steelData?.details;
+        const results = steelData?.results;
+        const inputs = steelData?.inputs;
+
+        const steelHtmlContent = `
+          <!DOCTYPE html>
+          <html dir="rtl" lang="ar">
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { direction: rtl; font-family: 'Tajawal', sans-serif; font-size: 18px; line-height: 1.8; color: #1a1a1a; background: white; padding: 25mm; }
+              .header { background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
+              .header h1 { font-size: 36px; margin-bottom: 10px; font-weight: 900; }
+              .header p { font-size: 20px; opacity: 0.95; }
+              .project-name { background: linear-gradient(to right, #fff7ed, #ffedd5); border-right: 6px solid #ea580c; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
+              .project-name h2 { color: #2d3748; font-size: 24px; font-weight: 700; }
+              .info-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px; }
+              .info-box { background: white; border: 2px solid #fdba74; padding: 25px; border-radius: 10px; text-align: center; }
+              .info-box label { display: block; font-size: 16px; color: #718096; margin-bottom: 8px; font-weight: 500; }
+              .info-box .value { font-size: 20px; color: #2d3748; font-weight: 700; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border-radius: 10px; overflow: hidden; }
+              thead { background: linear-gradient(135deg, #ea580c, #c2410c); color: white; }
+              th { padding: 20px 15px; text-align: right; font-weight: 700; font-size: 20px; }
+              td { padding: 18px 15px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 500; }
+              tbody tr:nth-child(even) { background: #fff7ed; }
+              .section-title { background: #fff7ed; border-right: 4px solid #ea580c; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #9a3412; }
+              .total-box { background: linear-gradient(135deg, #ffedd5, #fed7aa); border: 3px solid #ea580c; border-radius: 12px; padding: 30px; margin-bottom: 40px; text-align: center; }
+              .total-box label { display: block; font-size: 20px; color: #2d3748; margin-bottom: 12px; font-weight: 600; }
+              .total-box .value { font-size: 32px; font-weight: 900; color: #ea580c; }
+              .signature-section { margin-top: 60px; padding: 30px; border: 2px solid #e2e8f0; border-radius: 15px; background: #fafafa; }
+              .signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+              .signature-box { text-align: center; }
+              .signature-line { border-bottom: 2px solid #2d3748; margin-bottom: 15px; height: 40px; }
+              .signature-title { font-weight: 800; font-size: 20px; color: #2d3748; margin-bottom: 5px; }
+              .signature-name { font-size: 18px; color: #4a5568; margin-bottom: 5px; }
+              .signature-label { font-size: 14px; color: #718096; font-style: italic; }
+              .footer { border-top: 2px solid #e2e8f0; padding-top: 25px; text-align: center; font-size: 14px; color: #718096; margin-top: 50px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>تقرير حديد الأعمدة والكانات</h1>
+                <p>حساب كميات حديد الأعمدة والكانات وفق المعايير الهندسية</p>
+              </div>
+              <div class="project-name"><h2>المشروع: ${report.projectName}</h2></div>
+              <div class="info-boxes">
+                <div class="info-box"><label>المهندس المسؤول</label><div class="value">${report.engineerName}</div></div>
+                <div class="info-box"><label>المالك / العميل</label><div class="value">${report.ownerName || 'غير محدد'}</div></div>
+              </div>
+
+              <div class="section-title">بيانات العمود والمدخلات</div>
+              <table>
+                <thead><tr><th>القيمة</th><th>البيان</th></tr></thead>
+                <tbody>
+                  <tr><td>${inputs.heightM || 0} م</td><td>ارتفاع العمود</td></tr>
+                  <tr><td>${inputs.slabAreaM2 || 0} م²</td><td>مساحة البلاطة</td></tr>
+                  <tr><td>${inputs.floors || 0}</td><td>عدد الطوابق</td></tr>
+                  <tr><td>${inputs.rodDiameterMm || 0} ملم</td><td>قطر القضيب</td></tr>
+                  <tr><td>${inputs.slabThicknessCm || 0} سم</td><td>سمك السقف</td></tr>
+                  <tr><td>${inputs.columnShape === 'square' ? 'مربع' : inputs.columnShape === 'rectangle' ? 'مستطيل' : 'دائري'}</td><td>شكل العمود</td></tr>
+                </tbody>
+              </table>
+
+              <div class="section-title">نتائج الحساب (الأعمدة والكانات)</div>
+              <table>
+                <thead><tr><th>القيمة</th><th>البيان</th></tr></thead>
+                <tbody>
+                  <tr><td>${results.verticalBarsCount || 0} قضيب</td><td>عدد القضبان العمودية</td></tr>
+                  <tr><td>${results.finalRodLenM?.toFixed(2) || 0} م</td><td>طول القضيب العمودي النهائي</td></tr>
+                  <tr><td>${results.totalStirrups ? Math.ceil(results.totalStirrups) : 0} كانة</td><td>عدد الكانات الإجمالي</td></tr>
+                  <tr><td>${results.columnDimensions?.displayText || 'N/A'}</td><td>أبعاد العمود</td></tr>
+                </tbody>
+              </table>
+
+              <div class="total-box">
+                <label>إجمالي وزن الحديد للعمود:</label>
+                <div class="value">${report.steelData?.totalSteelWeight?.toFixed(2) || 0} كجم</div>
+              </div>
+
+              <div class="signature-section">
+                <div class="signature-row">
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المهندس المسؤول</div>
+                    <div class="signature-name">${report.engineerName}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المالك / العميل</div>
+                    <div class="signature-name">${report.ownerName || 'غير محدد'}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="footer"><p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p><p>© 2025 جميع الحقوق محفوظة</p></div>
+            </div>
+          </body>
+          </html>
+        `;
+
+        const printWindow = window.open('', '_blank', 'width=1000,height=800');
+        if (!printWindow) throw new Error('Could not open print window');
+        printWindow.document.write(steelHtmlContent);
+        printWindow.document.close();
+        printWindow.onload = () => { setTimeout(() => { printWindow.print(); }, 500); };
+        toast({ title: 'تم فتح التقرير', description: 'تم فتح تقرير حديد الأعمدة والكانات للطباعة' });
+        setDownloading(null);
+        return;
+      }
+
+
+
 
       const htmlContent = `
         <!DOCTYPE html>
@@ -1061,7 +1186,7 @@ export default function OwnerQuantityReportsPage() {
                     const foundations = report.concreteData.foundationsVolume || 0;
                     const groundSlab = report.concreteData.groundSlabVolume || 0;
                     return (cleaning + foundations + groundSlab).toFixed(2);
-                  })} م³`
+                  })()} م³`
         }
               </div>
             </div>
@@ -1107,13 +1232,11 @@ export default function OwnerQuantityReportsPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ar-EG', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
   };
 
   const getReportTypeLabel = (type: string) => {
@@ -1129,6 +1252,7 @@ export default function OwnerQuantityReportsPage() {
       case 'ground-slab-steel': return 'حديد أرضية المبنى';
       case 'roof-ribs-steel': return 'حديد أعصاب السقف';
       case 'roof-slab-steel': return 'حديد السقف';
+      case 'column-ties-steel': return 'حديد الأعمدة والكانات';
       default: return type;
     }
   };
@@ -1144,11 +1268,15 @@ export default function OwnerQuantityReportsPage() {
       case 'ground-slab-steel': return <Blocks className="w-5 h-5" />;
       case 'roof-ribs-steel': return <Blocks className="w-5 h-5" />;
       case 'roof-slab-steel': return <Blocks className="w-5 h-5" />;
+      case 'column-ties-steel': return <Blocks className="w-5 h-5" />;
       default: return <FileText className="w-5 h-5" />;
     }
   };
 
   const getTotalVolume = (report: QuantityReport) => {
+    if (report.calculationType.includes('steel')) {
+      return report.steelData?.totalSteelWeight || 0;
+    }
     if (report.calculationType === 'column-footings') {
       return report.concreteData?.totalFootingsVolume || report.concreteData?.totalConcrete || 0;
     } else if (report.calculationType === 'columns') {
@@ -1190,6 +1318,7 @@ export default function OwnerQuantityReportsPage() {
   const groundSlabSteelReport = reports.find(r => r.calculationType === 'ground-slab-steel');
   const roofRibsSteelReport = reports.find(r => r.calculationType === 'roof-ribs-steel');
   const roofSlabSteelReport = reports.find(r => r.calculationType === 'roof-slab-steel');
+  const columnTiesSteelReport = reports.find(r => r.calculationType === 'column-ties-steel');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl" style={{ fontSize: '16px' }}>
@@ -2089,6 +2218,72 @@ export default function OwnerQuantityReportsPage() {
                   </Card>
                 )}
 
+                {/* Column Ties Steel Report Card */}
+                {columnTiesSteelReport && (
+                  <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+                    <CardHeader className="bg-gradient-to-br from-orange-600 via-amber-600 to-yellow-600 text-white">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Blocks className="w-7 h-7 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-xl">تقرير حديد الأعمدة والكانات</CardTitle>
+                          <CardDescription className="text-orange-100">
+                            كميات حديد الأعمدة والكانات
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      {columnTiesSteelReport?.steelData?.details?.results && (
+                        <div className="space-y-4 mb-6">
+                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <span className="text-slate-600">عدد السيخ الرأسي</span>
+                            <span className="font-bold text-orange-600">
+                              {columnTiesSteelReport.steelData.details.results.verticalBarsCount || 0} قضيب
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <span className="text-slate-600">عدد الكانات</span>
+                            <span className="font-bold text-orange-600">
+                              {Math.ceil(columnTiesSteelReport.steelData.details.results.totalStirrups || 0)} كانة
+                            </span>
+                          </div>
+                          <Separator />
+                          <div className="flex justify-between items-center p-4 bg-orange-50 rounded-lg border-2 border-orange-200">
+                            <span className="font-bold text-slate-800">إجمالي وزن الحديد</span>
+                            <span className="text-2xl font-black text-orange-600">
+                              {columnTiesSteelReport.steelData.totalSteelWeight?.toFixed(2) || 0} كجم
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-3">
+                        <Button
+                          onClick={() => downloadPDF(columnTiesSteelReport._id)}
+                          disabled={downloading === columnTiesSteelReport._id}
+                          className="w-full h-14 bg-gradient-to-r from-orange-600 to-yellow-600 hover:from-orange-700 hover:to-yellow-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                        >
+                          {downloading === columnTiesSteelReport._id ? (
+                            <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                          ) : (
+                            <Printer className="w-5 h-5 ml-2" />
+                          )}
+                          طباعة التقرير
+                        </Button>
+
+                        {columnTiesSteelReport.sentToOwnerAt && (
+                          <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            <span>تاريخ الاستلام: {formatDate(columnTiesSteelReport.sentToOwnerAt)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
               </div>
             )}
 
@@ -2108,7 +2303,6 @@ export default function OwnerQuantityReportsPage() {
                         <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
                           <TableRow className="hover:bg-transparent">
                             <TableHead className="font-black text-gray-800 text-right py-6 text-lg">نوع التقرير</TableHead>
-                            <TableHead className="font-black text-gray-800 text-right py-6 text-lg">الكمية الإجمالية</TableHead>
                             <TableHead className="font-black text-gray-800 text-right py-6 text-lg">تاريخ الإرسال</TableHead>
                             <TableHead className="font-black text-gray-800 text-center py-6 text-lg">الإجراءات</TableHead>
                           </TableRow>
@@ -2133,19 +2327,8 @@ export default function OwnerQuantityReportsPage() {
                                       {getReportTypeLabel(report.calculationType)}
                                     </p>
                                     <p className="text-sm text-gray-500 font-medium">
-                                      تقرير كمية الخرسانة
+                                      {report.calculationType.includes('steel') ? 'تقرير حسابات الحديد' : 'تقرير كمية الخرسانة'}
                                     </p>
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="py-6">
-                                <div className="flex items-center gap-3">
-                                  <Calculator className="w-5 h-5 text-emerald-600" />
-                                  <div>
-                                    <span className="text-2xl font-black text-emerald-600">
-                                      {getTotalVolume(report).toFixed(3)}
-                                    </span>
-                                    <span className="text-lg font-bold text-gray-600 mr-2">م³</span>
                                   </div>
                                 </div>
                               </TableCell>

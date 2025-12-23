@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,6 +73,7 @@ function InputField({ id, label, value, onChange, placeholder, type = "number", 
 export default function SteelTiesAndColumnsPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const { toast } = useToast();
+  const router = useRouter();
 
   const [heightM, setHeightM] = useState<string>(""); // ارتفاع العمود (م)
   const [slabAreaM2, setSlabAreaM2] = useState<string>(""); // مساحة البلاطة (م²)
@@ -83,6 +84,7 @@ export default function SteelTiesAndColumnsPage() {
 
   const [loading, setLoading] = useState<boolean>(false);
   const [ironBarsData, setIronBarsData] = useState<IronBarData[]>([]);
+  const [saving, setSaving] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -247,6 +249,76 @@ export default function SteelTiesAndColumnsPage() {
 
   const [results, setResults] = useState<ReturnType<typeof computeResults> | null>(null);
   const [showErrors, setShowErrors] = useState(false);
+
+  async function saveToReports() {
+    if (!results) {
+      toast({ title: "لا توجد نتائج", description: "يرجى إجراء الحسابات أولاً", variant: "destructive" as any });
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const engineerId = localStorage.getItem('userId') || '';
+      const engineerName = localStorage.getItem('userName') || 'المهندس';
+
+      const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+      if (!projectRes.ok) throw new Error(`HTTP ${projectRes.status}`);
+      const projectData = await projectRes.json();
+      const project = projectData.project || projectData;
+
+      const reportPayload = {
+        projectId,
+        projectName: project?.name || `مشروع #${projectId}`,
+        engineerId,
+        engineerName,
+        ownerName: project?.clientName || '',
+        ownerEmail: project?.linkedOwnerEmail || '',
+        // NOTE: using an existing allowed enum value for steel-type reports
+        calculationType: 'column-ties-steel',
+        steelData: {
+          totalSteelWeight: Number(results.rodWeight) || 0,
+          foundationSteel: 0,
+          columnSteel: Number(results.rodWeight) || 0,
+          beamSteel: 0,
+          slabSteel: 0,
+          details: {
+            kind: 'columns-and-stirrups',
+            inputs: {
+              heightM,
+              slabAreaM2,
+              floors,
+              rodDiameterMm,
+              slabThicknessCm,
+              columnShape,
+            },
+            results,
+            timestamp: new Date().toISOString()
+          }
+        },
+        sentToOwner: false,
+        status: 'saved'
+      } as any;
+
+      const resp = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        },
+        body: JSON.stringify(reportPayload)
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data?.success) throw new Error(data?.message || 'Failed to save report');
+
+      toast({ title: 'تم الحفظ بنجاح', description: 'تم حفظ التقرير وتم تحويلك إلى صفحة التقارير.' });
+      router.push(`/engineer/quantity-reports/${projectId}`);
+    } catch (err: any) {
+      console.error('Error saving report:', err);
+      toast({ title: 'خطأ في الحفظ', description: err?.message || 'تعذر حفظ التقرير', variant: 'destructive' as any });
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function onCalculate() {
     setShowErrors(true);
@@ -462,6 +534,12 @@ export default function SteelTiesAndColumnsPage() {
                         <p className="text-cyan-600 font-bold text-sm mb-1">أبعاد العمود</p>
                         <p className="text-xl font-black text-cyan-900">{results.columnDimensions.displayText}</p>
                       </div>
+                    </div>
+
+                    <div className="mt-6">
+                      <Button onClick={saveToReports} disabled={saving} className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-lg rounded-2xl shadow-xl transition-all">
+                        {saving ? 'جاري الحفظ...' : 'حفظ وتحميل إلى التقارير'}
+                      </Button>
                     </div>
                   </div>
                 ) : (

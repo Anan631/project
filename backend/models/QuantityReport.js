@@ -63,7 +63,7 @@ const quantityReportSchema = new Schema(
 
     calculationType: {
       type: String,
-      enum: ['foundation', 'cleaning-slab', 'ground-slab', 'columns', 'beams', 'slabs', 'full', 'column-footings', 'ground-bridges', 'roof', 'foundation-steel', 'ground-beams-steel', 'ground-slab-steel', 'roof-ribs-steel', 'roof-slab-steel'],
+      enum: ['foundation', 'cleaning-slab', 'ground-slab', 'columns', 'beams', 'slabs', 'full', 'column-footings', 'ground-bridges', 'roof', 'foundation-steel', 'ground-beams-steel', 'ground-slab-steel', 'roof-ribs-steel', 'roof-slab-steel', 'column-ties-steel'],
       default: 'foundation'
     },
 

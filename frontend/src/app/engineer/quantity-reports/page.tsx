@@ -134,7 +134,7 @@ export default function QuantityReportsPage() {
   useEffect(() => {
     const userId = localStorage.getItem('userId');
     setEngineerId(userId);
-    
+
     if (userId) {
       fetchProjects(userId);
     } else {
@@ -146,7 +146,7 @@ export default function QuantityReportsPage() {
     try {
       const response = await fetch(`http://localhost:5000/api/quantity-reports/engineer/${userId}`);
       const data = await response.json();
-      
+
       if (data.success) {
         // Add mock status and priority for demo
         const enhancedProjects = data.projects.map((project: ProjectReport) => ({
@@ -196,7 +196,7 @@ export default function QuantityReportsPage() {
 
   const confirmDeleteProject = async () => {
     if (!deleteDialog.projectId) return;
-    
+
     setIsDeleting(deleteDialog.projectId);
     try {
       // احذف جميع تقارير المشروع الواحد عبر حذف كل تقرير بالمعرف
@@ -232,7 +232,7 @@ export default function QuantityReportsPage() {
 
   const confirmDeleteAllReports = async () => {
     if (!engineerId) return;
-    
+
     setIsDeletingAll(true);
     try {
       // احذف كل التقارير لكل المشاريع عبر endpoint حذف تقرير واحد
@@ -303,7 +303,7 @@ export default function QuantityReportsPage() {
   const filteredProjects = projects
     .filter(project => {
       const matchesSearch = project.projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           project.ownerName?.toLowerCase().includes(searchTerm.toLowerCase());
+        project.ownerName?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesFilter = filterStatus === 'all' || project.status === filterStatus;
       return matchesSearch && matchesFilter;
     })
@@ -326,21 +326,7 @@ export default function QuantityReportsPage() {
     });
   };
 
-  const getReportTypeBadge = (type: string) => {
-    const types: Record<string, { label: string; color: string; icon: any }> = {
-      'foundation': { label: 'صبة النظافة والقواعد', color: 'bg-blue-500', icon: Shield },
-      'cleaning-slab': { label: 'صبة النظافة', color: 'bg-green-500', icon: Target },
-      'column-footings': { label: 'شروش الأعمدة', color: 'bg-purple-500', icon: BarChart3 },
-      'columns': { label: 'الأعمدة', color: 'bg-purple-500', icon: BarChart3 },
-      'roof': { label: 'السقف', color: 'bg-orange-500', icon: Zap },
-      'ground-bridges': { label: 'الجسور الأرضية', color: 'bg-cyan-500', icon: Building2 },
-      'ground-slab': { label: 'أرضية المبنى (المِدّة)', color: 'bg-emerald-500', icon: CheckCircle2 },
-      'beams': { label: 'الكمرات', color: 'bg-orange-500', icon: Zap },
-      'slabs': { label: 'البلاطات', color: 'bg-cyan-500', icon: Building2 },
-      'full': { label: 'تقرير شامل', color: 'bg-emerald-500', icon: CheckCircle2 }
-    };
-    return types[type] || { label: 'تقرير غير محدد', color: 'bg-gray-500', icon: FileText };
-  };
+
 
   const getPriorityBadge = (priority: string) => {
     const priorities = {
@@ -386,7 +372,7 @@ export default function QuantityReportsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center" dir="rtl">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center space-y-6"
@@ -415,7 +401,7 @@ export default function QuantityReportsPage() {
 
       <div className="container mx-auto px-4 py-8 max-w-7xl relative z-10">
         {/* Enhanced Header */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
@@ -435,7 +421,7 @@ export default function QuantityReportsPage() {
                 <p className="text-slate-600 text-lg">عرض وتحميل تقارير كميات الخرسانة والحديد للمشاريع</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <Button
                 onClick={handleRefresh}
@@ -444,7 +430,7 @@ export default function QuantityReportsPage() {
                 className="gap-2 border-emerald-200 hover:bg-emerald-50 hover:text-slate-900 transition-all duration-200"
               >
                 <RefreshCw className={cn(
-                  "w-4 h-4 transition-transform duration-500", 
+                  "w-4 h-4 transition-transform duration-500",
                   isRefreshing && "animate-spin"
                 )} />
                 <span className={cn(
@@ -488,7 +474,7 @@ export default function QuantityReportsPage() {
                 className="pr-10 h-12 bg-white/80 border-slate-200 focus:border-emerald-400 focus:ring-emerald-100"
               />
             </div>
-            
+
             <div className="flex gap-3">
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-40 h-12 bg-white/80 border-slate-200">
@@ -502,7 +488,7 @@ export default function QuantityReportsPage() {
                   <SelectItem value="archived">مؤرشف</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-40 h-12 bg-white/80 border-slate-200">
                   <TrendingUp className="w-4 h-4 ml-2" />
@@ -514,7 +500,7 @@ export default function QuantityReportsPage() {
                   <SelectItem value="reportsCount">عدد التقارير</SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <div className="flex bg-white/80 border border-slate-200 rounded-lg p-1">
                 <Button
                   size="sm"
@@ -522,8 +508,8 @@ export default function QuantityReportsPage() {
                   onClick={() => setViewMode('cards')}
                   className={cn(
                     "px-4 py-2 gap-2 transition-all duration-200",
-                    viewMode === 'cards' 
-                      ? "bg-emerald-600 text-white shadow-md hover:bg-green-100 hover:text-slate-900" 
+                    viewMode === 'cards'
+                      ? "bg-emerald-600 text-white shadow-md hover:bg-green-100 hover:text-slate-900"
                       : "text-slate-800 hover:bg-blue-100 hover:text-slate-900"
                   )}
                 >
@@ -536,8 +522,8 @@ export default function QuantityReportsPage() {
                   onClick={() => setViewMode('table')}
                   className={cn(
                     "px-4 py-2 gap-2 transition-all duration-200",
-                    viewMode === 'table' 
-                      ? "bg-emerald-600 text-white shadow-md hover:bg-green-100 hover:text-slate-900" 
+                    viewMode === 'table'
+                      ? "bg-emerald-600 text-white shadow-md hover:bg-green-100 hover:text-slate-900"
                       : "text-slate-800 hover:bg-blue-100 hover:text-slate-900"
                   )}
                 >
@@ -577,7 +563,7 @@ export default function QuantityReportsPage() {
         ) : (
           <>
             {/* Stats Cards */}
-            <motion.div 
+            <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
@@ -598,7 +584,7 @@ export default function QuantityReportsPage() {
                   </CardContent>
                 </Card>
               </motion.div>
-              
+
               <motion.div variants={itemVariants}>
                 <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-50 to-emerald-100">
                   <CardContent className="p-6">
@@ -616,7 +602,7 @@ export default function QuantityReportsPage() {
                   </CardContent>
                 </Card>
               </motion.div>
-              
+
               <motion.div variants={itemVariants}>
                 <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100">
                   <CardContent className="p-6">
@@ -634,7 +620,7 @@ export default function QuantityReportsPage() {
                   </CardContent>
                 </Card>
               </motion.div>
-              
+
               <motion.div variants={itemVariants}>
                 <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100">
                   <CardContent className="p-6">
@@ -655,7 +641,7 @@ export default function QuantityReportsPage() {
             </motion.div>
             {/* Cards View */}
             {viewMode === 'cards' && (
-              <motion.div 
+              <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
@@ -697,47 +683,44 @@ export default function QuantityReportsPage() {
                                   </div>
                                 </div>
                                 <div className="flex flex-col gap-2" onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(`/engineer/quantity-reports/${project.projectId}`);
-                                  }}>
+                                  e.stopPropagation();
+                                  router.push(`/engineer/quantity-reports/${project.projectId}`);
+                                }}>
                                 </div>
                               </div>
                             </CardHeader>
-                            
+
                             <CardContent className="pt-0">
                               <div className="space-y-4">
                                 {/* Owner Info */}
-                                <div className="flex items-center gap-2 text-sm">
-                                  <User className="w-4 h-4 text-slate-400" />
-                                  <span className="text-slate-600 truncate">{project.ownerName || 'غير محدد'}</span>
-                                </div>
-                                
-                                {/* Report Types */}
-                                {project.reports.length > 0 && (
-                                  <div className="space-y-2">
-                                    <p className="text-xs font-medium text-slate-500">أنواع التقارير:</p>
-                                    <div className="flex flex-wrap gap-1">
-                                      {project.reports.slice(0, 3).map((report) => {
-                                        const badge = getReportTypeBadge(report.calculationType);
-                                        return (
-                                          <Badge 
-                                            key={report._id}
-                                            className={`${badge.color} text-white text-xs flex items-center gap-1`}
-                                          >
-                                            <badge.icon className="w-3 h-3 text-white" />
-                                            {badge.label}
-                                          </Badge>
-                                        );
-                                      })}
-                                      {project.reports.length > 3 && (
-                                        <Badge variant="outline" className="text-xs">
-                                          +{project.reports.length - 3}
-                                        </Badge>
-                                      )}
+                                {/* Owner Info & Reports Count Enhanced */}
+                                <div className="bg-slate-50/80 rounded-xl p-3 mb-4 border border-slate-100">
+                                  <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100">
+                                    <div className="flex items-center gap-3">
+                                      <div className="bg-white p-2 rounded-full shadow-sm ring-1 ring-slate-100">
+                                        <User className="w-4 h-4 text-blue-600" />
+                                      </div>
+                                      <div>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">المالك</p>
+                                        <p className="text-sm font-bold text-slate-800">{project.ownerName || 'غير محدد'}</p>
+                                      </div>
                                     </div>
                                   </div>
-                                )}
-                                
+
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="w-3.5 h-3.5 text-slate-400" />
+                                      <span className="text-xs text-slate-500 font-medium">التقارير المنجزة</span>
+                                    </div>
+                                    <Badge variant="secondary" className="bg-white shadow-sm text-emerald-700 hover:bg-emerald-50 border border-emerald-100 px-2.5 py-0.5">
+                                      <span className="font-bold text-lg ml-1">{project.reports.length}</span>
+                                      <span className="text-[10px] font-normal">تقرير</span>
+                                    </Badge>
+                                  </div>
+                                </div>
+
+
+
                                 {/* Last Updated */}
                                 <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                                   <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -819,7 +802,7 @@ export default function QuantityReportsPage() {
                       </TableHeader>
                       <TableBody>
                         {filteredProjects.map((project) => (
-                          <TableRow 
+                          <TableRow
                             key={project.projectId}
                             className="hover:bg-emerald-50/50 transition-colors cursor-pointer"
                             onClick={() => router.push(`/engineer/quantity-reports/${project.projectId}`)}
@@ -835,36 +818,19 @@ export default function QuantityReportsPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2">
-                                <User className="w-4 h-4 text-slate-400" />
-                                <span className="text-slate-700">{project.ownerName || 'غير محدد'}</span>
+                              <div className="flex items-center gap-3">
+                                <div className="bg-blue-50 p-2 rounded-full">
+                                  <User className="w-4 h-4 text-blue-600" />
+                                </div>
+                                <span className="font-medium text-slate-700">{project.ownerName || 'غير محدد'}</span>
                               </div>
                             </TableCell>
                             <TableCell>
                               <div className="space-y-2">
-                                <div className="flex flex-wrap gap-1">
-                                  {project.reports.slice(0, 2).map((report) => {
-                                    const badge = getReportTypeBadge(report.calculationType);
-                                    return (
-                                      <Badge 
-                                        key={report._id}
-                                        className={`${badge.color} text-white text-xs flex items-center gap-1`}
-                                      >
-                                        <badge.icon className="w-3 h-3 text-white" />
-                                        {badge.label}
-                                      </Badge>
-                                    );
-                                  })}
-                                  {project.reports.length > 2 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      +{project.reports.length - 2}
-                                    </Badge>
-                                  )}
-                                </div>
                                 {project.reports.length > 0 && (
-                                  <div className="text-xs text-slate-500">
+                                  <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">
                                     {project.reports.length} {project.reports.length === 1 ? 'تقرير' : 'تقارير'}
-                                  </div>
+                                  </Badge>
                                 )}
                               </div>
                             </TableCell>
@@ -922,7 +888,7 @@ export default function QuantityReportsPage() {
           </>
         )}
       </div>
-      
+
       {/* Delete Single Report Dialog */}
       <AlertDialog open={singleDelete.open} onOpenChange={(open) => setSingleDelete(prev => ({ ...prev, open }))}>
         <AlertDialogContent className="max-w-md" dir="rtl">
@@ -960,7 +926,7 @@ export default function QuantityReportsPage() {
       </AlertDialog>
 
       {/* Delete Project Dialog */}
-      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => 
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) =>
         setDeleteDialog(prev => ({ ...prev, open }))
       }>
         <AlertDialogContent className="max-w-md" dir="rtl">
@@ -972,7 +938,7 @@ export default function QuantityReportsPage() {
               <AlertDialogTitle className="text-right text-lg">تأكيد حذف التقارير</AlertDialogTitle>
             </div>
             <AlertDialogDescription className="text-right text-base">
-              هل أنت متأكد من حذف جميع تقارير المشروع: 
+              هل أنت متأكد من حذف جميع تقارير المشروع:
               <span className="font-bold text-slate-900"> {deleteDialog.projectName} </span>
               ؟
               <br /><br />
@@ -1002,7 +968,7 @@ export default function QuantityReportsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* Delete All Dialog */}
       <AlertDialog open={deleteAllDialog} onOpenChange={setDeleteAllDialog}>
         <AlertDialogContent className="max-w-md" dir="rtl">
