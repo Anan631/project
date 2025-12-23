@@ -121,6 +121,18 @@ const dashboardCategories = [
     badge: "معرفة",
     keywords: ["إرشادات", "فنية", "معايير", "هندسية"]
   },
+  {
+    id: 'quantity-survey',
+    title: "حساب كميات المواد",
+    description: "أداة متقدمة لحساب وتقدير كميات مواد البناء للمشاريع.",
+    icon: BarChart3,
+    href: "/engineer/quantity-survey/calculate-materials",
+    iconColorClass: "text-green-600",
+    bgColorClass: "bg-green-50 border-green-200",
+    buttonClass: "bg-green-600 hover:bg-green-700 text-white border-green-600",
+    badge: "حساب",
+    keywords: ["كميات", "مواد", "حساب", "تقدير"]
+  },
 ];
 
 // مكون هيكل التحميل المحسن
