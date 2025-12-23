@@ -45,7 +45,7 @@ function InputField({ id, label, value, onChange, type = "number", unit, icon: I
   label: string;
   value: string;
   onChange: (value: string) => void;
-  
+
   type?: string;
   unit: string;
   icon: any;
@@ -60,7 +60,7 @@ function InputField({ id, label, value, onChange, type = "number", unit, icon: I
         <Input
           id={id}
           type={type}
-          
+
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="pr-12 pl-3 h-12 text-right border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors rounded-xl"
@@ -132,7 +132,7 @@ export default function GroundBridgesCalculationPage() {
 
   // Update bridge data
   const updateBridge = (id: string, field: keyof Omit<Bridge, 'id'>, value: string) => {
-    setBridges(bridges.map(bridge => 
+    setBridges(bridges.map(bridge =>
       bridge.id === id ? { ...bridge, [field]: value } : bridge
     ));
     if (error) setError(null);
@@ -143,12 +143,12 @@ export default function GroundBridgesCalculationPage() {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
+
       const response = await fetch(`${API_BASE_URL}/api/health`, {
         method: 'GET',
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
       setServerAvailable(response.ok);
       return response.ok;
@@ -181,10 +181,10 @@ export default function GroundBridgesCalculationPage() {
       try {
         const reportsResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
         const reportsData = await reportsResponse.json();
-        
+
         if (reportsData.success && reportsData.reports && reportsData.reports.length > 0) {
           const existingReport = reportsData.reports.find((r: any) => r.calculationType === 'ground-bridges');
-          
+
           if (existingReport) {
             // Show warning dialog
             setExistingReportDialog({
@@ -206,8 +206,8 @@ export default function GroundBridgesCalculationPage() {
         const width = parseFloat(bridge.width);
         const height = parseFloat(bridge.height);
 
-        if (isNaN(length) || isNaN(width) || isNaN(height) || 
-            length <= 0 || width <= 0 || height <= 0) {
+        if (isNaN(length) || isNaN(width) || isNaN(height) ||
+          length <= 0 || width <= 0 || height <= 0) {
           throw new Error(`أبعاد الجسر ${bridge.id} غير صالحة`);
         }
 
@@ -271,7 +271,7 @@ export default function GroundBridgesCalculationPage() {
 
       // Close dialog and continue with calculation
       setExistingReportDialog({ open: false, reportId: null });
-      
+
       // Continue with calculation by calling calculateResults again
       calculateResults();
     } catch (error) {
@@ -307,22 +307,22 @@ export default function GroundBridgesCalculationPage() {
     try {
       const engineerId = localStorage.getItem('userId') || '';
       const engineerName = localStorage.getItem('userName') || 'المهندس';
-      
+
       // Fetch project details to get owner info
       const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
-      
+
       if (!projectRes.ok) {
         throw new Error(`HTTP error! status: ${projectRes.status}`);
       }
-      
+
       const projectContentType = projectRes.headers.get('content-type');
       if (!projectContentType || !projectContentType.includes('application/json')) {
         throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح. تأكد من تشغيل الخادم الخلفي.');
       }
-      
+
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
-      
+
       // تحضير البيانات للحفظ في قاعدة البيانات
       const reportData = {
         projectId,
@@ -357,20 +357,20 @@ export default function GroundBridgesCalculationPage() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const responseContentType = response.headers.get('content-type');
       if (!responseContentType || !responseContentType.includes('application/json')) {
         throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح');
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         toast({
           title: 'تم الحفظ بنجاح',
           description: 'تم حفظ كميات خرسانة الجسور الأرضية في قاعدة البيانات',
         });
-        
+
         // Navigate to reports page
         router.push(`/engineer/quantity-reports/${projectId}`);
       } else {
@@ -378,9 +378,9 @@ export default function GroundBridgesCalculationPage() {
       }
     } catch (error) {
       console.error('Error saving report:', error);
-      
+
       let errorMessage = 'حدث خطأ أثناء حفظ التقرير';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('Failed to fetch')) {
           errorMessage = 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي على المنفذ 5000';
@@ -390,7 +390,7 @@ export default function GroundBridgesCalculationPage() {
           errorMessage = 'خطأ في الخادم. يرجى المحاولة مرة أخرى';
         }
       }
-      
+
       toast({
         title: 'خطأ في الحفظ',
         description: errorMessage,
@@ -410,22 +410,22 @@ export default function GroundBridgesCalculationPage() {
         </div>
 
         <div className="relative z-10 container mx-auto px-4 py-8 lg:py-12 lg:px-8 max-w-7xl">
-          
+
           {/* Enhanced Header */}
           <div className="mb-12 lg:mb-16">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div className="flex items-center gap-3">
                 <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
-                  <Button variant="ghost" size="sm" className="border-2 border-blue-200/50 bg-white/80 backdrop-blur-sm hover:border-blue-300 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-blue-800 hover:text-blue-900">
-                    <ArrowRight className="w-4 h-4 rotate-180" />
-                    العودة إلى صفحة كروت الباطون
+                  <Button variant="ghost" size="sm" className="border-2 border-emerald-200/50 bg-white/80 backdrop-blur-sm hover:border-emerald-400 hover:bg-emerald-50 shadow-lg hover:shadow-xl transition-all duration-500 gap-2 text-emerald-800 font-extrabold hover:text-emerald-900 hover:drop-shadow-[0_0_10px_rgba(5,150,105,0.8)] group">
+                    <ArrowRight className="w-4 h-4 rotate-180 transition-transform group-hover:scale-125" />
+                    العودة إلى حاسبة الباطون
                   </Button>
                 </Link>
-                
+
               </div>
-              
+
             </div>
-            
+
             <div className="relative group">
               <div className="flex items-start lg:items-center gap-6 p-2">
                 <div className="relative">
@@ -440,7 +440,7 @@ export default function GroundBridgesCalculationPage() {
                   <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-blue-800 bg-clip-text text-transparent leading-tight mb-4">
                     حساب الجسور الأرضية
                   </h1>
-                  
+
                 </div>
               </div>
               <div className="absolute -inset-4 bg-gradient-to-r from-blue-400/20 via-indigo-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
@@ -448,10 +448,10 @@ export default function GroundBridgesCalculationPage() {
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 items-start">
-            
+
             {/* Enhanced Input Sections */}
             <div className="xl:col-span-8 space-y-6 lg:space-y-8">
-              
+
               {/* Server Status Warning */}
               {!serverAvailable && (
                 <div className="p-4 lg:p-6 bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-2xl shadow-xl">
@@ -497,7 +497,7 @@ export default function GroundBridgesCalculationPage() {
                       </div>
                       <div>
                         <CardTitle className="text-xl font-bold">بيانات الجسور الأرضية</CardTitle>
-                        
+
                       </div>
                     </div>
                     <Button
@@ -510,7 +510,7 @@ export default function GroundBridgesCalculationPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-6 lg:p-8 pt-0 space-y-6">
-                  
+
 
                   {/* قائمة الجسور */}
                   <div className="space-y-4">
@@ -538,7 +538,7 @@ export default function GroundBridgesCalculationPage() {
                             label="طول الجسر"
                             value={bridge.length}
                             onChange={(value) => updateBridge(bridge.id, 'length', value)}
-                            
+
                             unit="متر"
                             icon={Ruler}
                           />
@@ -547,7 +547,7 @@ export default function GroundBridgesCalculationPage() {
                             label="سمك الجسر"
                             value={bridge.width}
                             onChange={(value) => updateBridge(bridge.id, 'width', value)}
-                            
+
                             unit="متر"
                             icon={Ruler}
                           />
@@ -556,7 +556,7 @@ export default function GroundBridgesCalculationPage() {
                             label="ارتفاع الجسر"
                             value={bridge.height}
                             onChange={(value) => updateBridge(bridge.id, 'height', value)}
-                            
+
                             unit="متر"
                             icon={Ruler}
                           />
@@ -567,8 +567,8 @@ export default function GroundBridgesCalculationPage() {
 
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-4">
-                    <Button 
-                      onClick={calculateResults} 
+                    <Button
+                      onClick={calculateResults}
                       disabled={isLoading}
                       className="flex-1 h-14 text-lg font-bold shadow-2xl hover:shadow-3xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 hover:from-blue-700 hover:via-blue-800 hover:to-indigo-800 transform hover:-translate-y-1 transition-all duration-300 rounded-2xl border-0"
                     >
@@ -584,9 +584,9 @@ export default function GroundBridgesCalculationPage() {
                         </>
                       )}
                     </Button>
-                    <Button 
-                      onClick={resetCalculation} 
-                      variant="outline" 
+                    <Button
+                      onClick={resetCalculation}
+                      variant="outline"
                       className="h-14 px-6 text-lg font-bold border-2 border-gray-200 hover:border-red-400 hover:bg-red-50 hover:text-red-900 transition-all duration-300 rounded-2xl flex items-center gap-3"
                     >
                       <CheckCircle2 className="w-5 h-5" />
@@ -687,7 +687,7 @@ export default function GroundBridgesCalculationPage() {
                       </div>
 
                       {/* Save Button */}
-                      <Button 
+                      <Button
                         onClick={async () => {
                           if (!serverAvailable) {
                             // Save locally if server is not available
@@ -704,7 +704,7 @@ export default function GroundBridgesCalculationPage() {
                             return;
                           }
                           await saveToReports();
-                        }} 
+                        }}
                         disabled={saving}
                         className="w-full h-12 font-bold shadow-lg hover:shadow-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 transform hover:-translate-y-0.5 transition-all duration-300 rounded-xl border-0"
                       >
@@ -730,7 +730,7 @@ export default function GroundBridgesCalculationPage() {
                       <p className="text-gray-600 mb-6">
                         أدخل أبعاد الجسور الأرضية واضغط على "حساب كميات الخرسانة" لعرض النتائج
                       </p>
-                      
+
                     </div>
                   )}
                 </CardContent>
@@ -740,7 +740,7 @@ export default function GroundBridgesCalculationPage() {
         </div>
       </div>
       {/* Existing Report Warning Dialog */}
-      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => 
+      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) =>
         setExistingReportDialog(prev => ({ ...prev, open }))
       }>
         <AlertDialogContent className="max-w-lg" dir="rtl">

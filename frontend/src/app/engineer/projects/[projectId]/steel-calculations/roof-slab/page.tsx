@@ -340,17 +340,10 @@ export default function RoofSlabCalculationPage() {
         <div className="mb-12 lg:mb-16">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
-              <Link href={`/engineer/projects/${projectId}`}>
-                <Button variant="ghost" size="sm" className="border-2 border-rose-200/50 bg-white/80 backdrop-blur-sm hover:border-rose-300 hover:bg-rose-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-rose-800 hover:text-rose-900">
-                  <Home className="w-4 h-4" />
-                  المشروع
-                </Button>
-              </Link>
-              <ChevronRight className="w-4 h-4 text-slate-400 rotate-180" />
               <Link href={`/engineer/projects/${projectId}/steel-calculations`}>
-                <Button variant="ghost" size="sm" className="border-2 border-rose-200/50 bg-white/80 backdrop-blur-sm hover:border-rose-300 hover:bg-rose-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-rose-800 hover:text-rose-900">
-                  <ArrowRight className="w-4 h-4 rotate-180" />
-                  حاسبة الحديد
+                <Button variant="ghost" size="sm" className="border-2 border-rose-200/50 bg-white/80 backdrop-blur-sm hover:border-rose-400 hover:bg-rose-50 shadow-lg hover:shadow-xl transition-all duration-500 gap-2 text-rose-800 font-extrabold hover:text-rose-900 hover:drop-shadow-[0_0_10px_rgba(225,29,72,0.8)] group">
+                  <ArrowRight className="w-4 h-4 rotate-180 transition-transform group-hover:scale-125" />
+                  العودة إلى حاسبة الحديد
                 </Button>
               </Link>
             </div>
@@ -421,8 +414,8 @@ export default function RoofSlabCalculationPage() {
                       setError(null);
                     }}
                     className={`p-8 rounded-2xl border-2 transition-all duration-300 text-center group hover:shadow-lg ${reinforcementType === 'mesh'
-                        ? 'border-red-500 bg-gradient-to-br from-red-50 to-orange-50 shadow-lg'
-                        : 'border-gray-200 bg-white hover:border-red-300'
+                      ? 'border-red-500 bg-gradient-to-br from-red-50 to-orange-50 shadow-lg'
+                      : 'border-gray-200 bg-white hover:border-red-300'
                       }`}
                   >
                     <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -442,8 +435,8 @@ export default function RoofSlabCalculationPage() {
                       setError(null);
                     }}
                     className={`p-8 rounded-2xl border-2 transition-all duration-300 text-center group hover:shadow-lg ${reinforcementType === 'separate'
-                        ? 'border-red-500 bg-gradient-to-br from-red-50 to-orange-50 shadow-lg'
-                        : 'border-gray-200 bg-white hover:border-red-300'
+                      ? 'border-red-500 bg-gradient-to-br from-red-50 to-orange-50 shadow-lg'
+                      : 'border-gray-200 bg-white hover:border-red-300'
                       }`}
                   >
                     <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center group-hover:scale-110 transition-transform">

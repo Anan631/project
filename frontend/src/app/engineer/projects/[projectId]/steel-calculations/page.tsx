@@ -125,10 +125,10 @@ export default function SteelCalculationsPage() {
           اختر العنصر الإنشائي للبدء في حساب كميات الحديد بدقة وسهولة.
         </p>
 
-        <Link href={`/engineer/projects/${projectId}`}>
-          <Button variant="outline" className="mt-6 gap-2 hover:bg-gray-100 transition-colors">
-            <ArrowRight className="w-4 h-4 ml-2" />
-            العودة للمشروع
+        <Link href={`/engineer/quantity-survey/calculate-materials`}>
+          <Button variant="outline" className="mt-6 gap-2 border-2 border-slate-200 text-slate-700 font-bold transition-all duration-500 hover:bg-blue-900 hover:text-white hover:border-blue-900 hover:drop-shadow-[0_0_15px_rgba(30,58,138,0.8)] group">
+            <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:scale-125" />
+            العودة لحساب الكميات
           </Button>
         </Link>
       </div>
@@ -153,14 +153,16 @@ export default function SteelCalculationsPage() {
                           ? `/engineer/projects/${projectId}/steel-calculations/column-base`
                           : card.id === 'columns'
                             ? `/engineer/projects/${projectId}/steel-calculations/steel-ties-and-columns`
-                            : '#'
+                            : card.id === 'roof-beam'
+                              ? `/engineer/projects/${projectId}/steel-calculations/roof-beams`
+                              : '#'
             }
             className={cn(
               "group block h-full",
-              (card.id === 'ground-slab' || card.id === 'roof-slab' || card.id === 'roof-ribs' || card.id === 'foundation' || card.id === 'ground-beams' || card.id === 'column-base' || card.id === 'columns') ? 'cursor-pointer' : 'cursor-not-allowed',
-              card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs' && card.id !== 'foundation' && card.id !== 'ground-beams' && card.id !== 'column-base' && card.id !== 'columns' && 'opacity-80'
+              (card.id === 'ground-slab' || card.id === 'roof-slab' || card.id === 'roof-ribs' || card.id === 'foundation' || card.id === 'ground-beams' || card.id === 'column-base' || card.id === 'columns' || card.id === 'roof-beam') ? 'cursor-pointer' : 'cursor-not-allowed',
+              card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs' && card.id !== 'foundation' && card.id !== 'ground-beams' && card.id !== 'column-base' && card.id !== 'columns' && card.id !== 'roof-beam' && 'opacity-80'
             )}
-            aria-disabled={card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs' && card.id !== 'foundation' && card.id !== 'ground-beams' && card.id !== 'column-base' && card.id !== 'columns'}
+            aria-disabled={card.id !== 'ground-slab' && card.id !== 'roof-slab' && card.id !== 'roof-ribs' && card.id !== 'foundation' && card.id !== 'ground-beams' && card.id !== 'column-base' && card.id !== 'columns' && card.id !== 'roof-beam'}
           >
             <div className={cn(
               "relative h-full rounded-2xl overflow-hidden",

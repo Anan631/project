@@ -132,7 +132,7 @@ export default function ColumnsConcretePage() {
     setColumns(prev => prev.map(column => {
       if (column.id === id) {
         const updatedColumn = { ...column, [field]: value };
-        
+
         // حساب الحجم المحدث
         const volume = calculateColumnVolume(
           updatedColumn.shape,
@@ -177,7 +177,7 @@ export default function ColumnsConcretePage() {
     try {
       // قراءة البيانات من Local Storage
       const storedData = localStorage.getItem('columnDimensionsFromFootings');
-      
+
       if (!storedData) {
         toast({
           title: 'لا توجد بيانات',
@@ -188,7 +188,7 @@ export default function ColumnsConcretePage() {
       }
 
       const columnData = JSON.parse(storedData);
-      
+
       // تحويل الشكل من العربية إلى الإنجليزية
       let shape: 'square' | 'rectangle' | 'circular' = 'square';
       if (columnData.shape === 'مربع') {
@@ -279,7 +279,7 @@ export default function ColumnsConcretePage() {
 
       setColumns(prev => [...prev, newColumn]);
       setNextId(prev => prev + 1);
-      
+
       toast({
         title: 'تم الاستيراد بنجاح',
         description: `تم استيراد أبعاد العمود ${getShapeName(shape)} (${columnData.displayText || columnData.shape}) من صفحة شروش الأعمدة`,
@@ -305,12 +305,12 @@ export default function ColumnsConcretePage() {
     try {
       const response = await fetch(`http://localhost:5000/api/quantity-reports/project/${projectId}`);
       const data = await response.json();
-      
+
       if (data.success && data.reports) {
-        const existingReport = data.reports.find((r: any) => 
+        const existingReport = data.reports.find((r: any) =>
           r.calculationType === 'columns' && !r.deleted
         );
-        
+
         if (existingReport) {
           return existingReport._id;
         }
@@ -339,10 +339,10 @@ export default function ColumnsConcretePage() {
   // حفظ التقرير
   const saveToReports = async (shouldDeleteExisting: boolean = false) => {
     if (columns.length === 0) {
-      toast({ 
-        title: 'لا توجد أعمدة', 
-        description: 'يرجى إضافة أعمدة أولاً', 
-        variant: 'destructive' 
+      toast({
+        title: 'لا توجد أعمدة',
+        description: 'يرجى إضافة أعمدة أولاً',
+        variant: 'destructive'
       });
       return;
     }
@@ -356,7 +356,7 @@ export default function ColumnsConcretePage() {
 
       const engineerId = localStorage.getItem('userId') || '';
       const engineerName = localStorage.getItem('userName') || 'المهندس';
-      
+
       const projectRes = await fetch(`http://localhost:5000/api/projects/${projectId}`);
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
@@ -400,9 +400,9 @@ export default function ColumnsConcretePage() {
 
       const data = await response.json();
       if (data.success) {
-        toast({ 
-          title: 'تم الحفظ بنجاح', 
-          description: 'تم ترحيل النتائج إلى صفحة تقارير الكميات' 
+        toast({
+          title: 'تم الحفظ بنجاح',
+          description: 'تم ترحيل النتائج إلى صفحة تقارير الكميات'
         });
         router.push(`/engineer/quantity-reports/${projectId}`);
       } else {
@@ -410,10 +410,10 @@ export default function ColumnsConcretePage() {
       }
     } catch (error) {
       console.error('Error saving report:', error);
-      toast({ 
-        title: 'خطأ في الحفظ', 
-        description: 'حدث خطأ أثناء حفظ التقرير', 
-        variant: 'destructive' 
+      toast({
+        title: 'خطأ في الحفظ',
+        description: 'حدث خطأ أثناء حفظ التقرير',
+        variant: 'destructive'
       });
     } finally {
       setSaving(false);
@@ -434,22 +434,22 @@ export default function ColumnsConcretePage() {
 
     // التحقق من صحة بيانات جميع الأعمدة
     const invalidColumns: number[] = [];
-    
+
     columns.forEach((column) => {
       let isValid = false;
-      
+
       if (column.shape === 'square' || column.shape === 'rectangle') {
         const length = parseFloat(column.length || '0');
         const width = parseFloat(column.width || '0');
         const height = parseFloat(column.height || '0');
-        
+
         if (!length || length <= 0 || !width || width <= 0 || !height || height <= 0) {
           invalidColumns.push(column.id);
         }
       } else if (column.shape === 'circular') {
         const diameter = parseFloat(column.diameter || '0');
         const height = parseFloat(column.height || '0');
-        
+
         if (!diameter || diameter <= 0 || !height || height <= 0) {
           invalidColumns.push(column.id);
         }
@@ -536,18 +536,14 @@ export default function ColumnsConcretePage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
               <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="border-2 border-emerald-200/50 bg-white/80 backdrop-blur-sm hover:border-emerald-300 hover:bg-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-emerald-800 hover:text-emerald-900"
-                >
-                  <ArrowRight className="w-4 h-4 rotate-180" />
-                  العودة إلى صفحة كروت الباطون
+                <Button variant="ghost" size="sm" className="border-2 border-pink-200/50 bg-white/80 backdrop-blur-sm hover:border-pink-400 hover:bg-pink-50 shadow-lg hover:shadow-xl transition-all duration-500 gap-2 text-pink-800 font-extrabold hover:text-pink-900 hover:drop-shadow-[0_0_10px_rgba(219,39,119,0.8)] group">
+                  <ArrowRight className="w-4 h-4 rotate-180 transition-transform group-hover:scale-125" />
+                  العودة إلى حاسبة الباطون
                 </Button>
               </Link>
-              
+
             </div>
-            
+
           </div>
 
           <div className="relative group">
@@ -564,7 +560,7 @@ export default function ColumnsConcretePage() {
                 <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-emerald-800 bg-clip-text text-transparent leading-tight mb-4">
                   حساب كمية الخرسانة في الأعمدة
                 </h1>
-                
+
               </div>
             </div>
             <div className="absolute -inset-4 bg-gradient-to-r from-emerald-400/20 via-blue-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
@@ -735,7 +731,7 @@ export default function ColumnsConcretePage() {
                                         label="الطول"
                                         value={column.length || ''}
                                         onChange={(value) => updateColumn(column.id, 'length', value)}
-                                        
+
                                         unit="متر"
                                         icon={Ruler}
                                       />
@@ -744,7 +740,7 @@ export default function ColumnsConcretePage() {
                                         label="العرض"
                                         value={column.width || ''}
                                         onChange={(value) => updateColumn(column.id, 'width', value)}
-                                        
+
                                         unit="متر"
                                         icon={Ruler}
                                       />
@@ -758,7 +754,7 @@ export default function ColumnsConcretePage() {
                                         label="الطول"
                                         value={column.length || ''}
                                         onChange={(value) => updateColumn(column.id, 'length', value)}
-                                       
+
                                         unit="متر"
                                         icon={Ruler}
                                       />
@@ -767,7 +763,7 @@ export default function ColumnsConcretePage() {
                                         label="العرض"
                                         value={column.width || ''}
                                         onChange={(value) => updateColumn(column.id, 'width', value)}
-                                     
+
                                         unit="متر"
                                         icon={Ruler}
                                       />
@@ -780,7 +776,7 @@ export default function ColumnsConcretePage() {
                                       label="القطر"
                                       value={column.diameter || ''}
                                       onChange={(value) => updateColumn(column.id, 'diameter', value)}
-                                    
+
                                       unit="متر"
                                       icon={Ruler}
                                     />
@@ -791,7 +787,7 @@ export default function ColumnsConcretePage() {
                                     label="الارتفاع"
                                     value={column.height || ''}
                                     onChange={(value) => updateColumn(column.id, 'height', value)}
-                                    
+
                                     unit="متر"
                                     icon={Ruler}
                                   />
@@ -809,7 +805,7 @@ export default function ColumnsConcretePage() {
 
             {/* Action Buttons */}
             <div className="flex flex-col lg:flex-row gap-4 pt-4">
-              <Button 
+              <Button
                 onClick={calculateConcrete}
                 disabled={columns.length === 0}
                 className="flex-1 h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden disabled:opacity-50"
@@ -821,7 +817,7 @@ export default function ColumnsConcretePage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </Button>
 
-              <Button 
+              <Button
                 onClick={() => saveToReports(false)}
                 disabled={columns.length === 0 || saving}
                 className="flex-1 h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:via-teal-700 hover:to-blue-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden disabled:opacity-50"
@@ -833,9 +829,9 @@ export default function ColumnsConcretePage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </Button>
 
-              <Button 
+              <Button
                 onClick={reset}
-                variant="outline" 
+                variant="outline"
                 className="h-14 px-6 text-base font-black border-2 border-slate-300 hover:border-red-400 hover:bg-red-50 hover:text-red-800 shadow-xl hover:shadow-red-200 transition-all duration-500 rounded-2xl flex items-center gap-4"
               >
                 <Trash2 className="w-5 h-5" />
@@ -854,7 +850,7 @@ export default function ColumnsConcretePage() {
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold">النتائج الهندسية</CardTitle>
-                    
+
                   </div>
                 </div>
               </CardHeader>
@@ -873,9 +869,9 @@ export default function ColumnsConcretePage() {
                             إجمالي خرسانة الأعمدة
                           </Label>
                           <div className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-white via-indigo-50 to-white bg-clip-text text-transparent drop-shadow-3xl leading-none">
-                            {totalVolume.toLocaleString('en-US', { 
-                              minimumFractionDigits: 3, 
-                              maximumFractionDigits: 3 
+                            {totalVolume.toLocaleString('en-US', {
+                              minimumFractionDigits: 3,
+                              maximumFractionDigits: 3
                             })}
                           </div>
                           <div className="text-lg font-bold text-indigo-100 tracking-wider">متر مكعب</div>
@@ -889,46 +885,42 @@ export default function ColumnsConcretePage() {
                       <CardContent className="p-0 pt-4 pb-4">
                         <div className="grid grid-cols-1 gap-3">
                           {[
-                            { 
-                              label: 'عدد الأعمدة', 
-                              value: `${columns.length} عمود`, 
-                              color: 'from-emerald-400 to-teal-400', 
-                              highlight: true 
+                            {
+                              label: 'عدد الأعمدة',
+                              value: `${columns.length} عمود`,
+                              color: 'from-emerald-400 to-teal-400',
+                              highlight: true
                             },
-                            { 
-                              label: 'المجموع الكلي للخرسانة', 
-                              value: `${totalVolume.toFixed(3)} م³`, 
-                              color: 'from-indigo-500 to-purple-500', 
-                              highlight: true 
+                            {
+                              label: 'المجموع الكلي للخرسانة',
+                              value: `${totalVolume.toFixed(3)} م³`,
+                              color: 'from-indigo-500 to-purple-500',
+                              highlight: true
                             },
-                            { 
-                              label: 'متوسط الحجم للعمود', 
-                              value: `${(totalVolume / columns.length).toFixed(3)} م³`, 
-                              color: 'from-blue-500 to-cyan-500' 
+                            {
+                              label: 'متوسط الحجم للعمود',
+                              value: `${(totalVolume / columns.length).toFixed(3)} م³`,
+                              color: 'from-blue-500 to-cyan-500'
                             },
                           ].map(({ label, value, color, highlight }, index) => (
-                            <div 
-                              key={index} 
-                              className={`group p-6 bg-gradient-to-r ${
-                                highlight 
-                                  ? 'from-indigo-50 to-purple-50 border-2 border-indigo-200' 
-                                  : 'from-white/60 hover:from-white'
-                              } rounded-2xl ${
-                                highlight 
-                                  ? 'border-indigo-200' 
+                            <div
+                              key={index}
+                              className={`group p-6 bg-gradient-to-r ${highlight
+                                ? 'from-indigo-50 to-purple-50 border-2 border-indigo-200'
+                                : 'from-white/60 hover:from-white'
+                                } rounded-2xl ${highlight
+                                  ? 'border-indigo-200'
                                   : 'border-slate-200 hover:border-indigo-300'
-                              } hover:shadow-lg transition-all duration-300 flex items-center justify-between`}
+                                } hover:shadow-lg transition-all duration-300 flex items-center justify-between`}
                             >
-                              <span className={`font-bold ${
-                                highlight 
-                                  ? 'text-indigo-900 text-lg' 
-                                  : 'text-slate-800 text-base'
-                              }`}>
+                              <span className={`font-bold ${highlight
+                                ? 'text-indigo-900 text-lg'
+                                : 'text-slate-800 text-base'
+                                }`}>
                                 {label}:
                               </span>
-                              <span className={`font-black ${
-                                highlight ? 'text-xl' : 'text-lg'
-                              } bg-gradient-to-r ${color} bg-clip-text text-transparent px-4 py-1 rounded-xl shadow-lg group-hover:scale-105 transition-transform duration-300`}>
+                              <span className={`font-black ${highlight ? 'text-xl' : 'text-lg'
+                                } bg-gradient-to-r ${color} bg-clip-text text-transparent px-4 py-1 rounded-xl shadow-lg group-hover:scale-105 transition-transform duration-300`}>
                                 {value}
                               </span>
                             </div>
@@ -955,7 +947,7 @@ export default function ColumnsConcretePage() {
       </div>
 
       {/* Dialog للتحذير من إعادة الحساب */}
-      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => 
+      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) =>
         setExistingReportDialog(prev => ({ ...prev, open }))
       }>
         <AlertDialogContent className="max-w-lg" dir="rtl">
@@ -1015,15 +1007,15 @@ export default function ColumnsConcretePage() {
   );
 }
 
-function InputField({ 
-  id, 
-  label, 
-  value, 
-  onChange, 
-  placeholder, 
-  step = "any", 
-  unit, 
-  icon: Icon, 
+function InputField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder = "",
+  step = "any",
+  unit,
+  icon: Icon,
   type = "number",
   containerClassName = ""
 }: {
@@ -1031,7 +1023,7 @@ function InputField({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
+  placeholder?: string;
   step?: string;
   unit?: string;
   icon?: any;

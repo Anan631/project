@@ -336,10 +336,10 @@ export default function ColumnFootingsCalculationPage() {
       try {
         const reportsResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
         const reportsData = await reportsResponse.json();
-        
+
         if (reportsData.success && reportsData.reports && reportsData.reports.length > 0) {
           const existingReport = reportsData.reports.find((r: any) => r.calculationType === 'column-footings');
-          
+
           if (existingReport) {
             // Show warning dialog
             setExistingReportDialog({
@@ -502,7 +502,7 @@ export default function ColumnFootingsCalculationPage() {
 
       // Close dialog and continue with calculation
       setExistingReportDialog({ open: false, reportId: null });
-      
+
       // Continue with calculation by calling calculateResults again
       // This time it won't find the report, so it will proceed
       calculateResults();
@@ -678,14 +678,14 @@ export default function ColumnFootingsCalculationPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div className="flex items-center gap-3">
                 <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
-                  <Button variant="ghost" size="sm" className="border-2 border-blue-200/50 bg-white/80 backdrop-blur-sm hover:border-blue-300 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-blue-800 hover:text-blue-900">
-                    <ArrowRight className="w-4 h-4 rotate-180" />
-                    العودة الى صفحة الكروت الخاصة بالباطون
+                  <Button variant="ghost" size="sm" className="border-2 border-blue-200/50 bg-white/80 backdrop-blur-sm hover:border-blue-400 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all duration-500 gap-2 text-blue-800 font-extrabold hover:text-blue-900 hover:drop-shadow-[0_0_10px_rgba(37,99,235,0.8)] group">
+                    <ArrowRight className="w-4 h-4 rotate-180 transition-transform group-hover:scale-125" />
+                    العودة إلى حاسبة الباطون
                   </Button>
                 </Link>
-                
+
               </div>
-              
+
             </div>
 
             <div className="relative group">
@@ -702,7 +702,7 @@ export default function ColumnFootingsCalculationPage() {
                   <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-blue-800 bg-clip-text text-transparent leading-tight mb-4">
                     حساب شروش الأعمدة
                   </h1>
-                  
+
                 </div>
               </div>
               <div className="absolute -inset-4 bg-gradient-to-r from-blue-400/20 via-indigo-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
@@ -770,7 +770,7 @@ export default function ColumnFootingsCalculationPage() {
                     label="عدد الأعمدة"
                     value={inputs.numberOfColumns}
                     onChange={(value) => handleInputChange('numberOfColumns', value)}
-                    
+
                     type="number"
                     unit="عمود"
                     icon={Grid}
@@ -787,8 +787,8 @@ export default function ColumnFootingsCalculationPage() {
                     label="ارتفاع الشرش"
                     value={inputs.footingHeight}
                     onChange={(value) => handleInputChange('footingHeight', value)}
-                    
-                   
+
+
                     unit="متر"
                     icon={Ruler}
                   />
@@ -1222,7 +1222,7 @@ export default function ColumnFootingsCalculationPage() {
       </div>
 
       {/* Existing Report Warning Dialog */}
-      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => 
+      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) =>
         setExistingReportDialog(prev => ({ ...prev, open }))
       }>
         <AlertDialogContent className="max-w-lg" dir="rtl">

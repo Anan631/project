@@ -114,10 +114,10 @@ export default function ConcreteCalculationsPage() {
           اختر العنصر الإنشائي للبدء في حساب كميات الخرسانة بدقة وسهولة.
         </p>
 
-        <Link href={`/engineer/projects/${projectId}`}>
-          <Button className="mt-6 gap-2 bg-gray-900 text-white font-semibold hover:bg-green-600 transition-colors">
-            <ArrowRight className="w-4 h-4 ml-2" />
-            العودة للمشروع
+        <Link href={`/engineer/quantity-survey/calculate-materials`}>
+          <Button variant="outline" className="mt-6 gap-2 border-2 border-slate-200 text-slate-700 font-bold transition-all duration-500 hover:bg-blue-900 hover:text-white hover:border-blue-900 hover:drop-shadow-[0_0_15px_rgba(30,58,138,0.8)] group">
+            <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:scale-125" />
+            العودة لحساب الكميات
           </Button>
         </Link>
       </div>
@@ -142,7 +142,7 @@ export default function ConcreteCalculationsPage() {
               "hover:border-transparent",
               "hover:-translate-y-1 hover:scale-[1.02]"
             )}>
-              
+
               {/* Gradient Overlay on Hover */}
               <div className={cn(
                 "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700",
@@ -153,10 +153,10 @@ export default function ConcreteCalculationsPage() {
 
               {/* Content Container */}
               <div className="relative p-7 flex flex-col h-full">
-                
+
                 {/* Header Section */}
                 <div className="flex items-start justify-between mb-6">
-                  
+
                   {/* Icon with Animated Background */}
                   <div className="relative">
                     <div className={cn(
@@ -206,7 +206,7 @@ export default function ConcreteCalculationsPage() {
                     "bg-gradient-to-r from-transparent via-gray-200 to-transparent",
                     "group-hover:via-gray-300"
                   )} />
-                  
+
                   {/* CTA Button */}
                   <div className="flex items-center justify-between">
                     <span className={cn(

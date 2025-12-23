@@ -86,10 +86,10 @@ export default function GroundSlabPage() {
       try {
         const reportsResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
         const reportsData = await reportsResponse.json();
-        
+
         if (reportsData.success && reportsData.reports && reportsData.reports.length > 0) {
           const existingReport = reportsData.reports.find((r: any) => r.calculationType === 'ground-slab');
-          
+
           if (existingReport) {
             // Show warning dialog
             setExistingReportDialog({
@@ -108,8 +108,8 @@ export default function GroundSlabPage() {
       // قانون حساب حجم الخرسانة: المساحة * السماكة
       const groundSlabVolume = slabArea * slabThickness; // m3
 
-      setResults({ 
-        groundSlabVolume, 
+      setResults({
+        groundSlabVolume,
         totalConcrete: groundSlabVolume
       });
       setError(null);
@@ -147,7 +147,7 @@ export default function GroundSlabPage() {
 
       // Close dialog and continue with calculation
       setExistingReportDialog({ open: false, reportId: null });
-      
+
       // Continue with calculation by calling calculate again
       calculate();
     } catch (error) {
@@ -184,16 +184,16 @@ export default function GroundSlabPage() {
       const engineerName = localStorage.getItem('userName') || 'المهندس';
 
       const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
-      
+
       if (!projectRes.ok) {
         throw new Error(`HTTP error! status: ${projectRes.status}`);
       }
-      
+
       const projectContentType = projectRes.headers.get('content-type');
       if (!projectContentType || !projectContentType.includes('application/json')) {
         throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح. تأكد من تشغيل الخادم الخلفي.');
       }
-      
+
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
 
@@ -260,14 +260,14 @@ export default function GroundSlabPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
               <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
-                <Button variant="ghost" size="sm" className="border-2 border-emerald-200/50 bg-white/80 backdrop-blur-sm hover:border-emerald-300 hover:bg-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-emerald-800 hover:text-emerald-900">
-                  <ArrowRight className="w-4 h-4 rotate-180" />
-                  العودة إلى صفحة كروت الباطون
+                <Button variant="ghost" size="sm" className="border-2 border-orange-200/50 bg-white/80 backdrop-blur-sm hover:border-orange-400 hover:bg-orange-50 shadow-lg hover:shadow-xl transition-all duration-500 gap-2 text-orange-800 font-extrabold hover:text-orange-900 hover:drop-shadow-[0_0_10px_rgba(234,88,12,0.8)] group">
+                  <ArrowRight className="w-4 h-4 rotate-180 transition-transform group-hover:scale-125" />
+                  العودة إلى حاسبة الباطون
                 </Button>
               </Link>
-              
+
             </div>
-            
+
           </div>
 
           <div className="relative group">
@@ -285,7 +285,7 @@ export default function GroundSlabPage() {
                   حساب أرضية المبنى (المده)
                 </h1>
                 <p className="text-lg lg:text-xl text-slate-600 font-semibold leading-relaxed max-w-2xl">
-                  حساب حجم الخرسانة لأرضية المبنى    
+                  حساب حجم الخرسانة لأرضية المبنى
                 </p>
               </div>
             </div>
@@ -333,7 +333,7 @@ export default function GroundSlabPage() {
                     label="مساحة الأرضية"
                     value={inputs.slabArea}
                     onChange={(v) => handleInputChange('slabArea', v)}
-                    
+
                     unit="م²"
                     icon={Grid}
                   />
@@ -342,18 +342,18 @@ export default function GroundSlabPage() {
                     label="سماكة الخرسانة (الارتفاع)"
                     value={inputs.slabThickness}
                     onChange={(v) => handleInputChange('slabThickness', v)}
-                    
+
                     unit="متر"
                     icon={Ruler}
                   />
                 </div>
-                
+
               </CardContent>
             </Card>
 
             {/* Action Buttons */}
             <div className="flex flex-col lg:flex-row gap-4 pt-4">
-              <Button 
+              <Button
                 onClick={calculate}
                 disabled={isLoading}
                 className="flex-1 h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:via-teal-700 hover:to-blue-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
@@ -374,9 +374,9 @@ export default function GroundSlabPage() {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </Button>
-              <Button 
+              <Button
                 onClick={reset}
-                variant="outline" 
+                variant="outline"
                 className="h-14 px-6 text-base font-black border-2 border-slate-300 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-800 shadow-xl hover:shadow-emerald-200 transition-all duration-500 rounded-2xl flex items-center gap-4"
               >
                 <CheckCircle2 className="w-5 h-5" />
@@ -395,7 +395,7 @@ export default function GroundSlabPage() {
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold">النتائج</CardTitle>
-                    
+
                   </div>
                 </div>
               </CardHeader>
@@ -476,7 +476,7 @@ export default function GroundSlabPage() {
       </div>
 
       {/* Existing Report Warning Dialog */}
-      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => 
+      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) =>
         setExistingReportDialog(prev => ({ ...prev, open }))
       }>
         <AlertDialogContent className="max-w-lg" dir="rtl">
@@ -527,14 +527,14 @@ export default function GroundSlabPage() {
   );
 }
 
-function InputField({ 
-  id, 
-  label, 
-  value, 
-  onChange, 
- 
-  unit, 
-  icon: Icon, 
+function InputField({
+  id,
+  label,
+  value,
+  onChange,
+
+  unit,
+  icon: Icon,
   type = "number",
   containerClassName = ""
 }: {
@@ -542,7 +542,7 @@ function InputField({
   label: string;
   value: string;
   onChange: (value: string) => void;
- 
+
   unit?: string;
   icon?: any;
   type?: string;
@@ -558,7 +558,7 @@ function InputField({
         <Input
           id={id}
           type={type}
-          
+
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="h-16 text-lg font-bold text-right pr-14 bg-gradient-to-r from-white/80 to-slate-50/80 hover:from-white hover:to-slate-50 border-2 border-slate-200 hover:border-emerald-300 focus:border-emerald-500 shadow-xl focus:shadow-emerald-200/50 transition-all duration-400 rounded-3xl backdrop-blur-sm"

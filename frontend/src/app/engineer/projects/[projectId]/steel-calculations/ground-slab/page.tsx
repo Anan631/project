@@ -357,8 +357,8 @@ export default function GroundSlabCalculationPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
               <Link href={`/engineer/projects/${projectId}/steel-calculations`}>
-                <Button variant="ghost" size="sm" className="border-2 border-emerald-200/50 bg-white/80 backdrop-blur-sm hover:border-emerald-300 hover:bg-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-emerald-800 hover:text-emerald-900">
-                  <ArrowRight className="w-4 h-4 rotate-180" />
+                <Button variant="ghost" size="sm" className="border-2 border-orange-200/50 bg-white/80 backdrop-blur-sm hover:border-orange-400 hover:bg-orange-50 shadow-lg hover:shadow-xl transition-all duration-500 gap-2 text-orange-800 font-extrabold hover:text-orange-900 hover:drop-shadow-[0_0_10px_rgba(154,52,18,0.8)] group">
+                  <ArrowRight className="w-4 h-4 rotate-180 transition-transform group-hover:scale-125" />
                   العودة إلى حاسبة الحديد
                 </Button>
               </Link>

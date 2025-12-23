@@ -83,7 +83,7 @@ export default function RoofConcretePage() {
   // جلب بيانات الحمولة الحية من قاعدة البيانات
   const [liveLoadData, setLiveLoadData] = useState<any[]>([]);
   const [loadingLiveLoad, setLoadingLiveLoad] = useState(false);
-  
+
   // جلب بيانات الحمولة الحية عند تحميل المكون
   useEffect(() => {
     const fetchLiveLoadData = async () => {
@@ -110,10 +110,10 @@ export default function RoofConcretePage() {
         setLoadingLiveLoad(false);
       }
     };
-    
+
     fetchLiveLoadData();
   }, []);
-  
+
   // تحديد الحمولة الحية للمتر المربع بناءً على نوع المبنى
   const getLiveLoadPerM2 = () => {
     // البحث عن نوع المبنى في البيانات المحملة
@@ -121,16 +121,16 @@ export default function RoofConcretePage() {
       // استخدام القيمة الإنجليزية للمقارنة
       return item.buildingTypeEn === buildingType;
     }) : null;
-    
+
     if (buildingData) {
       // حساب القيمة الوسطية (متوسط القيمة العليا والصغرى)
       const averageValue = (buildingData.minValue + buildingData.maxValue) / 2;
       // وتقريبها لمنزلتين عشريتين
       return parseFloat(averageValue.toFixed(2));
     }
-    
+
     // قيم افتراضية في حالة عدم العثور على البيانات (بوحدة كيلو نيوتن/م²)
-    switch(buildingType) {
+    switch (buildingType) {
       case 'residential':
         return 1.5; // كيلو نيوتن/م²
       case 'commercial':
@@ -145,12 +145,12 @@ export default function RoofConcretePage() {
         return 1.5; // كيلو نيوتن/م²
     }
   };
-  
+
   // تحديث قيمة الحمولة الحية عند تغيير نوع المبنى
   useEffect(() => {
     setLiveLoadPerM2(getLiveLoadPerM2().toString());
   }, [buildingType]);
-  
+
   const ql = numeric(liveLoadPerM2);
 
   // عدد الربس = A * 5 (فقط عند وجود ربس)
@@ -235,12 +235,12 @@ export default function RoofConcretePage() {
     try {
       const response = await fetch(`http://localhost:5000/api/quantity-reports/project/${projectId}`);
       const data = await response.json();
-      
+
       if (data.success && data.reports) {
-        const existingReport = data.reports.find((r: any) => 
+        const existingReport = data.reports.find((r: any) =>
           r.calculationType === 'roof' && !r.deleted
         );
-        
+
         if (existingReport) {
           return existingReport._id;
         }
@@ -272,7 +272,7 @@ export default function RoofConcretePage() {
       toast({ title: 'مدخلات غير صالحة', description: 'يرجى إدخال مساحة وسمك صالحين', variant: 'destructive' });
       return;
     }
-    
+
     // التحقق من حالة السقف مع الربس
     if (roofType === 'with-ribs') {
       if (lr <= 0 || wr <= 0 || hr <= 0) {
@@ -287,7 +287,7 @@ export default function RoofConcretePage() {
         }
       }
     }
-    
+
     // التحقق من وجود تقرير سابق
     const existingReportId = await checkExistingReport();
     if (existingReportId) {
@@ -297,7 +297,7 @@ export default function RoofConcretePage() {
       });
       return;
     }
-    
+
     // حساب النتائج وعرضها فقط (بدون حفظ)
     setFinalTotal(Math.max(0, computedTotalConcrete));
     toast({
@@ -308,7 +308,7 @@ export default function RoofConcretePage() {
 
   const canSave = useMemo(() => {
     if (a <= 0 || t <= 0) return false;
-    
+
     if (roofType === 'with-ribs') {
       // مع الربس
       if (lr <= 0 || wr <= 0 || hr <= 0) return false;
@@ -318,7 +318,7 @@ export default function RoofConcretePage() {
       }
     }
     // بدون ربس: كمية الخرسانة = A * T
-    
+
     return computedTotalConcrete > 0;
   }, [a, t, roofType, lr, wr, hr, floorMode, nFloors, computedTotalConcrete]);
 
@@ -330,10 +330,10 @@ export default function RoofConcretePage() {
 
     // التأكد من أن الحسابات تمت
     if (finalTotal === 0 && computedTotalConcrete === 0) {
-      toast({ 
-        title: 'يرجى حساب النتائج أولاً', 
-        description: 'اضغط على زر "احسب الخرسانة" قبل الحفظ', 
-        variant: 'destructive' 
+      toast({
+        title: 'يرجى حساب النتائج أولاً',
+        description: 'اضغط على زر "احسب الخرسانة" قبل الحفظ',
+        variant: 'destructive'
       });
       return;
     }
@@ -446,16 +446,12 @@ export default function RoofConcretePage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div className="flex items-center gap-3">
               <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="border-2 border-emerald-200/50 bg-white/80 backdrop-blur-sm hover:border-emerald-300 hover:bg-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-emerald-800 hover:text-emerald-900"
-                >
-                  <ArrowRight className="w-4 h-4 rotate-180" />
-                  العودة إلى صفحة كروت الباطون
+                <Button variant="ghost" size="sm" className="border-2 border-cyan-200/50 bg-white/80 backdrop-blur-sm hover:border-cyan-400 hover:bg-cyan-50 shadow-lg hover:shadow-xl transition-all duration-500 gap-2 text-cyan-800 font-extrabold hover:text-cyan-900 hover:drop-shadow-[0_0_10px_rgba(8,145,178,0.8)] group">
+                  <ArrowRight className="w-4 h-4 rotate-180 transition-transform group-hover:scale-125" />
+                  العودة إلى حاسبة الباطون
                 </Button>
               </Link>
-              
+
             </div>
 
           </div>
@@ -469,9 +465,9 @@ export default function RoofConcretePage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-emerald-800 bg-clip-text text-transparent leading-tight mb-4">
-                  حساب كمية الخرسانة في السقف 
+                  حساب كمية الخرسانة في السقف
                 </h1>
-                
+
               </div>
             </div>
             <div className="absolute -inset-4 bg-gradient-to-r from-emerald-400/20 via-blue-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
@@ -518,8 +514,8 @@ export default function RoofConcretePage() {
 
                   {/* مدخلات عامة */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InputField id="area" label="مساحة السقف" value={A} onChange={setA}  unit="م²" icon={Ruler} />
-                    <InputField id="thickness" label="سمك السقف" value={T} onChange={setT}  unit="م" icon={Ruler}  />
+                    <InputField id="area" label="مساحة السقف" value={A} onChange={setA} unit="م²" icon={Ruler} />
+                    <InputField id="thickness" label="سمك السقف" value={T} onChange={setT} unit="م" icon={Ruler} />
                   </div>
 
                   {roofType === 'with-ribs' && (
@@ -527,8 +523,8 @@ export default function RoofConcretePage() {
                       <Separator className="my-2" />
                       {/* مدخلات الربس */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <InputField id="lr" label="طول الربس" value={Lr} onChange={setLr}  unit="م" icon={Ruler} />
-                        <InputField id="wr" label="عرض الربس" value={Wr} onChange={setWr}  unit="م" icon={Ruler} />
+                        <InputField id="lr" label="طول الربس" value={Lr} onChange={setLr} unit="م" icon={Ruler} />
+                        <InputField id="wr" label="عرض الربس" value={Wr} onChange={setWr} unit="م" icon={Ruler} />
                         <InputField id="hr" label="ارتفاع الربس" value={Hr} onChange={setHr} unit="م" icon={Ruler} />
                       </div>
 
@@ -556,7 +552,7 @@ export default function RoofConcretePage() {
                             </SelectContent>
                           </Select>
                         </div>
-                        
+
                         {floorMode === 'multi' && (
                           <div className="space-y-4">
                             <Label className="text-lg font-bold text-slate-900">نوع المبنى</Label>
@@ -583,7 +579,7 @@ export default function RoofConcretePage() {
 
                         {floorMode === 'multi' && (
                           <div className="space-y-4">
-                            <InputField id="floors" label="عدد الطوابق" value={floorsCount} onChange={setFloorsCount}  unit="طابق" icon={Ruler}  />
+                            <InputField id="floors" label="عدد الطوابق" value={floorsCount} onChange={setFloorsCount} unit="طابق" icon={Ruler} />
                           </div>
                         )}
                       </div>
@@ -607,7 +603,7 @@ export default function RoofConcretePage() {
 
             {/* Action Buttons */}
             <div className="flex flex-col lg:flex-row gap-4 pt-4">
-              <Button 
+              <Button
                 onClick={handleCalculate}
                 className="flex-1 h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden"
               >
@@ -618,7 +614,7 @@ export default function RoofConcretePage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </Button>
 
-              <Button 
+              <Button
                 onClick={saveToReports}
                 disabled={!canSave || saving || finalTotal === 0}
                 className="h-14 px-6 text-base font-black bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:via-teal-700 hover:to-blue-700 text-white shadow-xl transition-all duration-500 rounded-2xl flex items-center gap-4"
@@ -626,9 +622,9 @@ export default function RoofConcretePage() {
                 {saving ? 'جاري الحفظ...' : 'حفظ وتحميل إلى التقارير'}
               </Button>
 
-              <Button 
+              <Button
                 onClick={reset}
-                variant="outline" 
+                variant="outline"
                 className="h-14 px-6 text-base font-black border-2 border-slate-300 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-800 shadow-xl hover:shadow-emerald-200 transition-all duration-500 rounded-2xl flex items-center gap-4"
               >
                 <CheckCircle2 className="w-5 h-5" />
@@ -647,12 +643,12 @@ export default function RoofConcretePage() {
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold">النتائج </CardTitle>
-                    
+
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-6 pt-0 space-y-6">
-                                <div className="group relative">
+                <div className="group relative">
                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 rounded-3xl blur-xl -z-10 opacity-75 group-hover:opacity-100 transition-all duration-500" />
                   <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white p-8 lg:p-10 rounded-2xl shadow-2xl border border-white/40 backdrop-blur-md text-center group-hover:shadow-3xl group-hover:-translate-y-1 transition-all duration-700">
                     <div className="w-20 h-20 mx-auto mb-6 bg-white/30 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-all duration-500">
@@ -678,7 +674,7 @@ export default function RoofConcretePage() {
       </div>
 
       {/* Dialog للتحذير من إعادة الحساب */}
-      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => 
+      <AlertDialog open={existingReportDialog.open} onOpenChange={(open) =>
         setExistingReportDialog(prev => ({ ...prev, open }))
       }>
         <AlertDialogContent className="max-w-lg" dir="rtl">
@@ -732,15 +728,15 @@ export default function RoofConcretePage() {
   );
 }
 
-function InputField({ 
-  id, 
-  label, 
-  value, 
-  onChange, 
-  placeholder = "", 
-  step = "any", 
-  unit, 
-  icon: Icon, 
+function InputField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder = "",
+  step = "any",
+  unit,
+  icon: Icon,
   type = "number",
   containerClassName = ""
 }: {
@@ -783,7 +779,7 @@ function InputField({
 
 function ResultBox({ label, value, suffix, color = 'from-emerald-500 to-teal-500' }: { label: string; value: string; suffix?: string; color?: string; }) {
   return (
-    <div className={`p-5 rounded-2xl border-2 bg-gradient-to-r from-white/70 to-white/90 backdrop-blur-sm shadow-sm` }>
+    <div className={`p-5 rounded-2xl border-2 bg-gradient-to-r from-white/70 to-white/90 backdrop-blur-sm shadow-sm`}>
       <div className="text-sm font-bold text-slate-600 mb-2">{label}</div>
       <div className={`text-2xl font-black bg-gradient-to-r ${color} bg-clip-text text-transparent`}>
         {value} {suffix || ''}

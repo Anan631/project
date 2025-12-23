@@ -51,7 +51,7 @@ export default function CleaningSlabCalculationPage() {
 
   const calculateVolume = () => {
     setIsLoading(true);
-    
+
     // محاكاة تأخير للحساب
     setTimeout(() => {
       try {
@@ -114,22 +114,22 @@ export default function CleaningSlabCalculationPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50" dir="rtl">
       <TooltipProvider>
         <div className="container mx-auto px-4 py-8 lg:py-16 lg:px-8 max-w-7xl">
-          
+
           {/* Header */}
           <div className="mb-8 lg:mb-12">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div className="flex items-center gap-3">
                 <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
-                  <Button variant="ghost" size="sm" className="border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-200 gap-2 group">
-                    <ArrowRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
-                    العودة إلى صفحة كروت الباطون
+                  <Button variant="ghost" size="sm" className="border-2 border-blue-200/50 bg-white/80 backdrop-blur-sm hover:border-blue-400 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all duration-500 gap-2 text-blue-800 font-extrabold hover:text-blue-900 hover:drop-shadow-[0_0_10px_rgba(37,99,235,0.8)] group">
+                    <ArrowRight className="w-4 h-4 rotate-180 transition-transform group-hover:scale-125" />
+                    العودة إلى حاسبة الباطون
                   </Button>
                 </Link>
-                
+
               </div>
-              
+
             </div>
-            
+
             <div className="relative group">
               <div className="flex items-start lg:items-center gap-6 lg:gap-8 mb-2 p-1">
                 <div className="relative">
@@ -166,7 +166,7 @@ export default function CleaningSlabCalculationPage() {
 
             <TabsContent value="calculate" className="space-y-6">
               <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 items-start">
-                
+
                 {/* Input Form */}
                 <div className="xl:col-span-8">
                   <Card className="border-0 shadow-2xl shadow-blue-200/50 hover:shadow-blue-300/75 transition-all duration-500 overflow-hidden backdrop-blur-sm bg-white/80">
@@ -186,7 +186,7 @@ export default function CleaningSlabCalculationPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="p-6 lg:p-8 pt-0">
-                      
+
                       {error && (
                         <div className="mb-6 p-4 bg-gradient-to-r from-rose-50 to-red-50 border border-red-200 rounded-2xl shadow-lg animate-in slide-in-from-top">
                           <div className="flex items-start gap-3">
@@ -226,7 +226,7 @@ export default function CleaningSlabCalculationPage() {
                                 type="number"
                                 step={id === 'height' ? "0.01" : "0.1"}
 
-                                
+
                                 value={inputs[id as keyof typeof inputs] as string}
                                 onChange={(e) => handleInputChange(id, e.target.value)}
                                 className="pr-10 pl-3 h-14 text-lg font-bold text-right bg-gradient-to-r from-white/70 to-blue-50/70 hover:from-white hover:to-blue-50 border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 shadow-inner focus:shadow-xl transition-all duration-300 rounded-2xl backdrop-blur-sm"
@@ -237,12 +237,12 @@ export default function CleaningSlabCalculationPage() {
                         ))}
                       </div>
 
-                    
+
 
                       <Separator className="my-6 bg-gradient-to-r from-blue-200 to-transparent" />
                       <div className="flex flex-col sm:flex-row gap-3">
-                        <Button 
-                          onClick={calculateVolume} 
+                        <Button
+                          onClick={calculateVolume}
                           disabled={isLoading}
                           className="flex-1 h-14 text-lg font-bold shadow-2xl hover:shadow-3xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 hover:from-blue-700 hover:via-blue-800 hover:to-indigo-800 transform hover:-translate-y-1 transition-all duration-300 rounded-2xl border-0 group relative overflow-hidden"
                           size="lg"
@@ -262,9 +262,9 @@ export default function CleaningSlabCalculationPage() {
                             </>
                           )}
                         </Button>
-                        <Button 
-                          onClick={resetCalculation} 
-                          variant="outline" 
+                        <Button
+                          onClick={resetCalculation}
+                          variant="outline"
                           className="h-14 px-6 text-lg font-bold border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 hover:text-green-900 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl flex items-center gap-3"
                           size="lg"
                         >
@@ -320,9 +320,9 @@ export default function CleaningSlabCalculationPage() {
                                 <span className="font-semibold text-amber-900">الحجم الصافي:</span>
                                 <span className="font-bold text-xl text-amber-700">{result.toFixed(3)} م³</span>
                               </div>
-                              
+
                               <Separator className="bg-amber-200" />
-                              
+
                             </CardContent>
                           </Card>
 

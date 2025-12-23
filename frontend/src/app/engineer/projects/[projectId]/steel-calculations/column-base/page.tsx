@@ -253,8 +253,8 @@ export default function ColumnBaseCalculationPage() {
                 <div className="mb-12">
                     <div className="flex items-center gap-3 mb-8">
                         <Link href={`/engineer/projects/${projectId}/steel-calculations`}>
-                            <Button variant="ghost" size="sm" className="border-2 border-blue-200/50 bg-white/80 backdrop-blur-sm hover:border-blue-300 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-blue-800">
-                                <ArrowRight className="w-4 h-4 rotate-180" />
+                            <Button variant="ghost" size="sm" className="border-2 border-blue-200/50 bg-white/80 backdrop-blur-sm hover:border-blue-400 hover:bg-blue-50 shadow-lg hover:shadow-xl transition-all duration-500 gap-2 text-blue-800 font-extrabold hover:text-blue-900 hover:drop-shadow-[0_0_10px_rgba(30,58,138,0.8)] group">
+                                <ArrowRight className="w-4 h-4 rotate-180 transition-transform group-hover:scale-125" />
                                 العودة إلى حاسبة الحديد
                             </Button>
                         </Link>

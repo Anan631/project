@@ -455,8 +455,8 @@ export default function FoundationCalculationPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
                         <div className="flex items-center gap-3">
                             <Link href={`/engineer/projects/${projectId}/steel-calculations`}>
-                                <Button variant="ghost" size="sm" className="border-2 border-green-200/50 bg-white/80 backdrop-blur-sm hover:border-green-300 hover:bg-green-50 shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-green-800 hover:text-green-900">
-                                    <ArrowRight className="w-4 h-4 rotate-180" />
+                                <Button variant="ghost" size="sm" className="border-2 border-green-200/50 bg-white/80 backdrop-blur-sm hover:border-green-400 hover:bg-green-50 shadow-lg hover:shadow-xl transition-all duration-500 gap-2 text-green-800 font-extrabold hover:text-green-900 hover:drop-shadow-[0_0_10px_rgba(21,128,61,0.8)] group">
+                                    <ArrowRight className="w-4 h-4 rotate-180 transition-transform group-hover:scale-125" />
                                     العودة إلى حاسبة الحديد
                                 </Button>
                             </Link>
