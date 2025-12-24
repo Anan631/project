@@ -584,6 +584,72 @@ export default function ProjectReportsPage() {
                 </table>
              `;
           }
+        } else if (isRoofRibs) {
+          specificTablesHtml = `
+                <div class="section-title">بيانات المدخلات (أعصاب السقف)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${inputs.barDiameter || 0} ملم</td>
+                      <td>قطر القضيب</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.beamLength || 0} م</td>
+                      <td>طول الجسر</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.effectiveDepth || 0} سم</td>
+                      <td>العمق الفعال d</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.ribSpacing || 0} سم</td>
+                      <td>المسافة بين الأعصاب</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.numberOfRibs || 0}</td>
+                      <td>عدد الأعصاب</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.buildingType || 'غير محدد'}</td>
+                      <td>نوع المبنى/المنشأة</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">نتائج الحساب (أعصاب السقف)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${Number(results.totalLoad || 0).toFixed(3)} kN/m</td>
+                      <td>الحمل الموزع الكلي</td>
+                    </tr>
+                    <tr>
+                      <td>${Number(results.moment || 0).toFixed(3)} kN.m</td>
+                      <td>العزم M</td>
+                    </tr>
+                    <tr>
+                      <td>${Number(results.requiredBarArea || 0).toFixed(3)} سم²</td>
+                      <td>مساحة الحديد المطلوبة As</td>
+                    </tr>
+                    <tr style="background: #d1fae5; font-weight: bold;">
+                      <td>${results.numberOfBars || 0} قضيب</td>
+                      <td>عدد القضبان المطلوبة</td>
+                    </tr>
+                  </tbody>
+                </table>
+              `;
         } else {
           // Foundation Steel Logic (Existing)
           specificTablesHtml = results?.type === 'similar' ? `

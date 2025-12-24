@@ -309,9 +309,9 @@ export default function RoofRibsCalculationPage() {
             const numberOfBars = Math.ceil((ratioDecimal * requiredBarArea) / barCrossSectionalArea);
 
             setResults({
-                totalLoad: totalLoad.toFixed(2),
-                moment: moment.toFixed(2),
-                requiredBarArea: requiredBarArea.toFixed(2),
+                totalLoad,
+                moment,
+                requiredBarArea,
                 numberOfBars,
                 inputs: {
                     barDiameter: selectedBarDiameter,

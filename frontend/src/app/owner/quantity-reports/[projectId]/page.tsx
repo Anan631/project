@@ -525,6 +525,7 @@ export default function OwnerQuantityReportsPage() {
       if (report.calculationType === 'roof-ribs-steel') {
         const steelData = report.steelData?.details;
         const results = steelData?.results;
+        const inputs = steelData?.inputs || {};
 
         const steelHtmlContent = `
           <!DOCTYPE html>
@@ -565,29 +566,69 @@ export default function OwnerQuantityReportsPage() {
                 <div class="info-box"><label>المالك / العميل</label><div class="value">${report.ownerName || 'غير محدد'}</div></div>
               </div>
 
-               <div class="section-title">نتائج حديد أعصاب السقف</div>
-                 <table>
-                   <thead>
-                     <tr>
-                       <th>القيمة</th>
-                       <th>البيان</th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     <tr>
-                       <td>${results.requiredBarArea || 0} سم²</td>
-                       <td>المساحة المطلوبة</td>
-                     </tr>
-                     <tr>
-                       <td>${results.numberOfBars || 0}</td>
-                       <td>عدد القضبان لجميع الأعصاب</td>
-                     </tr>
+               <div class="section-title">بيانات المدخلات (أعصاب السقف)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${inputs.barDiameter || 0} ملم</td>
+                      <td>قطر القضيب</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.beamLength || 0} م</td>
+                      <td>طول الجسر</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.effectiveDepth || 0} سم</td>
+                      <td>العمق الفعال d</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.ribSpacing || 0} سم</td>
+                      <td>المسافة بين الأعصاب</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.numberOfRibs || 0}</td>
+                      <td>عدد الأعصاب</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.buildingType || 'غير محدد'}</td>
+                      <td>نوع المبنى/المنشأة</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">نتائج الحساب (أعصاب السقف)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${Number(results.totalLoad || 0).toFixed(3)} kN/m</td>
+                      <td>الحمل الموزع الكلي</td>
+                    </tr>
+                    <tr>
+                      <td>${Number(results.moment || 0).toFixed(3)} kN.m</td>
+                      <td>العزم M</td>
+                    </tr>
+                    <tr>
+                      <td>${Number(results.requiredBarArea || 0).toFixed(3)} سم²</td>
+                      <td>مساحة الحديد المطلوبة As</td>
+                    </tr>
                     <tr style="background: #f3e8ff; font-weight: bold; color: #7c3aed;">
-                       <td>${results.totalBars || 0} قضيب</td>
-                       <td>إجمالي عدد القضبان</td>
-                     </tr>
-                   </tbody>
-                 </table>
+                      <td>${results.numberOfBars || 0} قضيب</td>
+                      <td>عدد القضبان المطلوبة</td>
+                    </tr>
+                  </tbody>
+                </table>
 
               <div class="footer"><p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p><p>© 2025 جميع الحقوق محفوظة</p></div>
             </div>
