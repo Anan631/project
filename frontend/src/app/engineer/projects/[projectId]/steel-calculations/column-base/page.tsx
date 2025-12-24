@@ -18,6 +18,16 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -80,6 +90,14 @@ export default function ColumnBaseCalculationPage() {
 
     const [isLoading, setIsLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
+    const [existingReportDialog, setExistingReportDialog] = useState<{
+        open: boolean;
+        reportId: string | null;
+    }>({
+        open: false,
+        reportId: null,
+    });
 
     // Iron bars data
     const [ironBars, setIronBars] = useState<IronBar[]>([]);
@@ -240,6 +258,168 @@ export default function ColumnBaseCalculationPage() {
         });
         setResults(null);
         setError(null);
+        setSaveSuccess(false);
+    };
+
+    const saveToReports = async () => {
+        if (!results) {
+            toast({ title: 'لا توجد نتائج', description: 'يرجى إجراء الحسابات أولاً', variant: 'destructive' });
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const engineerId = localStorage.getItem('userId') || '';
+            const engineerName = localStorage.getItem('userName') || 'المهندس';
+
+            const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+
+            if (!projectRes.ok) {
+                throw new Error(`HTTP error! status: ${projectRes.status}`);
+            }
+
+            const projectContentType = projectRes.headers.get('content-type');
+            if (!projectContentType || !projectContentType.includes('application/json')) {
+                throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح. تأكد من تشغيل الخادم الخلفي.');
+            }
+
+            const projectData = await projectRes.json();
+            const project = projectData.project || projectData;
+
+            const reportData = {
+                projectId,
+                projectName: project.name,
+                calculationType: 'steel-column-base',
+                calculationTitle: 'حساب حديد شروش الأعمدة',
+                engineerId,
+                engineerName,
+                ownerName: project.clientName || project.ownerName || 'غير محدد',
+                ownerEmail: project.linkedOwnerEmail || '',
+                
+                // Store steel calculation data
+                steelData: {
+                    totalSteelWeight: results.starterWeight,
+                    details: {
+                        starterLength: results.starterLength,
+                        dimensionText: results.dimensionText,
+                        starterWeight: results.starterWeight,
+                        numBars: results.numBars,
+                        barArea: results.barArea,
+                        levelDiff: results.levelDiff,
+                        valueA: results.valueA,
+                        rodDiameter: inputs.rodDiameter // إضافة قطر القضيب هنا
+                    }
+                },
+                
+                // Store input parameters for reference
+                inputs: {
+                    slabArea: inputs.slabArea,
+                    numberOfFloors: inputs.numberOfFloors,
+                    rodDiameter: inputs.rodDiameter,
+                    foundationLevel: inputs.foundationLevel,
+                    groundLevel: inputs.groundLevel,
+                    columnHeight: inputs.columnHeight,
+                    shape: inputs.shape
+                },
+                
+                calculatedAt: new Date().toISOString(),
+                sentToOwner: false // Initially not shared with owner
+            };
+
+            // First, check if a report already exists
+            const reportsResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+            const reportsData = await reportsResponse.json();
+
+            if (reportsData.success && reportsData.reports && reportsData.reports.length > 0) {
+                const existingReport = reportsData.reports.find(
+                    (r: any) => r.calculationType === 'steel-column-base'
+                );
+
+                if (existingReport) {
+                    setExistingReportDialog({
+                        open: true,
+                        reportId: existingReport._id,
+                    });
+                    setSaving(false);
+                    return;
+                }
+            }
+
+            // If no existing report or user confirms to override
+            const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(reportData),
+            });
+
+            if (!response.ok) {
+                throw new Error('فشل في حفظ التقرير');
+            }
+
+            setSaveSuccess(true);
+            toast({
+                title: 'تم الحفظ بنجاح',
+                description: 'تم حفظ تقرير حديد شروش الأعمدة',
+            });
+
+            // Redirect to reports page after a short delay
+            setTimeout(() => {
+                router.push(`/engineer/quantity-reports/${projectId}`);
+            }, 1500);
+
+        } catch (error) {
+            console.error('Error saving report:', error);
+            toast({
+                title: 'خطأ',
+                description: 'حدث خطأ أثناء حفظ التقرير',
+                variant: 'destructive'
+            });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleRecalculate = async () => {
+        if (!existingReportDialog.reportId) {
+            setExistingReportDialog({ open: false, reportId: null });
+            return;
+        }
+
+        try {
+            // Delete existing report
+            const deleteResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/${existingReportDialog.reportId}`, {
+                method: 'DELETE'
+            });
+
+            if (deleteResponse.ok) {
+                toast({
+                    title: 'تم حذف التقرير السابق',
+                    description: 'تم حذف التقرير السابق بنجاح',
+                });
+            }
+
+            // Close dialog
+            setExistingReportDialog({ open: false, reportId: null });
+
+            // Retry saving
+            await saveToReports();
+        } catch (error) {
+            console.error('Error deleting existing report:', error);
+            toast({
+                title: 'تحذير',
+                description: 'لم يتم حذف التقرير السابق، سيتم تحديث التقرير الحالي',
+                variant: 'destructive'
+            });
+            setExistingReportDialog({ open: false, reportId: null });
+            // Retry saving anyway
+            await saveToReports();
+        }
+    };
+
+    const handleCancelRecalculate = () => {
+        setExistingReportDialog({ open: false, reportId: null });
     };
 
     return (
@@ -378,21 +558,23 @@ export default function ColumnBaseCalculationPage() {
                                     />
                                 </div>
 
-                                <div className="flex gap-4 pt-4">
-                                    <Button
-                                        onClick={calculate}
-                                        disabled={isLoading}
-                                        className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg rounded-2xl shadow-xl transition-all duration-300 hover:scale-[1.02]"
-                                    >
-                                        {isLoading ? "جاري الحساب..." : "احسب الآن"}
-                                    </Button>
-                                    <Button
-                                        onClick={reset}
-                                        variant="outline"
-                                        className="h-14 border-2 border-slate-300 hover:border-blue-400 font-bold text-lg rounded-2xl px-8"
-                                    >
-                                        إعادة تعيين
-                                    </Button>
+                                <div className="flex flex-col gap-4 pt-4">
+                                    <div className="flex gap-4">
+                                        <Button
+                                            onClick={calculate}
+                                            disabled={isLoading || saveSuccess}
+                                            className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg rounded-2xl shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                                        >
+                                            {isLoading ? "جاري الحساب..." : "احسب الآن"}
+                                        </Button>
+                                        <Button
+                                            onClick={reset}
+                                            variant="outline"
+                                            className="h-14 border-2 border-slate-300 hover:border-blue-400 font-bold text-lg rounded-2xl px-8"
+                                        >
+                                            إعادة تعيين
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -444,19 +626,42 @@ export default function ColumnBaseCalculationPage() {
                                         <div className="pt-6 border-t-2 border-slate-100">
                                             <div className="bg-slate-50 p-4 rounded-2xl text-sm space-y-2">
                                                 <div className="flex justify-between">
-                                                    <span className="text-slate-500 font-bold">فرق المستويين:</span>
-                                                    <span className="text-slate-900 font-black">{results.levelDiff.toFixed(2)} م</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-slate-500 font-bold">القيمة A:</span>
-                                                    <span className="text-slate-900 font-black">{results.valueA.toFixed(2)}</span>
-                                                </div>
-                                                <div className="flex justify-between">
                                                     <span className="text-slate-500 font-bold">مساحة مقطع القضيب:</span>
                                                     <span className="text-slate-900 font-black">{results.barArea.toFixed(2)} مم²</span>
                                                 </div>
                                             </div>
                                         </div>
+                                        {results && (
+                                            <Button
+                                                onClick={saveToReports}
+                                                disabled={saving || saveSuccess}
+                                                className={`w-full mt-6 h-14 font-bold text-lg rounded-2xl transition-all duration-300 ${
+                                                    saveSuccess 
+                                                        ? 'bg-green-600 hover:bg-green-700 text-white' 
+                                                        : 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-xl hover:scale-[1.02]'
+                                                }`}
+                                            >
+                                                {saving ? 'جاري الحفظ...' : saveSuccess ? 'تم الحفظ بنجاح!' : 'حفظ وتحميل إلى التقارير'}
+                                                {!saving && !saveSuccess && <Send className="mr-2 h-4 w-4" />}
+                                            </Button>
+                                        )}
+                                        
+                                        <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => setExistingReportDialog(prev => ({ ...prev, open }))}>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle className="text-right">تقرير موجود مسبقاً</AlertDialogTitle>
+                                                    <AlertDialogDescription className="text-right">
+                                                        يوجد تقرير سابق لهذا الحساب. هل تريد استبداله بالتقرير الجديد؟
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter className="sm:justify-start">
+                                                    <AlertDialogAction onClick={handleRecalculate} className="bg-red-600 hover:bg-red-700">
+                                                        نعم، استبدل التقرير
+                                                    </AlertDialogAction>
+                                                    <AlertDialogCancel onClick={handleCancelRecalculate}>إلغاء</AlertDialogCancel>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-4">

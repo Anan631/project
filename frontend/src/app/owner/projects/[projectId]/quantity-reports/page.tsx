@@ -305,7 +305,7 @@ export default function OwnerQuantityReportsPage() {
               <tbody>
                 ${type === 'column-ties-steel' ? `
                   <tr><td>عدد القضبان العمودية</td><td>${results?.verticalBarsCount || 0} قضيب</td></tr>
-                  <tr><td>قطر قضبان التسليح</td><td>${inputs?.reinforcementDiameter || 0} مم</td></tr>
+                  <tr><td>قطر قضبان التسليح</td><td>${(inputs?.rodDiameterMm ?? inputs?.reinforcementDiameter ?? inputs?.barDiameter ?? 0)} مم</td></tr>
                   <tr><td>عدد الكانات الإجمالي</td><td>${results?.totalStirrups ? Math.ceil(results.totalStirrups) : 0} كانة</td></tr>
                   <tr><td>أبعاد العمود</td><td>${results?.columnDimensions?.displayText || 'N/A'}</td></tr>
                 ` : type === 'foundation-steel' ? `
