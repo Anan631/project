@@ -1510,13 +1510,11 @@ export default function ProjectReportsPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ar-EG', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
   };
 
   const handleDeleteAllReports = async () => {
@@ -1775,93 +1773,28 @@ export default function ProjectReportsPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-emerald-800 mb-4">كميات الخرسانة حسب النوع</h3>
-                        <div className="space-y-3">
-                          {foundationReport && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-emerald-700">صبة النظافة والقواعد</span>
-                              <span className="font-bold text-emerald-800">
-                                {(() => {
-                                  const cleaning = foundationReport.concreteData?.cleaningVolume || 0;
-                                  const foundations = foundationReport.concreteData?.foundationsVolume || 0;
-                                  const groundSlab = foundationReport.concreteData?.groundSlabVolume || 0;
-                                  return (cleaning + foundations + groundSlab).toFixed(2);
-                                })()} م³
-                              </span>
-                            </div>
-                          )}
-                          {columnFootingsReport && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-emerald-700">شروش الأعمدة</span>
-                              <span className="font-bold text-emerald-800">
-                                {(columnFootingsReport.concreteData?.totalFootingsVolume ||
-                                  columnFootingsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
-                              </span>
-                            </div>
-                          )}
-                          {columnsReport && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-emerald-700">الأعمدة</span>
-                              <span className="font-bold text-emerald-800">
-                                {(columnsReport.concreteData?.columnsVolume ||
-                                  columnsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
-                              </span>
-                            </div>
-                          )}
-                          {roofReport && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-emerald-700">السقف</span>
-                              <span className="font-bold text-emerald-800">
-                                {(roofReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
-                              </span>
-                            </div>
-                          )}
-                          {groundBridgesReport && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-emerald-700">الجسور الأرضية</span>
-                              <span className="font-bold text-emerald-800">
-                                {(groundBridgesReport.concreteData?.totalVolume ||
-                                  groundBridgesReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
-                              </span>
-                            </div>
-                          )}
-                          {groundSlabReport && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-emerald-700">أرضية المبنى (المِدّة)</span>
-                              <span className="font-bold text-emerald-800">
-                                {(groundSlabReport.concreteData?.groundSlabVolume ||
-                                  groundSlabReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
-                              </span>
-                            </div>
-                          )}
+                    <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-indigo-800 mb-4">معلومات المشروع</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-indigo-700">اسم المشروع</span>
+                          <span className="font-bold text-indigo-800">{projectInfo?.name}</span>
                         </div>
-                      </div>
-
-                      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-indigo-800 mb-4">معلومات المشروع</h3>
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="text-indigo-700">اسم المشروع</span>
-                            <span className="font-bold text-indigo-800">{projectInfo?.name}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-indigo-700">المهندس المسؤول</span>
-                            <span className="font-bold text-indigo-800">{projectInfo?.engineerName}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-indigo-700">المالك</span>
-                            <span className="font-bold text-indigo-800">{projectInfo?.ownerName}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-indigo-700">عدد التقارير</span>
-                            <span className="font-bold text-indigo-800">{reports.length}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-indigo-700">تم الإرسال للمالك</span>
-                            <span className="font-bold text-indigo-800">{sentReportsCount}/{reports.length}</span>
-                          </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-indigo-700">المهندس المسؤول</span>
+                          <span className="font-bold text-indigo-800">{projectInfo?.engineerName}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-indigo-700">المالك</span>
+                          <span className="font-bold text-indigo-800">{projectInfo?.ownerName}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-indigo-700">عدد التقارير</span>
+                          <span className="font-bold text-indigo-800">{reports.length}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-indigo-700">تم الإرسال للمالك</span>
+                          <span className="font-bold text-indigo-800">{sentReportsCount}/{reports.length}</span>
                         </div>
                       </div>
                     </div>
@@ -3203,162 +3136,7 @@ export default function ProjectReportsPage() {
 
               <TabsContent value="analytics" className="mt-6">
                 {/* Analytics Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                  <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-md">
-                    <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b">
-                      <CardTitle className="flex items-center gap-3 text-slate-800">
-                        <BarChart3 className="w-5 h-5 text-blue-600" />
-                        تحليل كميات الخرسانة
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                      <div className="space-y-4">
-                        {foundationReport && (
-                          <div className="flex items-center gap-4">
-                            <div className="w-4 h-4 bg-emerald-500 rounded-full"></div>
-                            <div className="flex-1">
-                              <div className="flex justify-between mb-1">
-                                <span className="text-sm font-medium">صبة النظافة والقواعد</span>
-                                <span className="text-sm font-bold">
-                                  {(() => {
-                                    const cleaning = foundationReport.concreteData?.cleaningVolume || 0;
-                                    const foundations = foundationReport.concreteData?.foundationsVolume || 0;
-                                    const groundSlab = foundationReport.concreteData?.groundSlabVolume || 0;
-                                    return (cleaning + foundations + groundSlab).toFixed(2);
-                                  })()} م³
-                                </span>
-                              </div>
-                              <div className="w-full bg-slate-200 rounded-full h-2">
-                                <div
-                                  className="bg-emerald-500 h-2 rounded-full"
-                                  style={{
-                                    width: `${totalConcreteVolume > 0 ? ((() => {
-                                      const cleaning = foundationReport.concreteData?.cleaningVolume || 0;
-                                      const foundations = foundationReport.concreteData?.foundationsVolume || 0;
-                                      const groundSlab = foundationReport.concreteData?.groundSlabVolume || 0;
-                                      return (cleaning + foundations + groundSlab);
-                                    })() / totalConcreteVolume) * 100 : 0}%`
-                                  }}
-                                ></div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        {columnFootingsReport && (
-                          <div className="flex items-center gap-4">
-                            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                            <div className="flex-1">
-                              <div className="flex justify-between mb-1">
-                                <span className="text-sm font-medium">شروش الأعمدة</span>
-                                <span className="text-sm font-bold">
-                                  {(columnFootingsReport.concreteData?.totalFootingsVolume ||
-                                    columnFootingsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
-                                </span>
-                              </div>
-                              <div className="w-full bg-slate-200 rounded-full h-2">
-                                <div
-                                  className="bg-blue-500 h-2 rounded-full"
-                                  style={{
-                                    width: `${totalConcreteVolume > 0 ? ((columnFootingsReport.concreteData?.totalFootingsVolume ||
-                                      columnFootingsReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`
-                                  }}
-                                ></div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        {columnsReport && (
-                          <div className="flex items-center gap-4">
-                            <div className="w-4 h-4 bg-indigo-500 rounded-full"></div>
-                            <div className="flex-1">
-                              <div className="flex justify-between mb-1">
-                                <span className="text-sm font-medium">الأعمدة</span>
-                                <span className="text-sm font-bold">
-                                  {(columnsReport.concreteData?.columnsVolume ||
-                                    columnsReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
-                                </span>
-                              </div>
-                              <div className="w-full bg-slate-200 rounded-full h-2">
-                                <div
-                                  className="bg-indigo-500 h-2 rounded-full"
-                                  style={{
-                                    width: `${totalConcreteVolume > 0 ? ((columnsReport.concreteData?.columnsVolume ||
-                                      columnsReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`
-                                  }}
-                                ></div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        {roofReport && (
-                          <div className="flex items-center gap-4">
-                            <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
-                            <div className="flex-1">
-                              <div className="flex justify-between mb-1">
-                                <span className="text-sm font-medium">السقف</span>
-                                <span className="text-sm font-bold">
-                                  {(roofReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
-                                </span>
-                              </div>
-                              <div className="w-full bg-slate-200 rounded-full h-2">
-                                <div
-                                  className="bg-purple-500 h-2 rounded-full"
-                                  style={{ width: `${totalConcreteVolume > 0 ? ((roofReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        {groundBridgesReport && (
-                          <div className="flex items-center gap-4">
-                            <div className="w-4 h-4 bg-pink-500 rounded-full"></div>
-                            <div className="flex-1">
-                              <div className="flex justify-between mb-1">
-                                <span className="text-sm font-medium">الجسور الأرضية</span>
-                                <span className="text-sm font-bold">
-                                  {(groundBridgesReport.concreteData?.totalVolume ||
-                                    groundBridgesReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
-                                </span>
-                              </div>
-                              <div className="w-full bg-slate-200 rounded-full h-2">
-                                <div
-                                  className="bg-pink-500 h-2 rounded-full"
-                                  style={{
-                                    width: `${totalConcreteVolume > 0 ? ((groundBridgesReport.concreteData?.totalVolume ||
-                                      groundBridgesReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`
-                                  }}
-                                ></div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        {groundSlabReport && (
-                          <div className="flex items-center gap-4">
-                            <div className="w-4 h-4 bg-amber-500 rounded-full"></div>
-                            <div className="flex-1">
-                              <div className="flex justify-between mb-1">
-                                <span className="text-sm font-medium">أرضية المبنى (المِدّة)</span>
-                                <span className="text-sm font-bold">
-                                  {(groundSlabReport.concreteData?.groundSlabVolume ||
-                                    groundSlabReport.concreteData?.totalConcrete || 0).toFixed(2)} م³
-                                </span>
-                              </div>
-                              <div className="w-full bg-slate-200 rounded-full h-2">
-                                <div
-                                  className="bg-amber-500 h-2 rounded-full"
-                                  style={{
-                                    width: `${totalConcreteVolume > 0 ? ((groundSlabReport.concreteData?.groundSlabVolume ||
-                                      groundSlabReport.concreteData?.totalConcrete || 0) / totalConcreteVolume) * 100 : 0}%`
-                                  }}
-                                ></div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-
+                <div className="mb-8">
                   <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-md">
                     <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b">
                       <CardTitle className="flex items-center gap-3 text-slate-800">
@@ -3367,9 +3145,9 @@ export default function ProjectReportsPage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
-                      <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                          <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                               <FileText className="w-5 h-5 text-blue-600" />
                             </div>
@@ -3386,10 +3164,8 @@ export default function ProjectReportsPage() {
                           </div>
                         </div>
 
-                        <Separator />
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                          <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
                               <Blocks className="w-5 h-5 text-emerald-600" />
                             </div>
@@ -3404,10 +3180,8 @@ export default function ProjectReportsPage() {
                           </div>
                         </div>
 
-                        <Separator />
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                          <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                               <Calendar className="w-5 h-5 text-purple-600" />
                             </div>
