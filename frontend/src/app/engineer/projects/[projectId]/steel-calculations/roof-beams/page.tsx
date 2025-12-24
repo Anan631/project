@@ -1,15 +1,25 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Calculator, Layers, Ruler, TrendingUp, AlertCircle, Box, ArrowUpCircle, Grid3x3, LayoutDashboard, Send } from "lucide-react";
+import { ArrowRight, Calculator, Layers, Ruler, TrendingUp, AlertCircle, Box, ArrowUpCircle, Grid3x3, LayoutDashboard, Send, CheckCircle2 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -72,6 +82,7 @@ function InputField({ id, label, value, onChange, placeholder, type = "number", 
 
 export default function RoofBeamsSteelPage() {
     const { projectId } = useParams<{ projectId: string }>();
+    const router = useRouter();
     const { toast } = useToast();
 
     const [numBeams, setNumBeams] = useState<"1" | "2" | "3">("1");
@@ -86,7 +97,16 @@ export default function RoofBeamsSteelPage() {
     ]);
 
     const [loading, setLoading] = useState<boolean>(false);
+    const [saving, setSaving] = useState<boolean>(false);
     const [ironBarsData, setIronBarsData] = useState<IronBarData[]>([]);
+
+    // Results
+    const [results, setResults] = useState<any>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    // Recalculation State
+    const [existingReportId, setExistingReportId] = useState<string | null>(null);
+    const [showRecalculationWarning, setShowRecalculationWarning] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -94,8 +114,30 @@ export default function RoofBeamsSteelPage() {
         fetchIronBars().then((data) => {
             if (mounted) setIronBarsData(data);
         }).finally(() => setLoading(false));
+
+        // Check for existing report
+        const checkExistingReport = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.reports) {
+                        const existingReport = data.reports.find(
+                            (r: any) => r.calculationType === 'roof-beams-steel' && !r.deleted
+                        );
+                        if (existingReport) {
+                            setExistingReportId(existingReport._id);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking existing reports:', error);
+            }
+        };
+
+        checkExistingReport();
         return () => { mounted = false; };
-    }, []);
+    }, [projectId]);
 
     const handleBeamChange = (index: number, field: "length" | "weight", value: string) => {
         const newBeams = [...beams];
@@ -162,15 +204,168 @@ export default function RoofBeamsSteelPage() {
         };
     }
 
-    const [results, setResults] = useState<any>(null);
-
     function onCalculate() {
+        setError(null);
         const r = computeResults();
         if (r) {
-            setResults(r);
+            // Check for existing report before calculating
+            if (existingReportId && !showRecalculationWarning) {
+                setShowRecalculationWarning(true);
+                return;
+            }
+
+            setResults({
+                ...r,
+                inputs: {
+                    numBeams,
+                    rodDiameterMm,
+                    beamHeightCm,
+                    ironCoverCm,
+                    beams: beams.slice(0, parseInt(numBeams))
+                }
+            });
             toast({ title: "تم الحساب", description: "تم تحديث النتائج بنجاح" });
         }
     }
+
+    const handleRecalculate = async () => {
+        if (!existingReportId) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/quantity-reports/${existingReportId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (response.ok) {
+                toast({
+                    title: "تم الحذف",
+                    description: "تم حذف التقرير السابق بنجاح. جاري إجراء الحسابات الجديدة...",
+                });
+                setExistingReportId(null);
+                setShowRecalculationWarning(false);
+                // Proceed with calculation
+                onCalculate();
+            } else {
+                throw new Error('فشل في حذف التقرير السابق');
+            }
+        } catch (error) {
+            console.error('Error deleting report:', error);
+            toast({
+                title: "خطأ",
+                description: "حدث خطأ أثناء حذف التقرير السابق",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const saveToReports = async () => {
+        if (!results) {
+            toast({
+                title: 'لا توجد نتائج',
+                description: 'يرجى إجراء الحسابات أولاً',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const engineerId = localStorage.getItem('userId') || '';
+            const engineerName = localStorage.getItem('userName') || 'المهندس';
+
+            const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+
+            if (!projectRes.ok) {
+                throw new Error(`HTTP error! status: ${projectRes.status}`);
+            }
+
+            const projectData = await projectRes.json();
+            const project = projectData.project || projectData;
+
+            const totalSteelWeight = results.countUpper + results.countLower;
+
+            const reportData = {
+                projectId,
+                projectName: project?.name || `مشروع #${projectId}`,
+                engineerId,
+                engineerName,
+                ownerName: project?.clientName || '',
+                ownerEmail: project?.linkedOwnerEmail || '',
+                calculationType: 'roof-beams-steel',
+                steelData: {
+                    totalSteelWeight,
+                    foundationSteel: 0,
+                    columnSteel: 0,
+                    beamSteel: totalSteelWeight,
+                    slabSteel: 0,
+                    details: {
+                        inputs: results.inputs,
+                        results: {
+                            countUpper: results.countUpper,
+                            countLower: results.countLower,
+                            momentUpper: results.momentUpper,
+                            momentLower: results.momentLower,
+                            asUpper: results.asUpper,
+                            asLower: results.asLower,
+                            crossSectionAreaMm2: results.crossSectionAreaMm2,
+                            maxMoment: results.maxMoment
+                        },
+                        timestamp: new Date().toISOString()
+                    }
+                },
+                calculationData: {
+                    inputs: results.inputs,
+                    results: {
+                        countUpper: results.countUpper,
+                        countLower: results.countLower,
+                        momentUpper: results.momentUpper,
+                        momentLower: results.momentLower,
+                        asUpper: results.asUpper,
+                        asLower: results.asLower,
+                        crossSectionAreaMm2: results.crossSectionAreaMm2,
+                        maxMoment: results.maxMoment
+                    },
+                    timestamp: new Date().toISOString()
+                },
+                status: 'saved',
+                sentToOwner: false
+            };
+
+            const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(reportData),
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                toast({
+                    title: 'تم الحفظ بنجاح',
+                    description: 'تم ترحيل النتائج إلى صفحة تقارير الكميات'
+                });
+
+                router.push(`/engineer/quantity-reports/${projectId}`);
+            } else {
+                throw new Error(data.message || 'فشل في حفظ التقرير');
+            }
+        } catch (error) {
+            console.error('Error saving report:', error);
+            const errorMessage = error instanceof Error ? error.message : 'حدث خطأ أثناء حفظ التقرير';
+            toast({
+                title: 'خطأ في الحفظ',
+                description: errorMessage,
+                variant: 'destructive'
+            });
+        } finally {
+            setSaving(false);
+        }
+    };
 
     function reset() {
         setNumBeams("1");
@@ -377,9 +572,24 @@ export default function RoofBeamsSteelPage() {
                                         </div>
 
                                         <div className="pt-4">
-                                            <Button className="w-full h-14 bg-slate-900 hover:bg-black text-white rounded-2xl font-bold text-lg shadow-xl transition-all duration-300 flex items-center justify-center gap-3">
-                                                <Send className="w-5 h-5" />
-                                                حفظ وتصدير التقرير
+                                            <Button
+                                                onClick={saveToReports}
+                                                disabled={saving || !results}
+                                                className="w-full h-14 bg-slate-900 hover:bg-black text-white rounded-2xl font-bold text-lg shadow-xl transition-all duration-300 flex items-center justify-center gap-3">
+                                                {saving ? (
+                                                    <>
+                                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        جاري الحفظ...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Send className="w-5 h-5" />
+                                                        حفظ وتصدير التقرير
+                                                    </>
+                                                )}
                                             </Button>
                                         </div>
                                     </div>

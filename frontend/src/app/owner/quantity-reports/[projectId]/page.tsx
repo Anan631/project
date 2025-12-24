@@ -785,6 +785,123 @@ export default function OwnerQuantityReportsPage() {
         return;
       }
 
+      // Check if this is a roof-beams-steel report
+      if (report.calculationType === 'roof-beams-steel') {
+        const steelData = report.steelData?.details;
+        const results = steelData?.results || {};
+        const inputs = steelData?.inputs || {};
+
+        const steelHtmlContent = `
+          <!DOCTYPE html>
+          <html dir="rtl" lang="ar">
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { direction: rtl; font-family: 'Tajawal', sans-serif; font-size: 18px; line-height: 1.8; color: #1a1a1a; background: white; padding: 25mm; }
+              .header { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
+              .header h1 { font-size: 36px; margin-bottom: 10px; font-weight: 900; }
+              .header p { font-size: 20px; opacity: 0.95; }
+              .project-name { background: linear-gradient(to right, #f0fdf4, #f0fdfa); border-right: 6px solid #059669; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
+              .project-name h2 { color: #2d3748; font-size: 24px; font-weight: 700; }
+              .info-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px; }
+              .info-box { background: white; border: 2px solid #5eead4; padding: 25px; border-radius: 10px; text-align: center; }
+              .info-box label { display: block; font-size: 16px; color: #718096; margin-bottom: 8px; font-weight: 500; }
+              .info-box .value { font-size: 20px; color: #2d3748; font-weight: 700; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border-radius: 10px; overflow: hidden; }
+              thead { background: linear-gradient(135deg, #059669, #0d9488); color: white; }
+              th { padding: 20px 15px; text-align: right; font-weight: 700; font-size: 18px; }
+              td { padding: 18px 15px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 500; }
+              tbody tr:nth-child(even) { background: #f0fdf4; }
+              .section-title { background: #f0fdf4; border-right: 4px solid #059669; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #064e3b; }
+              .footer { border-top: 2px solid #e2e8f0; padding-top: 25px; text-align: center; font-size: 14px; color: #718096; margin-top: 50px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>تقرير حديد جسور السقف</h1>
+                <p>حساب كميات حديد جسور السقف وفق المعايير الهندسية</p>
+              </div>
+              <div class="project-name"><h2>المشروع: ${report.projectName}</h2></div>
+              <div class="info-boxes">
+                <div class="info-box"><label>المهندس المسؤول</label><div class="value">${report.engineerName}</div></div>
+                <div class="info-box"><label>المالك / العميل</label><div class="value">${report.ownerName || 'غير محدد'}</div></div>
+              </div>
+
+               <div class="section-title">بيانات المدخلات (جسور السقف)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${inputs.rodDiameterMm || 0} ملم</td>
+                      <td>قطر القضيب</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.beamHeightCm || 0} سم</td>
+                      <td>ارتفاع الجسر</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.numBeams || 0}</td>
+                      <td>عدد الجسور</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">نتائج الحساب (جسور السقف)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${Number(results.maxMoment || 0).toFixed(3)} kN.m</td>
+                      <td>العزم الأقصى</td>
+                    </tr>
+                    <tr>
+                      <td>${Number(results.asUpper || 0).toFixed(3)} مم²</td>
+                      <td>مساحة الحديد العلوي As</td>
+                    </tr>
+                     <tr>
+                      <td>${Number(results.asLower || 0).toFixed(3)} مم²</td>
+                      <td>مساحة الحديد السفلي As</td>
+                    </tr>
+                    <tr style="background: #f0fdf4; font-weight: bold; color: #059669;">
+                      <td>${results.countUpper || 0} قضيب</td>
+                      <td>عدد القضبان العلوية</td>
+                    </tr>
+                    <tr style="background: #f0fdf4; font-weight: bold; color: #059669;">
+                      <td>${results.countLower || 0} قضيب</td>
+                      <td>عدد القضبان السفلية</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+              <div class="footer"><p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p><p>© 2025 جميع الحقوق محفوظة</p></div>
+            </div>
+          </body>
+          </html>
+        `;
+
+        const printWindow = window.open('', '_blank', 'width=1000,height=800');
+        if (!printWindow) throw new Error('Could not open print window');
+        printWindow.document.write(steelHtmlContent);
+        printWindow.document.close();
+        printWindow.onload = () => { setTimeout(() => { printWindow.print(); }, 500); };
+        toast({ title: 'تم فتح التقرير', description: 'تم فتح تقرير حديد جسور السقف للطباعة' });
+        setDownloading(null);
+        return;
+      }
+
       // Check if this is a column-ties-steel report
       if (report.calculationType === 'column-ties-steel') {
         const steelData = report.steelData?.details;
@@ -1398,6 +1515,7 @@ export default function OwnerQuantityReportsPage() {
       case 'roof-slab-steel': return 'حديد السقف';
       case 'column-ties-steel': return 'حديد الأعمدة والكانات';
       case 'steel-column-base': return 'حديد شروش الأعمدة';
+      case 'roof-beams-steel': return 'حديد جسور السقف';
       default: return type;
     }
   };
@@ -1415,6 +1533,7 @@ export default function OwnerQuantityReportsPage() {
       case 'roof-slab-steel': return <Blocks className="w-5 h-5" />;
       case 'column-ties-steel': return <Blocks className="w-5 h-5" />;
       case 'steel-column-base': return <Building2 className="w-5 h-5" />;
+      case 'roof-beams-steel': return <Blocks className="w-5 h-5" />;
       default: return <FileText className="w-5 h-5" />;
     }
   };
@@ -1464,6 +1583,7 @@ export default function OwnerQuantityReportsPage() {
   const groundSlabSteelReport = reports.find(r => r.calculationType === 'ground-slab-steel');
   const roofRibsSteelReport = reports.find(r => r.calculationType === 'roof-ribs-steel');
   const roofSlabSteelReport = reports.find(r => r.calculationType === 'roof-slab-steel');
+  const roofBeamsSteelReport = reports.find(r => r.calculationType === 'roof-beams-steel');
   const columnTiesSteelReport = reports.find(r => r.calculationType === 'column-ties-steel');
   const steelColumnBaseReport = reports.find(r => r.calculationType === 'steel-column-base');
 
@@ -2424,6 +2544,79 @@ export default function OwnerQuantityReportsPage() {
                           <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
                             <Calendar className="w-4 h-4" />
                             <span>تاريخ الاستلام: {formatDate(columnTiesSteelReport.sentToOwnerAt)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Roof Beams Steel Report Card */}
+                {roofBeamsSteelReport && (
+                  <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+                    <CardHeader className="bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 text-white">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Blocks className="w-7 h-7 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-xl">تقرير حديد جسور السقف</CardTitle>
+                          <CardDescription className="text-emerald-100">
+                            كميات حديد جسور السقف
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      {roofBeamsSteelReport?.steelData?.details?.results && (
+                        <div className="space-y-4 mb-6">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 bg-emerald-50 rounded-lg">
+                              <p className="text-sm text-emerald-600 mb-1">الحديد العلوي</p>
+                              <p className="font-bold text-slate-800">
+                                {roofBeamsSteelReport.steelData.details.results.countUpper || 0} قضبان
+                              </p>
+                            </div>
+                            <div className="p-3 bg-teal-50 rounded-lg">
+                              <p className="text-sm text-teal-600 mb-1">الحديد السفلي</p>
+                              <p className="font-bold text-slate-800">
+                                {roofBeamsSteelReport.steelData.details.results.countLower || 0} قضبان
+                              </p>
+                            </div>
+                            <div className="p-3 bg-cyan-50 rounded-lg">
+                              <p className="text-sm text-cyan-600 mb-1">العزم الأقصى</p>
+                              <p className="font-bold text-slate-800">
+                                {Number(roofBeamsSteelReport.steelData.details.results.maxMoment || 0).toFixed(2)} kNm
+                              </p>
+                            </div>
+                            <div className="p-3 bg-blue-50 rounded-lg">
+                              <p className="text-sm text-blue-600 mb-1">عدد الجسور</p>
+                              <p className="font-bold text-slate-800">
+                                {roofBeamsSteelReport.steelData.details.inputs?.numBeams || 0}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-3">
+                        <Button
+                          onClick={() => downloadPDF(roofBeamsSteelReport._id)}
+                          disabled={downloading === roofBeamsSteelReport._id}
+                          className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                        >
+                          {downloading === roofBeamsSteelReport._id ? (
+                            <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                          ) : (
+                            <Printer className="w-5 h-5 ml-2" />
+                          )}
+                          طباعة التقرير
+                        </Button>
+
+                        {roofBeamsSteelReport.sentToOwnerAt && (
+                          <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            <span>تاريخ الاستلام: {formatDate(roofBeamsSteelReport.sentToOwnerAt)}</span>
                           </div>
                         )}
                       </div>

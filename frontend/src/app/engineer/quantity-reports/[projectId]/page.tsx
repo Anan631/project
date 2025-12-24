@@ -106,6 +106,7 @@ const ALLOWED_CALCULATION_TYPES = [
   'roof-slab-steel',
   'column-ties-steel',
   'steel-column-base',
+  'roof-beams-steel',
 ];
 
 export default function ProjectReportsPage() {
@@ -190,10 +191,11 @@ export default function ProjectReportsPage() {
       }
 
       // Check if this is a foundation-steel report or ground-beams-steel report or ground-slab-steel report or roof-ribs-steel report or column-ties-steel report or steel-column-base report
-      if (report.calculationType === 'foundation-steel' || report.calculationType === 'ground-beams-steel' || report.calculationType === 'ground-slab-steel' || report.calculationType === 'roof-ribs-steel' || report.calculationType === 'roof-slab-steel' || report.calculationType === 'column-ties-steel' || report.calculationType === 'steel-column-base') {
+      if (report.calculationType === 'foundation-steel' || report.calculationType === 'ground-beams-steel' || report.calculationType === 'ground-slab-steel' || report.calculationType === 'roof-ribs-steel' || report.calculationType === 'roof-beams-steel' || report.calculationType === 'roof-slab-steel' || report.calculationType === 'column-ties-steel' || report.calculationType === 'steel-column-base') {
         const isGroundBeams = report.calculationType === 'ground-beams-steel';
         const isGroundSlab = report.calculationType === 'ground-slab-steel';
         const isRoofRibs = report.calculationType === 'roof-ribs-steel';
+        const isRoofBeams = report.calculationType === 'roof-beams-steel';
         const isRoofSlab = report.calculationType === 'roof-slab-steel';
         const isColumnTies = report.calculationType === 'column-ties-steel';
         const isSteelColumnBase = report.calculationType === 'steel-column-base';
@@ -204,8 +206,8 @@ export default function ProjectReportsPage() {
         const inputs = steelData?.inputs || steelData || {}; // Use steelData as fallback for steel column base
 
         // Prepare data specific to report type
-        const reportTitle = isGroundBeams ? 'تقرير حديد الجسور الأرضية - طلبية حديد' : isGroundSlab ? 'تقرير حديد أرضية المبنى - طلبية حديد' : isRoofRibs ? 'تقرير حديد أعصاب السقف - طلبية حديد' : isRoofSlab ? 'تقرير حديد السقف - طلبية حديد' : isColumnTies ? 'تقرير حديد الأعمدة والكانات - طلبية حديد' : isSteelColumnBase ? 'تقرير حديد شروش الأعمدة - طلبية حديد' : 'تقرير حديد القواعد - طلبية حديد';
-        const reportSubtitle = isGroundBeams ? 'حساب كميات حديد الجسور الأرضية وفق المعايير الهندسية' : isGroundSlab ? 'حساب كميات حديد أرضية المبنى وفق المعايير الهندسية' : isRoofRibs ? 'حساب كميات حديد أعصاب السقف وفق المعايير الهندسية' : isRoofSlab ? 'حساب كميات حديد السقف وفق المعايير الهندسية' : isColumnTies ? 'حساب كميات حديد الأعمدة والكانات وفق المعايير الهندسية' : isSteelColumnBase ? 'حساب كميات حديد شروش الأعمدة وفق المعايير الهندسية' : 'حساب كميات حديد القواعد وفق المعايير الهندسية';
+        const reportTitle = isGroundBeams ? 'تقرير حديد الجسور الأرضية - طلبية حديد' : isGroundSlab ? 'تقرير حديد أرضية المبنى - طلبية حديد' : isRoofRibs ? 'تقرير حديد أعصاب السقف - طلبية حديد' : isRoofBeams ? 'تقرير حديد جسور السقف - طلبية حديد' : isRoofSlab ? 'تقرير حديد السقف - طلبية حديد' : isColumnTies ? 'تقرير حديد الأعمدة والكانات - طلبية حديد' : isSteelColumnBase ? 'تقرير حديد شروش الأعمدة - طلبية حديد' : 'تقرير حديد القواعد - طلبية حديد';
+        const reportSubtitle = isGroundBeams ? 'حساب كميات حديد الجسور الأرضية وفق المعايير الهندسية' : isGroundSlab ? 'حساب كميات حديد أرضية المبنى وفق المعايير الهندسية' : isRoofRibs ? 'حساب كميات حديد أعصاب السقف وفق المعايير الهندسية' : isRoofBeams ? 'حساب كميات حديد جسور السقف وفق المعايير الهندسية' : isRoofSlab ? 'حساب كميات حديد السقف وفق المعايير الهندسية' : isColumnTies ? 'حساب كميات حديد الأعمدة والكانات وفق المعايير الهندسية' : isSteelColumnBase ? 'حساب كميات حديد شروش الأعمدة وفق المعايير الهندسية' : 'حساب كميات حديد القواعد وفق المعايير الهندسية';
 
         let specificTablesHtml = '';
 
@@ -646,6 +648,64 @@ export default function ProjectReportsPage() {
                     <tr style="background: #d1fae5; font-weight: bold;">
                       <td>${results.numberOfBars || 0} قضيب</td>
                       <td>عدد القضبان المطلوبة</td>
+                    </tr>
+                  </tbody>
+                </table>
+              `;
+        } else if (isRoofBeams) {
+          specificTablesHtml = `
+                <div class="section-title">بيانات المدخلات (جسور السقف)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${inputs.rodDiameterMm || 0} ملم</td>
+                      <td>قطر القضيب</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.beamHeightCm || 0} سم</td>
+                      <td>ارتفاع الجسر</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.numBeams || 0}</td>
+                      <td>عدد الجسور</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">نتائج الحساب (جسور السقف)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${Number(results.maxMoment || 0).toFixed(3)} kN.m</td>
+                      <td>العزم الأقصى</td>
+                    </tr>
+                    <tr>
+                      <td>${Number(results.asUpper || 0).toFixed(3)} مم²</td>
+                      <td>مساحة الحديد العلوي As</td>
+                    </tr>
+                     <tr>
+                      <td>${Number(results.asLower || 0).toFixed(3)} مم²</td>
+                      <td>مساحة الحديد السفلي As</td>
+                    </tr>
+                    <tr style="background: #f0fdf4; font-weight: bold;">
+                      <td>${results.countUpper || 0} قضيب</td>
+                      <td>عدد القضبان العلوية</td>
+                    </tr>
+                    <tr style="background: #f0fdf4; font-weight: bold;">
+                      <td>${results.countLower || 0} قضيب</td>
+                      <td>عدد القضبان السفلية</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1565,7 +1625,8 @@ export default function ProjectReportsPage() {
                           report.calculationType === 'roof-slab-steel' ? 'حديد السقف' :
                             report.calculationType === 'column-ties-steel' ? 'حديد الأعمدة والكانات' :
                               report.calculationType === 'steel-column-base' ? 'حديد شروش الأعمدة' :
-                                report.calculationType,
+                                report.calculationType === 'roof-beams-steel' ? 'حديد جسور السقف' :
+                                  report.calculationType,
       reportDate: formatDate(report.updatedAt),
     });
   };
@@ -1725,6 +1786,7 @@ export default function ProjectReportsPage() {
   const roofSlabSteelReport = reports.find(r => r.calculationType === 'roof-slab-steel');
   const columnTiesSteelReport = reports.find(r => r.calculationType === 'column-ties-steel');
   const steelColumnBaseReport = reports.find(r => r.calculationType === 'steel-column-base');
+  const roofBeamsSteelReport = reports.find(r => r.calculationType === 'roof-beams-steel');
 
   if (loading) {
     return (
@@ -3336,6 +3398,118 @@ export default function ProjectReportsPage() {
                             className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
                           >
                             {deleting === columnTiesSteelReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الحذف...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4 ml-2" />
+                                حذف التقرير
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Roof Beams Steel Report Card */}
+                  {roofBeamsSteelReport && (
+                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                      <CardHeader className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white border-b border-white/20">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-xl flex items-center gap-3">
+                            <Blocks className="w-6 h-6" />
+                            تقرير حديد جسور السقف
+                          </CardTitle>
+                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                            {roofBeamsSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
+                          </Badge>
+                        </div>
+                        <CardDescription className="text-emerald-100 mt-2">
+                          تاريخ التقرير: {formatDate(roofBeamsSteelReport.updatedAt)}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="space-y-4 mb-6">
+                          {roofBeamsSteelReport.steelData?.details?.results && (
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-4 rounded-xl border-2 border-emerald-200">
+                                <p className="text-sm text-slate-600 mb-1">الحديد العلوي</p>
+                                <p className="text-xl font-black text-emerald-700">
+                                  {roofBeamsSteelReport.steelData.details.results.countUpper || 0} قضبان
+                                </p>
+                              </div>
+                              <div className="bg-gradient-to-br from-teal-50 to-cyan-50 p-4 rounded-xl border-2 border-teal-200">
+                                <p className="text-sm text-slate-600 mb-1">الحديد السفلي</p>
+                                <p className="text-xl font-black text-teal-700">
+                                  {roofBeamsSteelReport.steelData.details.results.countLower || 0} قضبان
+                                </p>
+                              </div>
+                              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 p-4 rounded-xl border-2 border-cyan-200">
+                                <p className="text-sm text-slate-600 mb-1">العزم الأقصى</p>
+                                <p className="text-xl font-black text-cyan-700">
+                                  {Number(roofBeamsSteelReport.steelData.details.results.maxMoment || 0).toFixed(2)} kNm
+                                </p>
+                              </div>
+                              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border-2 border-blue-200">
+                                <p className="text-sm text-slate-600 mb-1">عدد الجسور</p>
+                                <p className="text-xl font-black text-blue-700">
+                                  {roofBeamsSteelReport.steelData.details.inputs?.numBeams || 0}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <Button
+                            onClick={() => downloadPDF(roofBeamsSteelReport._id, 'steel')}
+                            disabled={downloading === `${roofBeamsSteelReport._id}-steel`}
+                            className="w-full h-14 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {downloading === `${roofBeamsSteelReport._id}-steel` ? (
+                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                            ) : (
+                              <Printer className="w-5 h-5 ml-2" />
+                            )}
+                            طباعة التقرير PDF
+                          </Button>
+
+                          <Button
+                            onClick={() => handleSendToOwner(roofBeamsSteelReport._id)}
+                            disabled={sendingToOwner === roofBeamsSteelReport._id || roofBeamsSteelReport.sentToOwner}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${roofBeamsSteelReport.sentToOwner
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                              }`}
+                          >
+                            {sendingToOwner === roofBeamsSteelReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الإرسال...
+                              </>
+                            ) : roofBeamsSteelReport.sentToOwner ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 ml-2" />
+                                تم الإرسال للمالك
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 ml-2" />
+                                إرسال التقرير للمالك
+                              </>
+                            )}
+                          </Button>
+
+                          <Button
+                            onClick={() => handleDeleteReport(roofBeamsSteelReport._id)}
+                            disabled={deleting === roofBeamsSteelReport._id}
+                            variant="destructive"
+                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {deleting === roofBeamsSteelReport._id ? (
                               <>
                                 <Loader2 className="w-4 h-4 animate-spin ml-2" />
                                 جاري الحذف...

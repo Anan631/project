@@ -17,6 +17,7 @@ const ALLOWED_CALCULATION_TYPES = new Set([
   'roof-slab-steel',
   'column-ties-steel',
   'steel-column-base',
+  'roof-beams-steel',
 ]);
 
 let PDFDocument;
