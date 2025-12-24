@@ -87,6 +87,22 @@ interface QuantityReport {
   updatedAt: string;
 }
 
+const ALLOWED_CALCULATION_TYPES = [
+  'foundations',
+  'ground-bridges',
+  'ground-slab',
+  'roof',
+  'column-footings',
+  'columns',
+  'foundation-steel',
+  'ground-beams-steel',
+  'ground-slab-steel',
+  'roof-ribs-steel',
+  'roof-slab-steel',
+  'column-ties-steel',
+  'steel-column-base',
+];
+
 export default function ProjectReportsPage() {
   const params = useParams();
   const router = useRouter();
@@ -130,12 +146,26 @@ export default function ProjectReportsPage() {
       const data = await response.json();
 
       if (data.success) {
-        setReports(data.reports);
-        if (data.reports.length > 0) {
+        const allReports: QuantityReport[] = Array.isArray(data.reports) ? data.reports : [];
+        const visibleReports = allReports.filter(r => ALLOWED_CALCULATION_TYPES.includes(r.calculationType));
+        const hiddenReports = allReports.filter(r => !ALLOWED_CALCULATION_TYPES.includes(r.calculationType));
+
+        if (hiddenReports.length > 0) {
+          await Promise.allSettled(
+            hiddenReports.map((report) =>
+              fetch(`http://localhost:5000/api/quantity-reports/${report._id}`, {
+                method: 'DELETE'
+              })
+            )
+          );
+        }
+
+        setReports(visibleReports);
+        if (visibleReports.length > 0) {
           setProjectInfo({
-            name: data.reports[0].projectName,
-            engineerName: data.reports[0].engineerName,
-            ownerName: data.reports[0].ownerName || 'غير محدد'
+            name: visibleReports[0].projectName,
+            engineerName: visibleReports[0].engineerName,
+            ownerName: visibleReports[0].ownerName || 'غير محدد'
           });
         } else if (data.project) {
           setProjectInfo({
@@ -173,13 +203,14 @@ export default function ProjectReportsPage() {
         const isRoofSlab = report.calculationType === 'roof-slab-steel';
         const isColumnTies = report.calculationType === 'column-ties-steel';
         const isSteelColumnBase = report.calculationType === 'steel-column-base';
+
         // Generate Steel Report PDF (Foundation or Ground Beams or Ground Slab or Roof Ribs or Roof Slab or Column Ties or Steel Column Base)
         const steelData = report.steelData?.details;
         const results = steelData?.results;
-        const inputs = steelData?.inputs || {}; // Inputs might be in results for ground beams
+        const inputs = steelData?.inputs || steelData || {}; // Use steelData as fallback for steel column base
 
         // Prepare data specific to report type
-        const reportTitle = isGroundBeams ? 'تقرير حديد الجسور الأرضية' : isGroundSlab ? 'تقرير حديد أرضية المبنى' : isRoofRibs ? 'تقرير حديد أعصاب السقف' : isRoofSlab ? 'تقرير حديد السقف' : isColumnTies ? 'تقرير حديد الأعمدة والكانات' : isSteelColumnBase ? 'تقرير حديد شروش الأعمدة' : 'تقرير حديد القواعد';
+        const reportTitle = isGroundBeams ? 'تقرير حديد الجسور الأرضية - طلبية حديد' : isGroundSlab ? 'تقرير حديد أرضية المبنى - طلبية حديد' : isRoofRibs ? 'تقرير حديد أعصاب السقف - طلبية حديد' : isRoofSlab ? 'تقرير حديد السقف - طلبية حديد' : isColumnTies ? 'تقرير حديد الأعمدة والكانات - طلبية حديد' : isSteelColumnBase ? 'تقرير حديد شروش الأعمدة - طلبية حديد' : 'تقرير حديد القواعد - طلبية حديد';
         const reportSubtitle = isGroundBeams ? 'حساب كميات حديد الجسور الأرضية وفق المعايير الهندسية' : isGroundSlab ? 'حساب كميات حديد أرضية المبنى وفق المعايير الهندسية' : isRoofRibs ? 'حساب كميات حديد أعصاب السقف وفق المعايير الهندسية' : isRoofSlab ? 'حساب كميات حديد السقف وفق المعايير الهندسية' : isColumnTies ? 'حساب كميات حديد الأعمدة والكانات وفق المعايير الهندسية' : isSteelColumnBase ? 'حساب كميات حديد شروش الأعمدة وفق المعايير الهندسية' : 'حساب كميات حديد القواعد وفق المعايير الهندسية';
 
         let specificTablesHtml = '';
@@ -215,10 +246,6 @@ export default function ProjectReportsPage() {
                       <td>${inputs.slabThicknessCm || 0} سم</td>
                       <td>سمك السقف</td>
                     </tr>
-                    <tr>
-                      <td>${inputs.columnShape === 'square' ? 'مربع' : inputs.columnShape === 'rectangle' ? 'مستطيل' : 'دائري'}</td>
-                      <td>شكل العمود</td>
-                    </tr>
                   </tbody>
                 </table>
 
@@ -250,41 +277,6 @@ export default function ProjectReportsPage() {
                     <tr style="background: #d1fae5; font-weight: bold;">
                       <td>${results.rodWeight?.toFixed(3) || 0} كجم</td>
                       <td>وزن الحديد للعمود</td>
-                    </tr>
-                  </tbody>
-                </table>
-              `;
-        } else if (isSteelColumnBase) {
-          // Steel Column Base Report
-          specificTablesHtml = `
-                <div class="section-title">نتائج الحساب</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>القيمة</th>
-                      <th>البيان</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>${steelData?.starterLength?.toFixed(2) || 0} م</td>
-                      <td>طول شرش العمود</td>
-                    </tr>
-                    <tr>
-                      <td>${steelData?.dimensionText || 'غير محدد'}</td>
-                      <td>أبعاد الشرش</td>
-                    </tr>
-                    <tr>
-                      <td>${steelData?.barArea?.toFixed(2) || 0} مم²</td>
-                      <td>مساحة مقطع القضيب</td>
-                    </tr>
-                    <tr>
-                      <td>${steelData?.numBars || 0} قضيب</td>
-                      <td>عدد القضبان المطلوب</td>
-                    </tr>
-                    <tr style="background: #d1fae5; font-weight: bold;">
-                      <td>${steelData?.starterWeight?.toFixed(2) || 0} كجم</td>
-                      <td>الوزن الإجمالي للحديد</td>
                     </tr>
                   </tbody>
                 </table>
@@ -376,6 +368,52 @@ export default function ProjectReportsPage() {
             }
           }
 
+        } else if (isSteelColumnBase) {
+          specificTablesHtml = `
+                <div class="section-title">بيانات شروش الأعمدة</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${steelData.starterLength?.toFixed(2) || 0} م</td>
+                      <td>طول الشرش</td>
+                    </tr>
+                    <tr>
+                      <td>${steelData.numBars || 0}</td>
+                      <td>عدد القضبان</td>
+                    </tr>
+                    <tr>
+                      <td>${steelData?.rodDiameter || steelData?.barDiameter || inputs?.rodDiameter || report.steelData?.details?.rodDiameter || report.steelData?.details?.barDiameter || 'N/A'} ملم</td>
+                      <td>قطر القضيب</td>
+                    </tr>
+                    <tr>
+                      <td>${steelData.dimensionText || 'غير محدد'}</td>
+                      <td>أبعاد الشرش</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">نتائج الحسابات</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${steelData.totalSteelWeight || report.steelData?.totalSteelWeight || 0} كجم</td>
+                      <td>الوزن الإجمالي للحديد</td>
+                    </tr>
+                  </tbody>
+                </table>
+              `;
         } else if (isGroundSlab) {
           const type = results?.type;
 
@@ -570,15 +608,19 @@ export default function ProjectReportsPage() {
                     </tr>
                     <tr>
                       <td>${results.foundationLength || 0} متر</td>
-                      <td>طول القاعدة</td>
+                      <td>الطول</td>
                     </tr>
                     <tr>
                       <td>${results.foundationWidth || 0} متر</td>
-                      <td>عرض القاعدة</td>
+                      <td>العرض</td>
                     </tr>
                     <tr>
                       <td>${inputs?.uSteelSpacing || 0} متر</td>
                       <td>المسافة بين حديد U</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs?.barDiameter || results?.barDiameter || report.steelData?.details?.inputs?.barDiameter || 'N/A'} ملم</td>
+                      <td>قطر القضيب</td>
                     </tr>
                   </tbody>
                 </table>
@@ -807,7 +849,7 @@ export default function ProjectReportsPage() {
               }
               
               .total-box {
-                background: linear-gradient(135deg, ${isGroundBeams || isGroundSlab || isColumnTies || isSteelColumnBase ? '#ffedd5' : '#d1fae5'}, ${isGroundBeams || isGroundSlab || isColumnTies || isSteelColumnBase ? '#fed7aa' : '#a7f3d0'});
+                background: ${isGroundBeams || isGroundSlab || isColumnTies || isSteelColumnBase ? '#ffedd5' : '#d1fae5'};
                 border: 3px solid ${isGroundBeams || isGroundSlab || isColumnTies || isSteelColumnBase ? '#ea580c' : '#059669'};
                 border-radius: 12px;
                 padding: 30px;
@@ -873,27 +915,16 @@ export default function ProjectReportsPage() {
 
               <div class="info-boxes">
                 <div class="info-box">
-                  <label>نوع الحساب</label>
-                  <div class="value">${isSteelColumnBase
-            ? 'حديد شروش الأعمدة'
-            : isGroundSlab
-            ? (results?.type === 'mesh' ? 'شبك حديد' : 'حديد مفرق')
-            : results?.type === 'similar' ? (isGroundBeams ? 'جسور متشابهة' : 'قواعد متشابهة') : (isColumnTies ? 'أعمدة وكانات' : isGroundBeams ? 'جسور مختلفة' : 'قواعد مختلفة')
-          }</div>
-                </div>
-                ${!isGroundBeams || isGroundBeams && results?.type === 'similar' || isSteelColumnBase ? `
-                <div class="info-box">
                   <label>قطر القضيب</label>
-                  <div class="value">${isSteelColumnBase ? (steelData?.rodDiameter || 'N/A') : (inputs?.rodDiameterMm ?? inputs?.reinforcementDiameter ?? inputs?.barDiameter ?? results?.barDiameter ?? 'N/A')} ملم</div>
+                  <div class="value">${isGroundSlab ? '6' : (steelData?.barDiameter || inputs?.barDiameter || results?.barDiameter || report.steelData?.details?.inputs?.barDiameter || report.steelData?.details?.barDiameter || report.steelData?.details?.inputs?.rodDiameter || report.steelData?.details?.rodDiameter || 'N/A')} ملم</div>
                 </div>
-                ` : ''}
               </div>
 
               ${specificTablesHtml}
 
               <div class="footer">
                 <p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p>
-                <p>© 2025 جميع الحقوق محفوظة</p>
+                <p> 2025 جميع الحقوق محفوظة</p>
               </div>
             </div>
           </body>
@@ -1227,7 +1258,7 @@ export default function ProjectReportsPage() {
             <div class="header">
               <img src="/header-bg.jpg" alt="شعار الموقع" class="logo">
               <h1>طلبية خرسانة</h1>
-              <p>تقرير كميات الخرسانة</p>
+              <p>تقرير كميات الخرسانة - طلبية خرسانة</p>
               <p>${report.calculationType === 'column-footings' ? 'شروش الأعمدة' : report.calculationType === 'columns' ? 'الأعمدة' : report.calculationType === 'roof' ? 'السقف' : report.calculationType === 'foundation' ? 'صبة النظافة والقواعد' : report.calculationType === 'ground-bridges' ? 'الجسور الأرضية' : report.calculationType === 'ground-slab' ? 'أرضية المبنى (المِدّة)' : 'تفصيل شامل لكميات المواد والمعدات'}</p>
             </div>
 
@@ -1416,7 +1447,7 @@ export default function ProjectReportsPage() {
 
             <div class="footer">
               <p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p>
-              <p>© 2025 جميع الحقوق محفوظة</p>
+              <p> 2025 جميع الحقوق محفوظة</p>
             </div>
           </div>
         </body>
@@ -1634,7 +1665,7 @@ export default function ProjectReportsPage() {
   const roofSlabSteelReport = reports.find(r => r.calculationType === 'roof-slab-steel');
   const columnTiesSteelReport = reports.find(r => r.calculationType === 'column-ties-steel');
   const steelColumnBaseReport = reports.find(r => r.calculationType === 'steel-column-base');
-
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl">
@@ -2576,14 +2607,6 @@ export default function ProjectReportsPage() {
                         <div className="space-y-4 mb-6">
                           {foundationSteelReport.steelData?.details?.results && (
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-green-200">
-                                <p className="text-sm text-slate-600 mb-1">نوع الحساب</p>
-                                <p className="text-xl font-black text-green-700">
-                                  {foundationSteelReport.steelData.details.results.type === 'similar'
-                                    ? 'قواعد متشابهة'
-                                    : 'قواعد مختلفة'}
-                                </p>
-                              </div>
                               <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200">
                                 <p className="text-sm text-slate-600 mb-1">قطر القضيب</p>
                                 <p className="text-xl font-black text-blue-700">
@@ -2596,11 +2619,11 @@ export default function ProjectReportsPage() {
 
                         <div className="space-y-3">
                           <Button
-                            onClick={() => downloadPDF(foundationSteelReport._id, 'concrete')}
-                            disabled={downloading === `${foundationSteelReport._id}-concrete`}
+                            onClick={() => downloadPDF(foundationSteelReport._id, 'steel')}
+                            disabled={downloading === `${foundationSteelReport._id}-steel`}
                             className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
                           >
-                            {downloading === `${foundationSteelReport._id}-concrete` ? (
+                            {downloading === `${foundationSteelReport._id}-steel` ? (
                               <Loader2 className="w-5 h-5 animate-spin ml-2" />
                             ) : (
                               <Printer className="w-5 h-5 ml-2" />
@@ -2678,20 +2701,10 @@ export default function ProjectReportsPage() {
                         <div className="space-y-4 mb-6">
                           {groundBeamsSteelReport.steelData?.details?.results && (
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border-2 border-orange-200">
-                                <p className="text-sm text-slate-600 mb-1">نوع الحساب</p>
-                                <p className="text-xl font-black text-orange-700">
-                                  {groundBeamsSteelReport.steelData.details.results.type === 'similar'
-                                    ? 'جسور متشابهة'
-                                    : 'جسور مختلفة'}
-                                </p>
-                              </div>
                               <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200">
                                 <p className="text-sm text-slate-600 mb-1">عدد الجسور</p>
                                 <p className="text-xl font-black text-blue-700">
-                                  {groundBeamsSteelReport.steelData.details.results.type === 'similar'
-                                    ? (groundBeamsSteelReport.steelData.details.results.numberOfBeams || 0)
-                                    : (groundBeamsSteelReport.steelData?.details?.results?.beams?.length || 0)}
+                                  {groundBeamsSteelReport.steelData.details.results.type === 'similar' ? (groundBeamsSteelReport.steelData.details.results.numberOfBeams || 0) : (groundBeamsSteelReport.steelData?.details?.results?.beams?.length || 0)}
                                 </p>
                               </div>
                             </div>
@@ -2700,11 +2713,11 @@ export default function ProjectReportsPage() {
 
                         <div className="space-y-3">
                           <Button
-                            onClick={() => downloadPDF(groundBeamsSteelReport._id, 'concrete')}
-                            disabled={downloading === `${groundBeamsSteelReport._id}-concrete`}
+                            onClick={() => downloadPDF(groundBeamsSteelReport._id, 'steel')}
+                            disabled={downloading === `${groundBeamsSteelReport._id}-steel`}
                             className="w-full h-14 bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-700 hover:via-amber-700 hover:to-yellow-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
                           >
-                            {downloading === `${groundBeamsSteelReport._id}-concrete` ? (
+                            {downloading === `${groundBeamsSteelReport._id}-steel` ? (
                               <Loader2 className="w-5 h-5 animate-spin ml-2" />
                             ) : (
                               <Printer className="w-5 h-5 ml-2" />
@@ -2782,22 +2795,18 @@ export default function ProjectReportsPage() {
                         <div className="space-y-4 mb-6">
                           {groundSlabSteelReport.steelData?.details?.results && (
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border-2 border-orange-200">
-                                <p className="text-sm text-slate-600 mb-1">نوع الحساب</p>
-                                <p className="text-xl font-black text-orange-700">
-                                  {groundSlabSteelReport.steelData.details.results.type === 'mesh'
-                                    ? 'شبك حديد'
-                                    : 'حديد مفرق'}
+                              <div className="bg-gradient-to-br from-red-50 to-orange-50 p-4 rounded-xl border-2 border-red-200">
+                                <p className="text-sm text-slate-600 mb-1">نوع التسليح</p>
+                                <p className="text-xl font-black text-red-700">
+                                  {groundSlabSteelReport.steelData.details.results.type === 'mesh' ? 'شبك حديد' : 'حديد مفرق'}
                                 </p>
                               </div>
-                              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200">
+                              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-4 rounded-xl border-2 border-amber-200">
                                 <p className="text-sm text-slate-600 mb-1">
                                   {groundSlabSteelReport.steelData.details.results.type === 'mesh' ? 'عدد الشبك' : 'عدد القصبان'}
                                 </p>
-                                <p className="text-xl font-black text-blue-700">
-                                  {groundSlabSteelReport.steelData.details.results.type === 'mesh'
-                                    ? (groundSlabSteelReport.steelData.details.results.meshBars || 0)
-                                    : (groundSlabSteelReport.steelData.details.results.totalBars || 0)}
+                                <p className="text-xl font-black text-amber-700">
+                                  {groundSlabSteelReport.steelData.details.results.type === 'mesh' ? (groundSlabSteelReport.steelData.details.results.meshBars || 0) : (groundSlabSteelReport.steelData.details.results.separateBars || 0)}
                                 </p>
                               </div>
                             </div>
@@ -2806,11 +2815,11 @@ export default function ProjectReportsPage() {
 
                         <div className="space-y-3">
                           <Button
-                            onClick={() => downloadPDF(groundSlabSteelReport._id, 'concrete')}
-                            disabled={downloading === `${groundSlabSteelReport._id}-concrete`}
+                            onClick={() => downloadPDF(groundSlabSteelReport._id, 'steel')}
+                            disabled={downloading === `${groundSlabSteelReport._id}-steel`}
                             className="w-full h-14 bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-700 hover:via-amber-700 hover:to-yellow-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
                           >
-                            {downloading === `${groundSlabSteelReport._id}-concrete` ? (
+                            {downloading === `${groundSlabSteelReport._id}-steel` ? (
                               <Loader2 className="w-5 h-5 animate-spin ml-2" />
                             ) : (
                               <Printer className="w-5 h-5 ml-2" />
@@ -2886,13 +2895,13 @@ export default function ProjectReportsPage() {
                       </CardHeader>
                       <CardContent className="p-6">
                         <div className="grid grid-cols-2 gap-4 mb-6">
-                          <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
+                          <div className="p-4 bg-purple-50 rounded-xl border-2 border-purple-100">
                             <p className="text-sm text-slate-500 font-medium mb-1">المساحة المطلوبة</p>
                             <p className="text-2xl font-bold text-slate-800">
                               {roofRibsSteelReport.steelData?.details?.results?.requiredBarArea || 0} <span className="text-sm font-normal text-slate-500">سم²</span>
                             </p>
                           </div>
-                          <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
+                          <div className="p-4 bg-purple-50 rounded-xl border-2 border-purple-100">
                             <p className="text-sm text-slate-500 font-medium mb-1">عدد القضبان</p>
                             <p className="text-2xl font-bold text-slate-800">
                               {roofRibsSteelReport.steelData?.details?.results?.numberOfBars || 0}
@@ -2987,9 +2996,7 @@ export default function ProjectReportsPage() {
                               <div className="bg-gradient-to-br from-red-50 to-orange-50 p-4 rounded-xl border-2 border-red-200">
                                 <p className="text-sm text-slate-600 mb-1">نوع التسليح</p>
                                 <p className="text-xl font-black text-red-700">
-                                  {roofSlabSteelReport.steelData.details.results.type === 'mesh'
-                                    ? 'شبك حديد'
-                                    : 'حديد مفرق'}
+                                  {roofSlabSteelReport.steelData.details.results.type === 'mesh' ? 'شبك حديد' : 'حديد مفرق'}
                                 </p>
                               </div>
                               <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-4 rounded-xl border-2 border-amber-200">
@@ -2997,9 +3004,7 @@ export default function ProjectReportsPage() {
                                   {roofSlabSteelReport.steelData.details.results.type === 'mesh' ? 'عدد الشبك' : 'عدد القصبان'}
                                 </p>
                                 <p className="text-xl font-black text-amber-700">
-                                  {roofSlabSteelReport.steelData.details.results.type === 'mesh'
-                                    ? (roofSlabSteelReport.steelData.details.results.meshBars || 0)
-                                    : (roofSlabSteelReport.steelData.details.results.separateBars || 0)}
+                                  {roofSlabSteelReport.steelData.details.results.type === 'mesh' ? (roofSlabSteelReport.steelData.details.results.meshBars || 0) : (roofSlabSteelReport.steelData.details.results.separateBars || 0)}
                                 </p>
                               </div>
                             </div>
@@ -3053,106 +3058,6 @@ export default function ProjectReportsPage() {
                             className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
                           >
                             {deleting === roofSlabSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Column Ties Steel Report Card */}
-                  {columnTiesSteelReport && (
-                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                      <CardHeader className="bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 text-white border-b border-white/20">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl flex items-center gap-3">
-                            <Blocks className="w-6 h-6" />
-                            تقرير حديد الأعمدة والكانات
-                          </CardTitle>
-                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                            {columnTiesSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
-                          </Badge>
-                        </div>
-                        <CardDescription className="text-pink-100 mt-2">
-                          تاريخ التقرير: {formatDate(columnTiesSteelReport.updatedAt)}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-4 mb-6">
-                          {columnTiesSteelReport.steelData?.details?.results && (
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-gradient-to-br from-pink-50 to-rose-50 p-4 rounded-xl border-2 border-pink-200">
-                                <p className="text-sm text-slate-600 mb-1">عدد القضبان</p>
-                                <p className="text-xl font-black text-pink-700">
-                                  {columnTiesSteelReport.steelData.details.results.verticalBarsCount || 0}
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200">
-                                <p className="text-sm text-slate-600 mb-1">الوزن</p>
-                                <p className="text-xl font-black text-blue-700">
-                                  {columnTiesSteelReport.steelData.details.results.rodWeight?.toFixed(2) || 0} كجم
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(columnTiesSteelReport._id, 'steel')}
-                            disabled={downloading === `${columnTiesSteelReport._id}-steel`}
-                            className="w-full h-14 bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 hover:from-pink-700 hover:via-rose-700 hover:to-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${columnTiesSteelReport._id}-steel` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة التقرير PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(columnTiesSteelReport._id)}
-                            disabled={sendingToOwner === columnTiesSteelReport._id || columnTiesSteelReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${columnTiesSteelReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === columnTiesSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : columnTiesSteelReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(columnTiesSteelReport._id)}
-                            disabled={deleting === columnTiesSteelReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === columnTiesSteelReport._id ? (
                               <>
                                 <Loader2 className="w-4 h-4 animate-spin ml-2" />
                                 جاري الحذف...
@@ -3280,6 +3185,113 @@ export default function ProjectReportsPage() {
                       </CardContent>
                     </Card>
                   )}
+
+                  {/* Column Ties Steel Report Card */}
+                  {columnTiesSteelReport && (
+                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                      <CardHeader className="bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 text-white border-b border-white/20">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-xl flex items-center gap-3">
+                            <Blocks className="w-6 h-6" />
+                            تقرير حديد الأعمدة والكانات
+                          </CardTitle>
+                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                            {columnTiesSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
+                          </Badge>
+                        </div>
+                        <CardDescription className="text-pink-100 mt-2">
+                          تاريخ التقرير: {formatDate(columnTiesSteelReport.updatedAt)}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="space-y-4 mb-6">
+                          {columnTiesSteelReport.steelData?.details?.results && (
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-gradient-to-br from-pink-50 to-rose-50 p-4 rounded-xl border-2 border-pink-200">
+                                <p className="text-sm text-slate-600 mb-1">قطر القضيب</p>
+                                <p className="text-xl font-black text-pink-700">
+                                  {columnTiesSteelReport.steelData?.details?.inputs?.rodDiameterMm || columnTiesSteelReport.steelData?.details?.inputs?.rodDiameter || 0} مم
+                                </p>
+                              </div>
+                              <div className="bg-gradient-to-br from-pink-50 to-rose-50 p-4 rounded-xl border-2 border-pink-200">
+                                <p className="text-sm text-slate-600 mb-1">عدد القضبان</p>
+                                <p className="text-xl font-black text-pink-700">
+                                  {columnTiesSteelReport.steelData.details.results.verticalBarsCount || 0}
+                                </p>
+                              </div>
+                              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200">
+                                <p className="text-sm text-slate-600 mb-1">الوزن</p>
+                                <p className="text-xl font-black text-blue-700">
+                                  {columnTiesSteelReport.steelData.details.results.rodWeight?.toFixed(2) || 0} كجم
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <Button
+                            onClick={() => downloadPDF(columnTiesSteelReport._id, 'steel')}
+                            disabled={downloading === `${columnTiesSteelReport._id}-steel`}
+                            className="w-full h-14 bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 hover:from-pink-700 hover:via-rose-700 hover:to-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {downloading === `${columnTiesSteelReport._id}-steel` ? (
+                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                            ) : (
+                              <Printer className="w-5 h-5 ml-2" />
+                            )}
+                            طباعة التقرير PDF
+                          </Button>
+
+                          <Button
+                            onClick={() => handleSendToOwner(columnTiesSteelReport._id)}
+                            disabled={sendingToOwner === columnTiesSteelReport._id || columnTiesSteelReport.sentToOwner}
+                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${columnTiesSteelReport.sentToOwner
+                              ? 'bg-green-600 hover:bg-green-700 text-white'
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                              }`}
+                          >
+                            {sendingToOwner === columnTiesSteelReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الإرسال...
+                              </>
+                            ) : columnTiesSteelReport.sentToOwner ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 ml-2" />
+                                تم الإرسال للمالك
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 ml-2" />
+                                إرسال التقرير للمالك
+                              </>
+                            )}
+                          </Button>
+
+                          <Button
+                            onClick={() => handleDeleteReport(columnTiesSteelReport._id)}
+                            disabled={deleting === columnTiesSteelReport._id}
+                            variant="destructive"
+                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                          >
+                            {deleting === columnTiesSteelReport._id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                جاري الحذف...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4 ml-2" />
+                                حذف التقرير
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
 
                 </div>
 

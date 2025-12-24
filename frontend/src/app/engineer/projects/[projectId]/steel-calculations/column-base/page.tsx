@@ -614,6 +614,14 @@ export default function ColumnBaseCalculationPage() {
                                                 </div>
                                             </div>
 
+                                            <div className="p-6 bg-indigo-50 rounded-3xl border-2 border-indigo-100 shadow-inner">
+                                                <p className="text-indigo-600 font-bold mb-1">قطر القضيب</p>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-4xl font-black text-indigo-900">{inputs.rodDiameter || 0}</span>
+                                                    <span className="text-lg font-bold text-indigo-700">ملم</span>
+                                                </div>
+                                            </div>
+
                                             <div className="p-6 bg-emerald-50 rounded-3xl border-2 border-emerald-100 shadow-inner">
                                                 <p className="text-emerald-600 font-bold mb-1">عدد القضبان المطلوب</p>
                                                 <div className="flex items-baseline gap-2">
@@ -647,18 +655,48 @@ export default function ColumnBaseCalculationPage() {
                                         )}
                                         
                                         <AlertDialog open={existingReportDialog.open} onOpenChange={(open) => setExistingReportDialog(prev => ({ ...prev, open }))}>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle className="text-right">تقرير موجود مسبقاً</AlertDialogTitle>
-                                                    <AlertDialogDescription className="text-right">
-                                                        يوجد تقرير سابق لهذا الحساب. هل تريد استبداله بالتقرير الجديد؟
-                                                    </AlertDialogDescription>
+                                            <AlertDialogContent className="max-w-2xl border-0 shadow-2xl shadow-orange-200/50 backdrop-blur-sm bg-white/95">
+                                                <AlertDialogHeader className="space-y-4 pb-6">
+                                                    <div className="flex items-center gap-4 p-2">
+                                                        <div className="relative">
+                                                            <div className="w-16 h-16 p-4 bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 rounded-2xl shadow-2xl border-4 border-white/40 flex items-center justify-center">
+                                                                <AlertCircle className="w-8 h-8 text-white drop-shadow-2xl" />
+                                                            </div>
+                                                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-red-400 to-orange-400 border-2 border-white rounded-full shadow-xl flex items-center justify-center">
+                                                                <div className="w-2 h-2 bg-white rounded-full"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <AlertDialogTitle className="text-2xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-orange-800 bg-clip-text text-transparent leading-tight">
+                                                                تحذير: تقرير موجود مسبقاً
+                                                            </AlertDialogTitle>
+                                                            <div className="mt-4 space-y-4">
+                                                                <p className="text-lg text-slate-600 font-semibold leading-relaxed">
+                                                                    تم إجراء الحسابات وحفظ التقرير مسبقاً لهذا المشروع.
+                                                                </p>
+                                                                <div className="text-right space-y-2 text-slate-600">
+                                                                    <p className="font-bold">إذا قمت بإعادة الحسابات، سيتم:</p>
+                                                                    <ul className="list-disc list-inside space-y-1 mr-4">
+                                                                        <li>حذف التقرير السابق من عند المهندس</li>
+                                                                        <li>حذف التقرير السابق من عند المالك (إذا كان قد تم إرساله)</li>
+                                                                        <li>حفظ التقرير الجديد</li>
+                                                                    </ul>
+                                                                    <p className="font-bold mt-4">هل تريد المتابعة وإعادة الحسابات؟</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </AlertDialogHeader>
-                                                <AlertDialogFooter className="sm:justify-start">
-                                                    <AlertDialogAction onClick={handleRecalculate} className="bg-red-600 hover:bg-red-700">
-                                                        نعم، استبدل التقرير
+                                                <AlertDialogFooter className="gap-4 pt-4">
+                                                    <AlertDialogCancel onClick={handleCancelRecalculate} className="h-14 px-8 text-lg font-bold border-2 border-slate-300 hover:border-orange-400 hover:bg-orange-50 hover:text-orange-800 shadow-xl transition-all duration-300">
+                                                        إلغاء
+                                                    </AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={handleRecalculate}
+                                                        className="h-14 px-8 text-lg font-bold bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-700 hover:via-amber-700 hover:to-yellow-700 text-white shadow-xl hover:shadow-2xl transition-all duration-300"
+                                                    >
+                                                        إعادة الحسابات
                                                     </AlertDialogAction>
-                                                    <AlertDialogCancel onClick={handleCancelRecalculate}>إلغاء</AlertDialogCancel>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>

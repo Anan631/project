@@ -3,6 +3,22 @@ const router = express.Router();
 const QuantityReport = require('../models/QuantityReport');
 const Project = require('../models/Project');
 
+const ALLOWED_CALCULATION_TYPES = new Set([
+  'foundation',
+  'column-footings',
+  'columns',
+  'roof',
+  'ground-bridges',
+  'ground-slab',
+  'foundation-steel',
+  'ground-beams-steel',
+  'ground-slab-steel',
+  'roof-ribs-steel',
+  'roof-slab-steel',
+  'column-ties-steel',
+  'steel-column-base',
+]);
+
 let PDFDocument;
 try {
   PDFDocument = require('pdfkit');
@@ -16,6 +32,13 @@ router.post('/', async (req, res) => {
     const data = req.body;
     
     console.log('📊 Creating quantity report for project:', data.projectId);
+
+    if (!data || !ALLOWED_CALCULATION_TYPES.has(data.calculationType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Unsupported calculation type'
+      });
+    }
     
     // Check if report already exists for this project and calculation type (not deleted)
     const existingReport = await QuantityReport.findOne({
