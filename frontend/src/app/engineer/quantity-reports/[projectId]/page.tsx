@@ -88,12 +88,17 @@ interface QuantityReport {
 }
 
 const ALLOWED_CALCULATION_TYPES = [
-  'foundations',
+  'foundation',
+  'foundations', // Keep for legacy
+  'cleaning-slab',
   'ground-bridges',
   'ground-slab',
   'roof',
   'column-footings',
   'columns',
+  'beams',
+  'slabs',
+  'full',
   'foundation-steel',
   'ground-beams-steel',
   'ground-slab-steel',
@@ -148,17 +153,6 @@ export default function ProjectReportsPage() {
       if (data.success) {
         const allReports: QuantityReport[] = Array.isArray(data.reports) ? data.reports : [];
         const visibleReports = allReports.filter(r => ALLOWED_CALCULATION_TYPES.includes(r.calculationType));
-        const hiddenReports = allReports.filter(r => !ALLOWED_CALCULATION_TYPES.includes(r.calculationType));
-
-        if (hiddenReports.length > 0) {
-          await Promise.allSettled(
-            hiddenReports.map((report) =>
-              fetch(`http://localhost:5000/api/quantity-reports/${report._id}`, {
-                method: 'DELETE'
-              })
-            )
-          );
-        }
 
         setReports(visibleReports);
         if (visibleReports.length > 0) {
@@ -1665,7 +1659,7 @@ export default function ProjectReportsPage() {
   const roofSlabSteelReport = reports.find(r => r.calculationType === 'roof-slab-steel');
   const columnTiesSteelReport = reports.find(r => r.calculationType === 'column-ties-steel');
   const steelColumnBaseReport = reports.find(r => r.calculationType === 'steel-column-base');
-  
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl">

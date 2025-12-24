@@ -30,7 +30,7 @@ try {
 router.post('/', async (req, res) => {
   try {
     const data = req.body;
-    
+
     console.log('📊 Creating quantity report for project:', data.projectId);
 
     if (!data || !ALLOWED_CALCULATION_TYPES.has(data.calculationType)) {
@@ -39,25 +39,37 @@ router.post('/', async (req, res) => {
         message: 'Unsupported calculation type'
       });
     }
-    
+
     // Check if report already exists for this project and calculation type (not deleted)
     const existingReport = await QuantityReport.findOne({
       projectId: data.projectId,
       calculationType: data.calculationType,
       deleted: { $ne: true }
     });
-    
+
+    // Explicitly ensure deleted is false when saving/updating via this endpoint
+    data.deleted = false;
+    data.deletedAt = null;
+
     if (existingReport) {
       // Update existing report
-      Object.assign(existingReport, data);
+      existingReport.set(data);
       await existingReport.save();
-      console.log('✅ Updated existing quantity report:', existingReport._id);
+      console.log('✅ Updated existing quantity report:', {
+        id: existingReport._id,
+        type: existingReport.calculationType,
+        deleted: existingReport.deleted
+      });
       return res.json({ success: true, report: existingReport, updated: true });
     }
-    
+
     const report = await QuantityReport.create(data);
-    console.log('✅ Created new quantity report:', report._id);
-    
+    console.log('✅ Created new quantity report:', {
+      id: report._id,
+      type: report.calculationType,
+      deleted: report.deleted
+    });
+
     return res.status(201).json({ success: true, report });
   } catch (err) {
     console.error('❌ Error creating quantity report:', err);
@@ -74,12 +86,12 @@ router.get('/engineer/:engineerId', async (req, res) => {
   try {
     const engineerId = req.params.engineerId;
     console.log('📊 Fetching quantity reports for engineer:', engineerId);
-    
-    const reports = await QuantityReport.find({ 
+
+    const reports = await QuantityReport.find({
       engineerId,
       deleted: { $ne: true }
     }).sort({ updatedAt: -1 });
-    
+
     // Group by project
     const projectsMap = new Map();
     reports.forEach(report => {
@@ -96,9 +108,9 @@ router.get('/engineer/:engineerId', async (req, res) => {
       }
       projectsMap.get(report.projectId).reports.push(report);
     });
-    
+
     const projects = Array.from(projectsMap.values());
-    
+
     console.log(`✅ Found ${projects.length} projects with reports`);
     return res.json({ success: true, projects });
   } catch (err) {
@@ -112,12 +124,12 @@ router.get('/project/:projectId', async (req, res) => {
   try {
     const projectId = req.params.projectId;
     console.log('📊 Fetching quantity reports for project:', projectId);
-    
-    const reports = await QuantityReport.find({ 
+
+    const reports = await QuantityReport.find({
       projectId,
       deleted: { $ne: true }
     }).sort({ updatedAt: -1 });
-    
+
     // Also get project details
     let project = null;
     try {
@@ -125,7 +137,7 @@ router.get('/project/:projectId', async (req, res) => {
     } catch (e) {
       // projectId might not be a valid ObjectId
     }
-    
+
     console.log(`✅ Found ${reports.length} reports for project ${projectId}`);
     return res.json({ success: true, reports, project });
   } catch (err) {
@@ -143,28 +155,28 @@ router.get('/pdf/concrete/:reportId', async (req, res) => {
 
     const reportId = req.params.reportId;
     console.log('📄 Generating concrete PDF for report:', reportId);
-    
-    const report = await QuantityReport.findOne({ 
+
+    const report = await QuantityReport.findOne({
       _id: reportId,
       deleted: { $ne: true }
     });
     if (!report) {
       return res.status(404).json({ success: false, message: 'Report not found' });
     }
-    
+
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
-    
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=concrete-report-${reportId}.pdf`);
-    
+
     doc.pipe(res);
-    
+
     // Header with border
     doc.rect(50, 50, 495, 80).stroke();
     doc.fontSize(24).text('تقرير كميات الخرسانة', 70, 80, { align: 'center' });
     doc.fontSize(12).text('Concrete Quantity Report', 70, 110, { align: 'center' });
     doc.moveDown(2);
-    
+
     // Date
     const currentDate = new Date().toLocaleDateString('ar-EG', {
       year: 'numeric',
@@ -173,37 +185,37 @@ router.get('/pdf/concrete/:reportId', async (req, res) => {
     });
     doc.fontSize(12).text(`تاريخ الطباعة: ${currentDate}`, 50, 150);
     doc.moveDown();
-    
+
     // Owner and Engineer info in a box
     doc.rect(50, 170, 495, 60).stroke();
     doc.fontSize(14).text(`اسم المالك: ${report.ownerName || 'غير محدد'}`, 60, 185);
     doc.text(`اسم المهندس: ${report.engineerName}`, 60, 205);
     doc.moveDown(2);
-    
+
     // Project info
     doc.fontSize(14).text(`اسم المشروع: ${report.projectName}`, 50, 250);
     doc.moveDown(2);
-    
+
     // Concrete quantities section
     doc.rect(50, 280, 495, 140).stroke();
     doc.fontSize(16).text('كميات الخرسانة', 60, 295);
     doc.moveDown();
-    
+
     const concreteData = report.concreteData || {};
-    
+
     doc.fontSize(12).text(`كمية خرسانة النظاف: ${concreteData.cleaningVolume?.toFixed(2) || 0} متر مكعب`, 60, 325);
     doc.text(`كمية خرسانة القواعد: ${concreteData.foundationsVolume?.toFixed(2) || 0} متر مكعب`, 60, 345);
     doc.text(`كمية خرسانة أرضية المبنى: ${concreteData.groundSlabVolume?.toFixed(2) || 0} متر مكعب`, 60, 365);
     doc.moveDown();
     const totalConcrete = (concreteData.cleaningVolume || 0) + (concreteData.foundationsVolume || 0) + (concreteData.groundSlabVolume || 0);
     doc.fontSize(14).text(`إجمالي الكمية: ${totalConcrete.toFixed(2)} متر مكعب`, 60, 405);
-    
+
     // Footer
     doc.fontSize(10).text('تم إنشاء هذا التقرير بواسطة نظام إدارة المشاريع الهندسية', 50, 750, { align: 'center' });
-    
+
     doc.end();
     console.log('✅ Concrete PDF generated successfully');
-    
+
   } catch (err) {
     console.error('❌ Error generating concrete PDF:', err);
     return res.status(500).json({ success: false, message: 'Failed to generate PDF', error: err.message });
@@ -219,19 +231,19 @@ router.get('/pdf/steel/:reportId', async (req, res) => {
 
     const reportId = req.params.reportId;
     console.log('📄 Generating TEST steel PDF for report:', reportId);
-    
+
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
-    
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=test-report.pdf`);
-    
+
     doc.pipe(res);
-    
+
     doc.fontSize(25).text('Hello World', 100, 100);
-    
+
     doc.end();
     console.log('✅ Test PDF generated successfully');
-    
+
   } catch (err) {
     console.error('❌ Error generating test PDF:', err);
     return res.status(500).json({ success: false, message: 'Failed to generate PDF', error: err.message });
@@ -243,32 +255,32 @@ router.post('/:reportId/send-to-owner', async (req, res) => {
   try {
     const reportId = req.params.reportId;
     console.log('📧 Sending report to owner:', reportId);
-    
-    const report = await QuantityReport.findOne({ 
+
+    const report = await QuantityReport.findOne({
       _id: reportId,
       deleted: { $ne: true }
     });
     if (!report) {
       return res.status(404).json({ success: false, message: 'Report not found' });
     }
-    
+
     // Verify that the project is linked to an owner
     const project = await Project.findById(report.projectId);
     if (!project || !project.linkedOwnerEmail) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'المشروع غير مرتبط بمالك. يرجى ربط المشروع بمالك أولاً' 
+      return res.status(400).json({
+        success: false,
+        message: 'المشروع غير مرتبط بمالك. يرجى ربط المشروع بمالك أولاً'
       });
     }
-    
+
     // Verify owner email matches
     if (report.ownerEmail && report.ownerEmail.toLowerCase() !== project.linkedOwnerEmail.toLowerCase()) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'البريد الإلكتروني للمالك في التقرير لا يطابق المالك المرتبط بالمشروع' 
+      return res.status(403).json({
+        success: false,
+        message: 'البريد الإلكتروني للمالك في التقرير لا يطابق المالك المرتبط بالمشروع'
       });
     }
-    
+
     // Update report to mark as sent to owner
     report.sentToOwner = true;
     report.sentToOwnerAt = new Date();
@@ -278,21 +290,21 @@ router.post('/:reportId/send-to-owner', async (req, res) => {
     if (!report.ownerName && project.clientName) {
       report.ownerName = project.clientName;
     }
-    
+
     await report.save();
-    
+
     console.log('✅ Report sent to owner successfully:', report.ownerEmail);
-    return res.json({ 
-      success: true, 
+    return res.json({
+      success: true,
       message: 'تم إرسال التقرير للمالك بنجاح',
-      report 
+      report
     });
   } catch (err) {
     console.error('❌ Error sending report to owner:', err);
-    return res.status(500).json({ 
-      success: false, 
+    return res.status(500).json({
+      success: false,
       message: 'Failed to send report to owner',
-      error: err.message 
+      error: err.message
     });
   }
 });
@@ -302,14 +314,14 @@ router.get('/owner/:ownerEmail', async (req, res) => {
   try {
     const ownerEmail = req.params.ownerEmail.toLowerCase();
     console.log('📊 Fetching quantity reports for owner:', ownerEmail);
-    
+
     // Find reports sent to this owner (not deleted)
-    const reports = await QuantityReport.find({ 
+    const reports = await QuantityReport.find({
       ownerEmail: ownerEmail,
       sentToOwner: true,
       deleted: { $ne: true }
     }).sort({ sentToOwnerAt: -1 });
-    
+
     console.log(`✅ Found ${reports.length} reports for owner ${ownerEmail}`);
     return res.json({ success: true, reports });
   } catch (err) {
@@ -324,24 +336,24 @@ router.get('/owner/:ownerEmail/project/:projectId', async (req, res) => {
     const ownerEmail = req.params.ownerEmail.toLowerCase();
     const projectId = req.params.projectId;
     console.log('📊 Fetching quantity reports for owner and project:', ownerEmail, projectId);
-    
+
     // Verify project is linked to this owner
     const project = await Project.findById(projectId);
     if (!project || !project.linkedOwnerEmail || project.linkedOwnerEmail.toLowerCase() !== ownerEmail) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'المشروع غير مرتبط بهذا المالك' 
+      return res.status(403).json({
+        success: false,
+        message: 'المشروع غير مرتبط بهذا المالك'
       });
     }
-    
+
     // Find reports for this project sent to this owner (not deleted)
-    const reports = await QuantityReport.find({ 
+    const reports = await QuantityReport.find({
       projectId,
       ownerEmail: ownerEmail,
       sentToOwner: true,
       deleted: { $ne: true }
     }).sort({ sentToOwnerAt: -1 });
-    
+
     console.log(`✅ Found ${reports.length} reports for owner ${ownerEmail} and project ${projectId}`);
     return res.json({ success: true, reports, project });
   } catch (err) {
@@ -355,16 +367,16 @@ router.delete('/:id', async (req, res) => {
   try {
     const reportId = req.params.id;
     const report = await QuantityReport.findById(reportId);
-    
+
     if (!report) {
       return res.status(404).json({ success: false, message: 'Report not found' });
     }
-    
+
     // Soft delete: mark as deleted instead of actually deleting
     report.deleted = true;
     report.deletedAt = new Date();
     await report.save();
-    
+
     console.log(`🗑️ Soft deleted quantity report: ${reportId}`);
     return res.json({ success: true, message: 'Report deleted successfully' });
   } catch (err) {
