@@ -2024,21 +2024,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-green-50/20 to-emerald-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-green-500 to-emerald-600" />
-                      <CardHeader className="bg-gradient-to-br from-green-500 to-emerald-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
+                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد القواعد</CardTitle>
-                            <CardDescription className="text-green-100 text-lg">
+                            <CardDescription className="text-red-100 text-lg">
                               كميات حديد التسليح للقواعد
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 to-emerald-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2080,21 +2080,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-orange-50/20 to-amber-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-amber-600" />
-                      <CardHeader className="bg-gradient-to-br from-orange-500 to-amber-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
+                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد الجسور</CardTitle>
-                            <CardDescription className="text-orange-100 text-lg">
+                            <CardDescription className="text-red-100 text-lg">
                               كميات حديد الجسور الأرضية
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-orange-400/10 to-amber-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2136,21 +2136,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-yellow-50/20 to-amber-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-yellow-500 to-amber-600" />
-                      <CardHeader className="bg-gradient-to-br from-yellow-500 to-amber-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
+                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد أرضية المبنى</CardTitle>
-                            <CardDescription className="text-yellow-100 text-lg">
+                            <CardDescription className="text-red-100 text-lg">
                               كميات حديد أرضية المبنى
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 to-amber-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2192,21 +2192,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-purple-50/20 to-indigo-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 to-indigo-600" />
-                      <CardHeader className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
+                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد أعصاب السقف</CardTitle>
-                            <CardDescription className="text-purple-100 text-lg">
+                            <CardDescription className="text-red-100 text-lg">
                               كميات حديد أعصاب السقف
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-purple-400/10 to-indigo-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2304,21 +2304,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-amber-50/20 to-orange-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 to-orange-600" />
-                      <CardHeader className="bg-gradient-to-br from-amber-500 to-orange-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
+                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد الأعمدة والكانات</CardTitle>
-                            <CardDescription className="text-amber-100 text-lg">
+                            <CardDescription className="text-red-100 text-lg">
                               كميات حديد الأعمدة والكانات
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-amber-400/10 to-orange-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2360,21 +2360,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-teal-50/20 to-cyan-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-teal-500 to-cyan-600" />
-                      <CardHeader className="bg-gradient-to-br from-teal-500 to-cyan-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
+                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد جسور السقف</CardTitle>
-                            <CardDescription className="text-teal-100 text-lg">
+                            <CardDescription className="text-red-100 text-lg">
                               كميات حديد جسور السقف
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-teal-400/10 to-cyan-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2416,21 +2416,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-blue-50/20 to-indigo-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600" />
-                      <CardHeader className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
+                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد شروش الأعمدة</CardTitle>
-                            <CardDescription className="text-blue-100 text-lg">
+                            <CardDescription className="text-red-100 text-lg">
                               كميات حديد شروش الأعمدة
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-indigo-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
