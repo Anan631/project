@@ -1862,9 +1862,9 @@ export default function ProjectReportsPage() {
               <p className="text-slate-500 mb-8 max-w-md mx-auto">
                 قم بإجراء حسابات الكميات من صفحة المشروع لإنشاء التقارير
               </p>
-              <Link href={`/engineer/projects/${projectId}/concrete-cards`}>
-                <Button className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 text-lg shadow-lg hover:shadow-xl transition-all">
-                  الذهاب لحسابات الخرسانة
+              <Link href="/engineer/quantity-survey/calculate-materials">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 text-lg shadow-lg hover:shadow-2xl hover:shadow-emerald-500/50 hover:text-white hover:font-bold transition-all duration-300">
+                  العودة الى صفحة حساب كميات المواد
                 </Button>
               </Link>
             </CardContent>
