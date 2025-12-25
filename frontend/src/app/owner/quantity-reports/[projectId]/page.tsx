@@ -166,21 +166,28 @@ export default function OwnerQuantityReportsPage() {
               @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
               * { margin: 0; padding: 0; box-sizing: border-box; }
               body { direction: rtl; font-family: 'Tajawal', sans-serif; font-size: 18px; line-height: 1.8; color: #1a1a1a; background: white; padding: 25mm; }
-              .header { background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
+              .header { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
               .header h1 { font-size: 36px; margin-bottom: 10px; font-weight: 900; }
               .header p { font-size: 20px; opacity: 0.95; }
-              .project-name { background: linear-gradient(to right, #f0fdf4, #dcfce7); border-right: 6px solid #059669; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
+              .project-name { background: linear-gradient(to right, #f0fdf4, #f0fdfa); border-right: 6px solid #059669; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
               .project-name h2 { color: #2d3748; font-size: 24px; font-weight: 700; }
               .info-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px; }
-              .info-box { background: white; border: 2px solid #d1fae5; padding: 25px; border-radius: 10px; text-align: center; }
+              .info-box { background: white; border: 2px solid #5eead4; padding: 25px; border-radius: 10px; text-align: center; }
               .info-box label { display: block; font-size: 16px; color: #718096; margin-bottom: 8px; font-weight: 500; }
               .info-box .value { font-size: 20px; color: #2d3748; font-weight: 700; }
               table { width: 100%; border-collapse: collapse; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border-radius: 10px; overflow: hidden; }
-              thead { background: linear-gradient(135deg, #059669, #10b981); color: white; }
+              thead { background: linear-gradient(135deg, #059669, #0d9488); color: white; }
               th { padding: 20px 15px; text-align: right; font-weight: 700; font-size: 20px; }
               td { padding: 18px 15px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 500; }
               tbody tr:nth-child(even) { background: #f0fdf4; }
-              .section-title { background: #f0fdf4; border-right: 4px solid #059669; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #065f46; }
+              .section-title { background: #f0fdf4; border-right: 4px solid #059669; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #064e3b; }
+              .signature-section { margin-top: 60px; padding: 30px; border: 2px solid #e2e8f0; border-radius: 15px; background: #fafafa; }
+              .signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+              .signature-box { text-align: center; }
+              .signature-line { border-bottom: 2px solid #2d3748; margin-bottom: 15px; height: 40px; }
+              .signature-title { font-weight: 800; font-size: 20px; color: #2d3748; margin-bottom: 5px; }
+              .signature-name { font-size: 18px; color: #4a5568; margin-bottom: 5px; }
+              .signature-label { font-size: 14px; color: #718096; font-style: italic; }
               .footer { border-top: 2px solid #e2e8f0; padding-top: 25px; text-align: center; font-size: 14px; color: #718096; margin-top: 50px; }
             </style>
           </head>
@@ -237,6 +244,24 @@ export default function OwnerQuantityReportsPage() {
                   </div>
                 `).join('') || ''}
               `}
+
+              <div class="signature-section">
+                <div class="signature-row">
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المهندس المسؤول</div>
+                    <div class="signature-name">${report.engineerName}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المالك / العميل</div>
+                    <div class="signature-name">${report.ownerName || 'غير محدد'}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                </div>
+              </div>
+
               <div class="footer"><p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p><p>© 2025 جميع الحقوق محفوظة</p></div>
             </div>
           </body>
@@ -267,21 +292,28 @@ export default function OwnerQuantityReportsPage() {
               @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
               * { margin: 0; padding: 0; box-sizing: border-box; }
               body { direction: rtl; font-family: 'Tajawal', sans-serif; font-size: 18px; line-height: 1.8; color: #1a1a1a; background: white; padding: 25mm; }
-              .header { background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
+              .header { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
               .header h1 { font-size: 36px; margin-bottom: 10px; font-weight: 900; }
               .header p { font-size: 20px; opacity: 0.95; }
-              .project-name { background: linear-gradient(to right, #fff7ed, #ffedd5); border-right: 6px solid #ea580c; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
+              .project-name { background: linear-gradient(to right, #f0fdf4, #f0fdfa); border-right: 6px solid #059669; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
               .project-name h2 { color: #2d3748; font-size: 24px; font-weight: 700; }
               .info-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px; }
-              .info-box { background: white; border: 2px solid #fdba74; padding: 25px; border-radius: 10px; text-align: center; }
+              .info-box { background: white; border: 2px solid #5eead4; padding: 25px; border-radius: 10px; text-align: center; }
               .info-box label { display: block; font-size: 16px; color: #718096; margin-bottom: 8px; font-weight: 500; }
               .info-box .value { font-size: 20px; color: #2d3748; font-weight: 700; }
               table { width: 100%; border-collapse: collapse; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border-radius: 10px; overflow: hidden; }
-              thead { background: linear-gradient(135deg, #ea580c, #c2410c); color: white; }
+              thead { background: linear-gradient(135deg, #059669, #0d9488); color: white; }
               th { padding: 20px 15px; text-align: right; font-weight: 700; font-size: 20px; }
               td { padding: 18px 15px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 500; }
-              tbody tr:nth-child(even) { background: #fff7ed; }
-              .section-title { background: #fff7ed; border-right: 4px solid #ea580c; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #9a3412; }
+              tbody tr:nth-child(even) { background: #f0fdf4; }
+              .section-title { background: #f0fdf4; border-right: 4px solid #059669; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #064e3b; }
+              .signature-section { margin-top: 60px; padding: 30px; border: 2px solid #e2e8f0; border-radius: 15px; background: #fafafa; }
+              .signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+              .signature-box { text-align: center; }
+              .signature-line { border-bottom: 2px solid #2d3748; margin-bottom: 15px; height: 40px; }
+              .signature-title { font-weight: 800; font-size: 20px; color: #2d3748; margin-bottom: 5px; }
+              .signature-name { font-size: 18px; color: #4a5568; margin-bottom: 5px; }
+              .signature-label { font-size: 14px; color: #718096; font-style: italic; }
               .footer { border-top: 2px solid #e2e8f0; padding-top: 25px; text-align: center; font-size: 14px; color: #718096; margin-top: 50px; }
             </style>
           </head>
@@ -334,7 +366,7 @@ export default function OwnerQuantityReportsPage() {
                 <div class="section-title">نتائج الجسور المختلفة</div>
                 ${results?.beams?.map((beam: any) => `
                   <div style="margin-bottom: 30px;">
-                    <h3 style="background: #fff7ed; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px;">جسر ${beam.name}</h3>
+                    <h3 style="background: #f0fdf4; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px;">جسر ${beam.name}</h3>
                     <table><thead><tr><th>القيمة</th><th>البيان</th></tr></thead><tbody>
                       <tr><td>${beam.length || 0} متر</td><td>الطول</td></tr>
                       <tr><td>${beam.mainTopBars || 0}</td><td>عدد قضبان علوي</td></tr>
@@ -345,9 +377,26 @@ export default function OwnerQuantityReportsPage() {
                 `).join('') || ''}
               `}
 
-              <div class="total-box" style="background: linear-gradient(135deg, #fff7ed, #ffedd5); border: 3px solid #f97316; border-radius: 12px; padding: 30px; margin-bottom: 40px; text-align: center; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);">
+              <div class="total-box" style="background: linear-gradient(135deg, #d4f4dd, #bbf7d0); border: 3px solid #22c55e; border-radius: 12px; padding: 30px; margin-bottom: 40px; text-align: center; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);">
                 <label style="display: block; font-size: 20px; color: #2d3748; margin-bottom: 12px; font-weight: 600;">إجمالي وزن الحديد:</label>
-                <div class="value" style="font-size: 32px; font-weight: 900; color: #ea580c;">${report.steelData?.totalSteelWeight?.toFixed(2) || 0} كجم</div>
+                <div class="value" style="font-size: 32px; font-weight: 900; color: #16a34a;">${report.steelData?.totalSteelWeight?.toFixed(2) || 0} كجم</div>
+              </div>
+
+              <div class="signature-section">
+                <div class="signature-row">
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المهندس المسؤول</div>
+                    <div class="signature-name">${report.engineerName}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المالك / العميل</div>
+                    <div class="signature-name">${report.ownerName || 'غير محدد'}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                </div>
               </div>
 
               <div class="footer"><p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p><p>© 2025 جميع الحقوق محفوظة</p></div>
@@ -381,21 +430,28 @@ export default function OwnerQuantityReportsPage() {
               @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
               * { margin: 0; padding: 0; box-sizing: border-box; }
               body { direction: rtl; font-family: 'Tajawal', sans-serif; font-size: 18px; line-height: 1.8; color: #1a1a1a; background: white; padding: 25mm; }
-              .header { background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
+              .header { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
               .header h1 { font-size: 36px; margin-bottom: 10px; font-weight: 900; }
               .header p { font-size: 20px; opacity: 0.95; }
-              .project-name { background: linear-gradient(to right, #fff7ed, #ffedd5); border-right: 6px solid #ea580c; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
+              .project-name { background: linear-gradient(to right, #f0fdf4, #f0fdfa); border-right: 6px solid #059669; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
               .project-name h2 { color: #2d3748; font-size: 24px; font-weight: 700; }
               .info-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px; }
-              .info-box { background: white; border: 2px solid #fdba74; padding: 25px; border-radius: 10px; text-align: center; }
+              .info-box { background: white; border: 2px solid #5eead4; padding: 25px; border-radius: 10px; text-align: center; }
               .info-box label { display: block; font-size: 16px; color: #718096; margin-bottom: 8px; font-weight: 500; }
               .info-box .value { font-size: 20px; color: #2d3748; font-weight: 700; }
               table { width: 100%; border-collapse: collapse; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border-radius: 10px; overflow: hidden; }
-              thead { background: linear-gradient(135deg, #ea580c, #c2410c); color: white; }
+              thead { background: linear-gradient(135deg, #059669, #0d9488); color: white; }
               th { padding: 20px 15px; text-align: right; font-weight: 700; font-size: 20px; }
               td { padding: 18px 15px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 500; }
-              tbody tr:nth-child(even) { background: #fff7ed; }
-              .section-title { background: #fff7ed; border-right: 4px solid #ea580c; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #9a3412; }
+              tbody tr:nth-child(even) { background: #f0fdf4; }
+              .section-title { background: #f0fdf4; border-right: 4px solid #059669; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #064e3b; }
+              .signature-section { margin-top: 60px; padding: 30px; border: 2px solid #e2e8f0; border-radius: 15px; background: #fafafa; }
+              .signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+              .signature-box { text-align: center; }
+              .signature-line { border-bottom: 2px solid #2d3748; margin-bottom: 15px; height: 40px; }
+              .signature-title { font-weight: 800; font-size: 20px; color: #2d3748; margin-bottom: 5px; }
+              .signature-name { font-size: 18px; color: #4a5568; margin-bottom: 5px; }
+              .signature-label { font-size: 14px; color: #718096; font-style: italic; }
               .footer { border-top: 2px solid #e2e8f0; padding-top: 25px; text-align: center; font-size: 14px; color: #718096; margin-top: 50px; }
             </style>
           </head>
@@ -449,7 +505,7 @@ export default function OwnerQuantityReportsPage() {
                          </tr>
                      </thead>
                      <tbody>
-                          <tr style="background: #fff7ed; font-weight: bold; color: #ea580c;">
+                          <tr style="background: #d1fae5; font-weight: bold; color: #059669;">
                              <td>${results.meshBars || 0} شبكة</td>
                              <td>عدد قطع الشبك المطلوبة</td>
                          </tr>
@@ -497,13 +553,30 @@ export default function OwnerQuantityReportsPage() {
                              <td>${results.transverseBars || 0} قضيب</td>
                              <td>عدد القضبان العرضية</td>
                          </tr>
-                          <tr style="background: #fff7ed; font-weight: bold; color: #ea580c;">
+                          <tr style="background: #d1fae5; font-weight: bold; color: #059669;">
                              <td>${results.totalBars || 0} قضيب</td>
                              <td>المجموع الكلي للقضبان</td>
                          </tr>
                      </tbody>
                  </table>
               `}
+
+              <div class="signature-section">
+                <div class="signature-row">
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المهندس المسؤول</div>
+                    <div class="signature-name">${report.engineerName}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المالك / العميل</div>
+                    <div class="signature-name">${report.ownerName || 'غير محدد'}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                </div>
+              </div>
 
               <div class="footer"><p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p><p>© 2025 جميع الحقوق محفوظة</p></div>
             </div>
@@ -536,21 +609,28 @@ export default function OwnerQuantityReportsPage() {
               @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
               * { margin: 0; padding: 0; box-sizing: border-box; }
               body { direction: rtl; font-family: 'Tajawal', sans-serif; font-size: 18px; line-height: 1.8; color: #1a1a1a; background: white; padding: 25mm; }
-              .header { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
+              .header { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
               .header h1 { font-size: 36px; margin-bottom: 10px; font-weight: 900; }
               .header p { font-size: 20px; opacity: 0.95; }
-              .project-name { background: linear-gradient(to right, #faf5ff, #f3e8ff); border-right: 6px solid #7c3aed; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
+              .project-name { background: linear-gradient(to right, #f0fdf4, #f0fdfa); border-right: 6px solid #059669; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
               .project-name h2 { color: #2d3748; font-size: 24px; font-weight: 700; }
               .info-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px; }
-              .info-box { background: white; border: 2px solid #d8b4fe; padding: 25px; border-radius: 10px; text-align: center; }
+              .info-box { background: white; border: 2px solid #5eead4; padding: 25px; border-radius: 10px; text-align: center; }
               .info-box label { display: block; font-size: 16px; color: #718096; margin-bottom: 8px; font-weight: 500; }
               .info-box .value { font-size: 20px; color: #2d3748; font-weight: 700; }
               table { width: 100%; border-collapse: collapse; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border-radius: 10px; overflow: hidden; }
-              thead { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; }
+              thead { background: linear-gradient(135deg, #059669, #0d9488); color: white; }
               th { padding: 20px 15px; text-align: right; font-weight: 700; font-size: 20px; }
               td { padding: 18px 15px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 500; }
-              tbody tr:nth-child(even) { background: #faf5ff; }
-              .section-title { background: #faf5ff; border-right: 4px solid #7c3aed; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #6b21a8; }
+              tbody tr:nth-child(even) { background: #f0fdf4; }
+              .section-title { background: #f0fdf4; border-right: 4px solid #059669; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #064e3b; }
+              .signature-section { margin-top: 60px; padding: 30px; border: 2px solid #e2e8f0; border-radius: 15px; background: #fafafa; }
+              .signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+              .signature-box { text-align: center; }
+              .signature-line { border-bottom: 2px solid #2d3748; margin-bottom: 15px; height: 40px; }
+              .signature-title { font-weight: 800; font-size: 20px; color: #2d3748; margin-bottom: 5px; }
+              .signature-name { font-size: 18px; color: #4a5568; margin-bottom: 5px; }
+              .signature-label { font-size: 14px; color: #718096; font-style: italic; }
               .footer { border-top: 2px solid #e2e8f0; padding-top: 25px; text-align: center; font-size: 14px; color: #718096; margin-top: 50px; }
             </style>
           </head>
@@ -623,12 +703,29 @@ export default function OwnerQuantityReportsPage() {
                       <td>${Number(results.requiredBarArea || 0).toFixed(3)} سم²</td>
                       <td>مساحة الحديد المطلوبة As</td>
                     </tr>
-                    <tr style="background: #f3e8ff; font-weight: bold; color: #7c3aed;">
+                    <tr style="background: #d1fae5; font-weight: bold; color: #059669;">
                       <td>${results.numberOfBars || 0} قضيب</td>
                       <td>عدد القضبان المطلوبة</td>
                     </tr>
                   </tbody>
                 </table>
+
+              <div class="signature-section">
+                <div class="signature-row">
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المهندس المسؤول</div>
+                    <div class="signature-name">${report.engineerName}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المالك / العميل</div>
+                    <div class="signature-name">${report.ownerName || 'غير محدد'}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                </div>
+              </div>
 
               <div class="footer"><p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p><p>© 2025 جميع الحقوق محفوظة</p></div>
             </div>
@@ -660,21 +757,28 @@ export default function OwnerQuantityReportsPage() {
               @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
               * { margin: 0; padding: 0; box-sizing: border-box; }
               body { direction: rtl; font-family: 'Tajawal', sans-serif; font-size: 18px; line-height: 1.8; color: #1a1a1a; background: white; padding: 25mm; }
-              .header { background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
+              .header { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
               .header h1 { font-size: 36px; margin-bottom: 10px; font-weight: 900; }
               .header p { font-size: 20px; opacity: 0.95; }
-              .project-name { background: linear-gradient(to right, #fff1f2, #fff7ed); border-right: 6px solid #dc2626; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
+              .project-name { background: linear-gradient(to right, #f0fdf4, #f0fdfa); border-right: 6px solid #059669; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
               .project-name h2 { color: #2d3748; font-size: 24px; font-weight: 700; }
               .info-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px; }
-              .info-box { background: white; border: 2px solid #fecaca; padding: 25px; border-radius: 10px; text-align: center; }
+              .info-box { background: white; border: 2px solid #5eead4; padding: 25px; border-radius: 10px; text-align: center; }
               .info-box label { display: block; font-size: 16px; color: #718096; margin-bottom: 8px; font-weight: 500; }
               .info-box .value { font-size: 20px; color: #2d3748; font-weight: 700; }
               table { width: 100%; border-collapse: collapse; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border-radius: 10px; overflow: hidden; }
-              thead { background: linear-gradient(135deg, #dc2626, #ea580c); color: white; }
+              thead { background: linear-gradient(135deg, #059669, #0d9488); color: white; }
               th { padding: 20px 15px; text-align: right; font-weight: 700; font-size: 20px; }
               td { padding: 18px 15px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 500; }
-              tbody tr:nth-child(even) { background: #fff1f2; }
-              .section-title { background: #fff1f2; border-right: 4px solid #dc2626; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #991b1b; }
+              tbody tr:nth-child(even) { background: #f0fdf4; }
+              .section-title { background: #f0fdf4; border-right: 4px solid #059669; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #064e3b; }
+              .signature-section { margin-top: 60px; padding: 30px; border: 2px solid #e2e8f0; border-radius: 15px; background: #fafafa; }
+              .signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+              .signature-box { text-align: center; }
+              .signature-line { border-bottom: 2px solid #2d3748; margin-bottom: 15px; height: 40px; }
+              .signature-title { font-weight: 800; font-size: 20px; color: #2d3748; margin-bottom: 5px; }
+              .signature-name { font-size: 18px; color: #4a5568; margin-bottom: 5px; }
+              .signature-label { font-size: 14px; color: #718096; font-style: italic; }
               .footer { border-top: 2px solid #e2e8f0; padding-top: 25px; text-align: center; font-size: 14px; color: #718096; margin-top: 50px; }
             </style>
           </head>
@@ -725,7 +829,7 @@ export default function OwnerQuantityReportsPage() {
                          </tr>
                      </thead>
                      <tbody>
-                          <tr style="background: #fff1f2; font-weight: bold; color: #dc2626;">
+                          <tr style="background: #d1fae5; font-weight: bold; color: #059669;">
                              <td>${results.meshBars || 0} شبكة</td>
                              <td>عدد قطع الشبك المطلوبة</td>
                          </tr>
@@ -761,13 +865,30 @@ export default function OwnerQuantityReportsPage() {
                          </tr>
                      </thead>
                      <tbody>
-                          <tr style="background: #fff1f2; font-weight: bold; color: #dc2626;">
+                          <tr style="background: #d1fae5; font-weight: bold; color: #059669;">
                              <td>${results.separateBars || 0} قضيب</td>
                              <td>عدد القضبان المطلوبة</td>
                          </tr>
                      </tbody>
                  </table>
                `}
+
+              <div class="signature-section">
+                <div class="signature-row">
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المهندس المسؤول</div>
+                    <div class="signature-name">${report.engineerName}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المالك / العميل</div>
+                    <div class="signature-name">${report.ownerName || 'غير محدد'}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                </div>
+              </div>
 
               <div class="footer"><p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p><p>© 2025 جميع الحقوق محفوظة</p></div>
             </div>
@@ -815,6 +936,13 @@ export default function OwnerQuantityReportsPage() {
               td { padding: 18px 15px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 500; }
               tbody tr:nth-child(even) { background: #f0fdf4; }
               .section-title { background: #f0fdf4; border-right: 4px solid #059669; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #064e3b; }
+              .signature-section { margin-top: 60px; padding: 30px; border: 2px solid #e2e8f0; border-radius: 15px; background: #fafafa; }
+              .signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+              .signature-box { text-align: center; }
+              .signature-line { border-bottom: 2px solid #2d3748; margin-bottom: 15px; height: 40px; }
+              .signature-title { font-weight: 800; font-size: 20px; color: #2d3748; margin-bottom: 5px; }
+              .signature-name { font-size: 18px; color: #4a5568; margin-bottom: 5px; }
+              .signature-label { font-size: 14px; color: #718096; font-style: italic; }
               .footer { border-top: 2px solid #e2e8f0; padding-top: 25px; text-align: center; font-size: 14px; color: #718096; margin-top: 50px; }
             </style>
           </head>
@@ -875,16 +1003,33 @@ export default function OwnerQuantityReportsPage() {
                       <td>${Number(results.asLower || 0).toFixed(3)} مم²</td>
                       <td>مساحة الحديد السفلي As</td>
                     </tr>
-                    <tr style="background: #f0fdf4; font-weight: bold; color: #059669;">
+                    <tr style="background: #d1fae5; font-weight: bold; color: #059669;">
                       <td>${results.countUpper || 0} قضيب</td>
                       <td>عدد القضبان العلوية</td>
                     </tr>
-                    <tr style="background: #f0fdf4; font-weight: bold; color: #059669;">
+                    <tr style="background: #d1fae5; font-weight: bold; color: #059669;">
                       <td>${results.countLower || 0} قضيب</td>
                       <td>عدد القضبان السفلية</td>
                     </tr>
                   </tbody>
                 </table>
+
+              <div class="signature-section">
+                <div class="signature-row">
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المهندس المسؤول</div>
+                    <div class="signature-name">${report.engineerName}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المالك / العميل</div>
+                    <div class="signature-name">${report.ownerName || 'غير محدد'}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                </div>
+              </div>
 
               <div class="footer"><p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p><p>© 2025 جميع الحقوق محفوظة</p></div>
             </div>
@@ -917,24 +1062,24 @@ export default function OwnerQuantityReportsPage() {
               @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
               * { margin: 0; padding: 0; box-sizing: border-box; }
               body { direction: rtl; font-family: 'Tajawal', sans-serif; font-size: 18px; line-height: 1.8; color: #1a1a1a; background: white; padding: 25mm; }
-              .header { background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
+              .header { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
               .header h1 { font-size: 36px; margin-bottom: 10px; font-weight: 900; }
               .header p { font-size: 20px; opacity: 0.95; }
-              .project-name { background: linear-gradient(to right, #fff7ed, #ffedd5); border-right: 6px solid #ea580c; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
+              .project-name { background: linear-gradient(to right, #f0fdf4, #f0fdfa); border-right: 6px solid #059669; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
               .project-name h2 { color: #2d3748; font-size: 24px; font-weight: 700; }
               .info-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px; }
-              .info-box { background: white; border: 2px solid #fdba74; padding: 25px; border-radius: 10px; text-align: center; }
+              .info-box { background: white; border: 2px solid #5eead4; padding: 25px; border-radius: 10px; text-align: center; }
               .info-box label { display: block; font-size: 16px; color: #718096; margin-bottom: 8px; font-weight: 500; }
               .info-box .value { font-size: 20px; color: #2d3748; font-weight: 700; }
               table { width: 100%; border-collapse: collapse; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border-radius: 10px; overflow: hidden; }
-              thead { background: linear-gradient(135deg, #ea580c, #c2410c); color: white; }
+              thead { background: linear-gradient(135deg, #059669, #0d9488); color: white; }
               th { padding: 20px 15px; text-align: right; font-weight: 700; font-size: 20px; }
               td { padding: 18px 15px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 500; }
-              tbody tr:nth-child(even) { background: #fff7ed; }
-              .section-title { background: #fff7ed; border-right: 4px solid #ea580c; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #9a3412; }
-              .total-box { background: linear-gradient(135deg, #ffedd5, #fed7aa); border: 3px solid #ea580c; border-radius: 12px; padding: 30px; margin-bottom: 40px; text-align: center; }
+              tbody tr:nth-child(even) { background: #f0fdf4; }
+              .section-title { background: #f0fdf4; border-right: 4px solid #059669; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #064e3b; }
+              .total-box { background: linear-gradient(135deg, #d4f4dd, #bbf7d0); border: 3px solid #22c55e; border-radius: 12px; padding: 30px; margin-bottom: 40px; text-align: center; }
               .total-box label { display: block; font-size: 20px; color: #2d3748; margin-bottom: 12px; font-weight: 600; }
-              .total-box .value { font-size: 32px; font-weight: 900; color: #ea580c; }
+              .total-box .value { font-size: 32px; font-weight: 900; color: #16a34a; }
               .signature-section { margin-top: 60px; padding: 30px; border: 2px solid #e2e8f0; border-radius: 15px; background: #fafafa; }
               .signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
               .signature-box { text-align: center; }
@@ -1032,24 +1177,24 @@ export default function OwnerQuantityReportsPage() {
               @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
               * { margin: 0; padding: 0; box-sizing: border-box; }
               body { direction: rtl; font-family: 'Tajawal', sans-serif; font-size: 18px; line-height: 1.8; color: #1a1a1a; background: white; padding: 25mm; }
-              .header { background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
+              .header { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: white; padding: 40px 30px; border-radius: 12px; margin-bottom: 40px; text-align: center; }
               .header h1 { font-size: 36px; margin-bottom: 10px; font-weight: 900; }
               .header p { font-size: 20px; opacity: 0.95; }
-              .project-name { background: linear-gradient(to right, #f8f9ff, #e8ecff); border-right: 6px solid #2563eb; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
+              .project-name { background: linear-gradient(to right, #f0fdf4, #f0fdfa); border-right: 6px solid #059669; padding: 25px 30px; margin-bottom: 30px; border-radius: 8px; }
               .project-name h2 { color: #2d3748; font-size: 24px; font-weight: 700; }
               .info-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px; }
-              .info-box { background: white; border: 2px solid #e2e8f0; padding: 25px; border-radius: 10px; text-align: center; }
+              .info-box { background: white; border: 2px solid #5eead4; padding: 25px; border-radius: 10px; text-align: center; }
               .info-box label { display: block; font-size: 16px; color: #718096; margin-bottom: 8px; font-weight: 500; }
               .info-box .value { font-size: 20px; color: #2d3748; font-weight: 700; }
               table { width: 100%; border-collapse: collapse; margin-bottom: 40px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); border-radius: 10px; overflow: hidden; }
-              thead { background: linear-gradient(135deg, #2563eb, #1e40af); color: white; }
+              thead { background: linear-gradient(135deg, #059669, #0d9488); color: white; }
               th { padding: 20px 15px; text-align: right; font-weight: 700; font-size: 20px; }
               td { padding: 18px 15px; text-align: right; border-bottom: 1px solid #e2e8f0; font-size: 18px; font-weight: 500; }
-              tbody tr:nth-child(even) { background: #f8f9ff; }
-              .section-title { background: #f8f9ff; border-right: 4px solid #2563eb; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #1e40af; }
-              .total-box { background: linear-gradient(135deg, #f0f4ff, #e0e7ff); border: 3px solid #2563eb; border-radius: 12px; padding: 30px; margin-bottom: 40px; text-align: center; }
+              tbody tr:nth-child(even) { background: #f0fdf4; }
+              .section-title { background: #f0fdf4; border-right: 4px solid #059669; padding: 15px 20px; margin: 30px 0 20px 0; font-size: 22px; font-weight: 700; color: #064e3b; }
+              .total-box { background: linear-gradient(135deg, #d4f4dd, #bbf7d0); border: 3px solid #22c55e; border-radius: 12px; padding: 30px; margin-bottom: 40px; text-align: center; }
               .total-box label { display: block; font-size: 20px; color: #2d3748; margin-bottom: 12px; font-weight: 600; }
-              .total-box .value { font-size: 32px; font-weight: 900; color: #2563eb; }
+              .total-box .value { font-size: 32px; font-weight: 900; color: #16a34a; }
               .signature-section { margin-top: 60px; padding: 30px; border: 2px solid #e2e8f0; border-radius: 15px; background: #fafafa; }
               .signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
               .signature-box { text-align: center; }
@@ -1154,7 +1299,7 @@ export default function OwnerQuantityReportsPage() {
             }
             
             .header {
-              background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+              background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
               color: white;
               padding: 40px 30px;
               border-radius: 12px;
@@ -1177,8 +1322,8 @@ export default function OwnerQuantityReportsPage() {
             }
             
             .project-name {
-              background: linear-gradient(to right, #f8f9ff, #e8ecff);
-              border-right: 6px solid #2563eb;
+              background: linear-gradient(to right, #f0fdf4, #f0fdfa);
+              border-right: 6px solid #059669;
               padding: 25px 30px;
               margin-bottom: 30px;
               border-radius: 8px;
@@ -1231,7 +1376,7 @@ export default function OwnerQuantityReportsPage() {
             }
             
             thead {
-              background: linear-gradient(135deg, #2563eb, #1e40af);
+              background: linear-gradient(135deg, #059669, #0d9488);
               color: white;
             }
             
@@ -1251,13 +1396,13 @@ export default function OwnerQuantityReportsPage() {
             }
             
             tbody tr:nth-child(even) {
-              background: #f8f9ff;
+              background: #f0fdf4;
             }
             
             tbody tr:last-child {
               font-weight: 900;
-              color: #2563eb;
-              background: linear-gradient(to right, #f0f4ff, #e8ecff);
+              color: #059669;
+              background: linear-gradient(to right, #d4f4dd, #bbf7d0);
               font-size: 20px;
             }
             
@@ -1283,6 +1428,49 @@ export default function OwnerQuantityReportsPage() {
               font-size: 32px;
               font-weight: 900;
               color: #16a34a;
+            }
+            
+            .signature-section {
+              margin-top: 60px;
+              padding: 30px;
+              border: 2px solid #e2e8f0;
+              border-radius: 15px;
+              background: #fafafa;
+            }
+            
+            .signature-row {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 40px;
+            }
+            
+            .signature-box {
+              text-align: center;
+            }
+            
+            .signature-line {
+              border-bottom: 2px solid #2d3748;
+              margin-bottom: 15px;
+              height: 40px;
+            }
+            
+            .signature-title {
+              font-weight: 800;
+              font-size: 20px;
+              color: #2d3748;
+              margin-bottom: 5px;
+            }
+            
+            .signature-name {
+              font-size: 18px;
+              color: #4a5568;
+              margin-bottom: 5px;
+            }
+            
+            .signature-label {
+              font-size: 14px;
+              color: #718096;
+              font-style: italic;
             }
             
             .footer {
@@ -1451,6 +1639,23 @@ export default function OwnerQuantityReportsPage() {
         }
               </div>
             </div>
+
+            <div class="signature-section">
+                <div class="signature-row">
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المهندس المسؤول</div>
+                    <div class="signature-name">${report.engineerName}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المالك / العميل</div>
+                    <div class="signature-name">${report.ownerName || 'غير محدد'}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                </div>
+              </div>
 
             <div class="footer">
               <p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p>
@@ -2024,21 +2229,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
-                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد القواعد</CardTitle>
-                            <CardDescription className="text-red-100 text-lg">
+                            <CardDescription className="text-emerald-100 text-lg">
                               كميات حديد التسليح للقواعد
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2080,21 +2285,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
-                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد الجسور</CardTitle>
-                            <CardDescription className="text-red-100 text-lg">
+                            <CardDescription className="text-emerald-100 text-lg">
                               كميات حديد الجسور الأرضية
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2136,21 +2341,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
-                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد أرضية المبنى</CardTitle>
-                            <CardDescription className="text-red-100 text-lg">
+                            <CardDescription className="text-emerald-100 text-lg">
                               كميات حديد أرضية المبنى
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2192,21 +2397,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
-                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد أعصاب السقف</CardTitle>
-                            <CardDescription className="text-red-100 text-lg">
+                            <CardDescription className="text-emerald-100 text-lg">
                               كميات حديد أعصاب السقف
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2248,21 +2453,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
-                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد السقف</CardTitle>
-                            <CardDescription className="text-red-100 text-lg">
+                            <CardDescription className="text-emerald-100 text-lg">
                               كميات حديد السقف
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2304,21 +2509,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
-                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد الأعمدة والكانات</CardTitle>
-                            <CardDescription className="text-red-100 text-lg">
+                            <CardDescription className="text-emerald-100 text-lg">
                               كميات حديد الأعمدة والكانات
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2360,21 +2565,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
-                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد جسور السقف</CardTitle>
-                            <CardDescription className="text-red-100 text-lg">
+                            <CardDescription className="text-emerald-100 text-lg">
                               كميات حديد جسور السقف
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
@@ -2416,21 +2621,21 @@ export default function OwnerQuantityReportsPage() {
                     transition={{ duration: 0.3 }}
                     whileHover={{ y: -8, scale: 1.02 }}
                   >
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-red-50/20 to-rose-50/20">
-                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 to-rose-600" />
-                      <CardHeader className="bg-gradient-to-br from-red-500 to-rose-600 text-white relative">
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                             <Blocks className="w-8 h-8 text-white" />
                           </div>
                           <div>
                             <CardTitle className="text-xl font-bold">تقرير حديد شروش الأعمدة</CardTitle>
-                            <CardDescription className="text-red-100 text-lg">
+                            <CardDescription className="text-emerald-100 text-lg">
                               كميات حديد شروش الأعمدة
                             </CardDescription>
                           </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-rose-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
                         <div className="space-y-4">
