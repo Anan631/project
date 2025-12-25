@@ -2042,44 +2042,6 @@ export default function ProjectReportsPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="p-6">
-                        {foundationReport?.concreteData && (
-                          <div className="space-y-4 mb-6">
-                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                              <span className="text-slate-600 font-medium">حجم صبة النظافة</span>
-                              <span className="font-bold text-emerald-600">
-                                {foundationReport.concreteData.cleaningVolume?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                              <span className="text-slate-600 font-medium">حجم القواعد</span>
-                              <span className="font-bold text-emerald-600">
-                                {foundationReport.concreteData.foundationsVolume?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                            {foundationReport.concreteData.groundSlabVolume && foundationReport.concreteData.groundSlabVolume > 0 && (
-                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                <span className="text-slate-600 font-medium">حجم أرضية المبنى</span>
-                                <span className="font-bold text-emerald-600">
-                                  {foundationReport.concreteData.groundSlabVolume.toFixed(3)} م³
-                                </span>
-                              </div>
-                            )}
-                            <Separator className="my-2" />
-                            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                              <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                              <span className="text-2xl font-black text-emerald-600">
-                                {(() => {
-                                  const cleaning = foundationReport.concreteData.cleaningVolume || 0;
-                                  const foundations = foundationReport.concreteData.foundationsVolume || 0;
-                                  const groundSlab = foundationReport.concreteData.groundSlabVolume || 0;
-                                  const total = cleaning + foundations + groundSlab;
-                                  return total.toFixed(3);
-                                })()} م³
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(foundationReport._id, 'concrete')}
@@ -2163,42 +2125,6 @@ export default function ProjectReportsPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="p-6">
-                        {columnFootingsReport?.concreteData && (
-                          <div className="space-y-4 mb-6">
-                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                              <span className="text-slate-600 font-medium">حجم شروش الأعمدة</span>
-                              <span className="font-bold text-emerald-600">
-                                {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) ||
-                                  columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                            {columnFootingsReport.concreteData.numberOfColumns && (
-                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                <span className="text-slate-600 font-medium">عدد الأعمدة</span>
-                                <span className="font-bold text-emerald-600">
-                                  {columnFootingsReport.concreteData.numberOfColumns}
-                                </span>
-                              </div>
-                            )}
-                            {columnFootingsReport.concreteData.finalColumnDimensions?.displayText && (
-                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                <span className="text-slate-600 font-medium">أبعاد العمود</span>
-                                <span className="font-bold text-emerald-600">
-                                  {columnFootingsReport.concreteData.finalColumnDimensions.displayText}
-                                </span>
-                              </div>
-                            )}
-                            <Separator className="my-2" />
-                            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                              <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                              <span className="text-2xl font-black text-emerald-600">
-                                {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) ||
-                                  columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(columnFootingsReport._id, 'concrete')}
@@ -2282,34 +2208,6 @@ export default function ProjectReportsPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="p-6">
-                        {columnsReport?.concreteData && (
-                          <div className="space-y-4 mb-6">
-                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                              <span className="text-slate-600 font-medium">حجم الأعمدة</span>
-                              <span className="font-bold text-emerald-600">
-                                {columnsReport.concreteData.columnsVolume?.toFixed(3) ||
-                                  columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                            {columnsReport.concreteData.columnsData && columnsReport.concreteData.columnsData.length > 0 && (
-                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                <span className="text-slate-600 font-medium">عدد الأعمدة</span>
-                                <span className="font-bold text-emerald-600">
-                                  {columnsReport.concreteData.columnsData.length}
-                                </span>
-                              </div>
-                            )}
-                            <Separator className="my-2" />
-                            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                              <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                              <span className="text-2xl font-black text-emerald-600">
-                                {columnsReport.concreteData.columnsVolume?.toFixed(3) ||
-                                  columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(columnsReport._id, 'concrete')}
@@ -2393,44 +2291,6 @@ export default function ProjectReportsPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="p-6">
-                        {roofReport?.concreteData && (
-                          <div className="space-y-4 mb-6">
-                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                              <span className="text-slate-600 font-medium">حجم السقف</span>
-                              <span className="font-bold text-emerald-600">
-                                {roofReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                            {roofReport.concreteData.roofData && (
-                              <>
-                                {roofReport.concreteData.roofData.area && (
-                                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                    <span className="text-slate-600 font-medium">مساحة السقف</span>
-                                    <span className="font-bold text-emerald-600">
-                                      {roofReport.concreteData.roofData.area.toFixed(2)} م²
-                                    </span>
-                                  </div>
-                                )}
-                                {roofReport.concreteData.roofData.roofType && (
-                                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                    <span className="text-slate-600 font-medium">نوع السقف</span>
-                                    <span className="font-bold text-emerald-600">
-                                      {roofReport.concreteData.roofData.roofType === 'with-ribs' ? 'مع ربس' : 'بدون ربس'}
-                                    </span>
-                                  </div>
-                                )}
-                              </>
-                            )}
-                            <Separator className="my-2" />
-                            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                              <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                              <span className="text-2xl font-black text-emerald-600">
-                                {roofReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(roofReport._id, 'concrete')}
@@ -2514,34 +2374,6 @@ export default function ProjectReportsPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="p-6">
-                        {groundBridgesReport?.concreteData && (
-                          <div className="space-y-4 mb-6">
-                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                              <span className="text-slate-600 font-medium">حجم الجسور الأرضية</span>
-                              <span className="font-bold text-emerald-600">
-                                {groundBridgesReport.concreteData.totalVolume?.toFixed(3) ||
-                                  groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                            {groundBridgesReport.concreteData.bridgesCount && (
-                              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                                <span className="text-slate-600 font-medium">عدد الجسور</span>
-                                <span className="font-bold text-emerald-600">
-                                  {groundBridgesReport.concreteData.bridgesCount}
-                                </span>
-                              </div>
-                            )}
-                            <Separator className="my-2" />
-                            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                              <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                              <span className="text-2xl font-black text-emerald-600">
-                                {groundBridgesReport.concreteData.totalVolume?.toFixed(3) ||
-                                  groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(groundBridgesReport._id, 'concrete')}
@@ -2625,26 +2457,6 @@ export default function ProjectReportsPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="p-6">
-                        {groundSlabReport?.concreteData && (
-                          <div className="space-y-4 mb-6">
-                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
-                              <span className="text-slate-600 font-medium">حجم أرضية المبنى</span>
-                              <span className="font-bold text-emerald-600">
-                                {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) ||
-                                  groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                            <Separator className="my-2" />
-                            <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                              <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                              <span className="text-2xl font-black text-emerald-600">
-                                {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) ||
-                                  groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(groundSlabReport._id, 'concrete')}
@@ -2726,19 +2538,6 @@ export default function ProjectReportsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6">
-                        <div className="space-y-4 mb-6">
-                          {foundationSteelReport.steelData?.details?.results && (
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200">
-                                <p className="text-sm text-slate-600 mb-1">قطر القضيب</p>
-                                <p className="text-xl font-black text-blue-700">
-                                  {foundationSteelReport.steelData.details.inputs.barDiameter} ملم
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(foundationSteelReport._id, 'steel')}
@@ -2820,19 +2619,6 @@ export default function ProjectReportsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6">
-                        <div className="space-y-4 mb-6">
-                          {groundBeamsSteelReport.steelData?.details?.results && (
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200">
-                                <p className="text-sm text-slate-600 mb-1">عدد الجسور</p>
-                                <p className="text-xl font-black text-blue-700">
-                                  {groundBeamsSteelReport.steelData.details.results.type === 'similar' ? (groundBeamsSteelReport.steelData.details.results.numberOfBeams || 0) : (groundBeamsSteelReport.steelData?.details?.results?.beams?.length || 0)}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(groundBeamsSteelReport._id, 'steel')}
@@ -2914,27 +2700,6 @@ export default function ProjectReportsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6">
-                        <div className="space-y-4 mb-6">
-                          {groundSlabSteelReport.steelData?.details?.results && (
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-gradient-to-br from-red-50 to-orange-50 p-4 rounded-xl border-2 border-red-200">
-                                <p className="text-sm text-slate-600 mb-1">نوع التسليح</p>
-                                <p className="text-xl font-black text-red-700">
-                                  {groundSlabSteelReport.steelData.details.results.type === 'mesh' ? 'شبك حديد' : 'حديد مفرق'}
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-4 rounded-xl border-2 border-amber-200">
-                                <p className="text-sm text-slate-600 mb-1">
-                                  {groundSlabSteelReport.steelData.details.results.type === 'mesh' ? 'عدد الشبك' : 'عدد القصبان'}
-                                </p>
-                                <p className="text-xl font-black text-amber-700">
-                                  {groundSlabSteelReport.steelData.details.results.type === 'mesh' ? (groundSlabSteelReport.steelData.details.results.meshBars || 0) : (groundSlabSteelReport.steelData.details.results.separateBars || 0)}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(groundSlabSteelReport._id, 'steel')}
@@ -3016,21 +2781,6 @@ export default function ProjectReportsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6">
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                          <div className="p-4 bg-purple-50 rounded-xl border-2 border-purple-100">
-                            <p className="text-sm text-slate-500 font-medium mb-1">المساحة المطلوبة</p>
-                            <p className="text-2xl font-bold text-slate-800">
-                              {roofRibsSteelReport.steelData?.details?.results?.requiredBarArea || 0} <span className="text-sm font-normal text-slate-500">سم²</span>
-                            </p>
-                          </div>
-                          <div className="p-4 bg-purple-50 rounded-xl border-2 border-purple-100">
-                            <p className="text-sm text-slate-500 font-medium mb-1">عدد القضبان</p>
-                            <p className="text-2xl font-bold text-slate-800">
-                              {roofRibsSteelReport.steelData?.details?.results?.numberOfBars || 0}
-                            </p>
-                          </div>
-                        </div>
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(roofRibsSteelReport._id, 'steel')}
@@ -3112,27 +2862,6 @@ export default function ProjectReportsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6">
-                        <div className="space-y-4 mb-6">
-                          {roofSlabSteelReport.steelData?.details?.results && (
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-gradient-to-br from-red-50 to-orange-50 p-4 rounded-xl border-2 border-red-200">
-                                <p className="text-sm text-slate-600 mb-1">نوع التسليح</p>
-                                <p className="text-xl font-black text-red-700">
-                                  {roofSlabSteelReport.steelData.details.results.type === 'mesh' ? 'شبك حديد' : 'حديد مفرق'}
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-4 rounded-xl border-2 border-amber-200">
-                                <p className="text-sm text-slate-600 mb-1">
-                                  {roofSlabSteelReport.steelData.details.results.type === 'mesh' ? 'عدد الشبك' : 'عدد القصبان'}
-                                </p>
-                                <p className="text-xl font-black text-amber-700">
-                                  {roofSlabSteelReport.steelData.details.results.type === 'mesh' ? (roofSlabSteelReport.steelData.details.results.meshBars || 0) : (roofSlabSteelReport.steelData.details.results.separateBars || 0)}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(roofSlabSteelReport._id, 'steel')}
@@ -3214,37 +2943,6 @@ export default function ProjectReportsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6">
-                        <div className="space-y-4 mb-6">
-                          {steelColumnBaseReport.steelData?.details && (
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-4 rounded-xl border-2 border-indigo-200">
-                                <p className="text-sm text-slate-600 mb-1">طول الشرش</p>
-                                <p className="text-xl font-black text-indigo-700">
-                                  {steelColumnBaseReport.steelData.details.starterLength?.toFixed(2) || 0} م
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 p-4 rounded-xl border-2 border-cyan-200">
-                                <p className="text-sm text-slate-600 mb-1">عدد القضبان</p>
-                                <p className="text-xl font-black text-cyan-700">
-                                  {steelColumnBaseReport.steelData.details.numBars || 0}
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border-2 border-blue-200">
-                                <p className="text-sm text-slate-600 mb-1">أبعاد الشرش</p>
-                                <p className="text-lg font-black text-blue-700">
-                                  {steelColumnBaseReport.steelData.details.dimensionText || 'غير محدد'}
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-4 rounded-xl border-2 border-emerald-200">
-                                <p className="text-sm text-slate-600 mb-1">الوزن الإجمالي</p>
-                                <p className="text-xl font-black text-emerald-700">
-                                  {steelColumnBaseReport.steelData.totalSteelWeight?.toFixed(2) || 0} كجم
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(steelColumnBaseReport._id, 'steel')}
@@ -3326,31 +3024,6 @@ export default function ProjectReportsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6">
-                        <div className="space-y-4 mb-6">
-                          {columnTiesSteelReport.steelData?.details?.results && (
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-gradient-to-br from-pink-50 to-rose-50 p-4 rounded-xl border-2 border-pink-200">
-                                <p className="text-sm text-slate-600 mb-1">قطر القضيب</p>
-                                <p className="text-xl font-black text-pink-700">
-                                  {columnTiesSteelReport.steelData?.details?.inputs?.rodDiameterMm || columnTiesSteelReport.steelData?.details?.inputs?.rodDiameter || 0} مم
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-pink-50 to-rose-50 p-4 rounded-xl border-2 border-pink-200">
-                                <p className="text-sm text-slate-600 mb-1">عدد القضبان</p>
-                                <p className="text-xl font-black text-pink-700">
-                                  {columnTiesSteelReport.steelData.details.results.verticalBarsCount || 0}
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200">
-                                <p className="text-sm text-slate-600 mb-1">الوزن</p>
-                                <p className="text-xl font-black text-blue-700">
-                                  {columnTiesSteelReport.steelData.details.results.rodWeight?.toFixed(2) || 0} كجم
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(columnTiesSteelReport._id, 'steel')}
@@ -3432,37 +3105,6 @@ export default function ProjectReportsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6">
-                        <div className="space-y-4 mb-6">
-                          {roofBeamsSteelReport.steelData?.details?.results && (
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-4 rounded-xl border-2 border-emerald-200">
-                                <p className="text-sm text-slate-600 mb-1">الحديد العلوي</p>
-                                <p className="text-xl font-black text-emerald-700">
-                                  {roofBeamsSteelReport.steelData.details.results.countUpper || 0} قضبان
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-teal-50 to-cyan-50 p-4 rounded-xl border-2 border-teal-200">
-                                <p className="text-sm text-slate-600 mb-1">الحديد السفلي</p>
-                                <p className="text-xl font-black text-teal-700">
-                                  {roofBeamsSteelReport.steelData.details.results.countLower || 0} قضبان
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 p-4 rounded-xl border-2 border-cyan-200">
-                                <p className="text-sm text-slate-600 mb-1">العزم الأقصى</p>
-                                <p className="text-xl font-black text-cyan-700">
-                                  {Number(roofBeamsSteelReport.steelData.details.results.maxMoment || 0).toFixed(2)} kNm
-                                </p>
-                              </div>
-                              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border-2 border-blue-200">
-                                <p className="text-sm text-slate-600 mb-1">عدد الجسور</p>
-                                <p className="text-xl font-black text-blue-700">
-                                  {roofBeamsSteelReport.steelData.details.inputs?.numBeams || 0}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
                         <div className="space-y-3">
                           <Button
                             onClick={() => downloadPDF(roofBeamsSteelReport._id, 'steel')}
