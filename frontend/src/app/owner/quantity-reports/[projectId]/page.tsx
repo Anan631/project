@@ -1709,7 +1709,7 @@ export default function OwnerQuantityReportsPage() {
                           <Button
                             onClick={() => downloadPDF(foundationReport._id)}
                             disabled={downloading === foundationReport._id}
-                            className="w-full h-16 bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-600 hover:from-emerald-700 hover:via-emerald-800 hover:to-teal-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
+                            className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
                           >
                             <div className="flex items-center gap-3 relative z-10">
                               {downloading === foundationReport._id ? (
@@ -1738,217 +1738,282 @@ export default function OwnerQuantityReportsPage() {
 
                 {/* Column Footings Report Card */}
                 {columnFootingsReport && (
-                  <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                    <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Blocks className="w-7 h-7 text-white" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                          <CardDescription className="text-emerald-100">
-                            شروش الأعمدة
-                          </CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-6">
-
-                      <div className="space-y-3">
-                        <Button
-                          onClick={() => downloadPDF(columnFootingsReport._id)}
-                          disabled={downloading === columnFootingsReport._id}
-                          className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                        >
-                          {downloading === columnFootingsReport._id ? (
-                            <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                          ) : (
-                            <Printer className="w-5 h-5 ml-2" />
-                          )}
-                          طباعة التقرير
-                        </Button>
-
-                        {columnFootingsReport.sentToOwnerAt && (
-                          <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>تم الإرسال: {formatDate(columnFootingsReport.sentToOwnerAt)}</span>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    whileHover={{ y: -8, scale: 1.02 }}
+                  >
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
+                            <Blocks className="w-8 h-8 text-white" />
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                          <div>
+                            <CardTitle className="text-xl font-bold">تقرير كمية الخرسانة</CardTitle>
+                            <CardDescription className="text-emerald-100 text-lg">
+                              شروش الأعمدة
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      </CardHeader>
+                      <CardContent className="p-8 space-y-6">
+                        <div className="space-y-4">
+                          <Button
+                            onClick={() => downloadPDF(columnFootingsReport._id)}
+                            disabled={downloading === columnFootingsReport._id}
+                            className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
+                          >
+                            <div className="flex items-center gap-3 relative z-10">
+                              {downloading === columnFootingsReport._id ? (
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                              ) : (
+                                <Printer className="w-6 h-6" />
+                              )}
+                              <span>طباعة التقرير</span>
+                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700" />
+                          </Button>
+
+                          {columnFootingsReport.sentToOwnerAt && (
+                            <div className="text-center p-3 bg-slate-50 rounded-lg">
+                              <div className="flex items-center justify-center gap-2 text-slate-600">
+                                <Calendar className="w-4 h-4" />
+                                <span className="font-medium">تم الإرسال: {formatDate(columnFootingsReport.sentToOwnerAt)}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 )}
 
                 {/* Columns Report Card */}
                 {columnsReport && (
-                  <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                    <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Blocks className="w-7 h-7 text-white" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                          <CardDescription className="text-emerald-100">
-                            الأعمدة
-                          </CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-6">
-
-                      <div className="space-y-3">
-                        <Button
-                          onClick={() => downloadPDF(columnsReport._id)}
-                          disabled={downloading === columnsReport._id}
-                          className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                        >
-                          {downloading === columnsReport._id ? (
-                            <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                          ) : (
-                            <Printer className="w-5 h-5 ml-2" />
-                          )}
-                          طباعة التقرير
-                        </Button>
-
-                        {columnsReport.sentToOwnerAt && (
-                          <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>تم الإرسال: {formatDate(columnsReport.sentToOwnerAt)}</span>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    whileHover={{ y: -8, scale: 1.02 }}
+                  >
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
+                            <Blocks className="w-8 h-8 text-white" />
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                          <div>
+                            <CardTitle className="text-xl font-bold">تقرير كمية الخرسانة</CardTitle>
+                            <CardDescription className="text-emerald-100 text-lg">
+                              الأعمدة
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      </CardHeader>
+                      <CardContent className="p-8 space-y-6">
+                        <div className="space-y-4">
+                          <Button
+                            onClick={() => downloadPDF(columnsReport._id)}
+                            disabled={downloading === columnsReport._id}
+                            className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
+                          >
+                            <div className="flex items-center gap-3 relative z-10">
+                              {downloading === columnsReport._id ? (
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                              ) : (
+                                <Printer className="w-6 h-6" />
+                              )}
+                              <span>طباعة التقرير</span>
+                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700" />
+                          </Button>
+
+                          {columnsReport.sentToOwnerAt && (
+                            <div className="text-center p-3 bg-slate-50 rounded-lg">
+                              <div className="flex items-center justify-center gap-2 text-slate-600">
+                                <Calendar className="w-4 h-4" />
+                                <span className="font-medium">تم الإرسال: {formatDate(columnsReport.sentToOwnerAt)}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 )}
 
                 {/* Roof Report Card */}
                 {roofReport && (
-                  <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                    <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Blocks className="w-7 h-7 text-white" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                          <CardDescription className="text-emerald-100">
-                            السقف
-                          </CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-6">
-
-                      <div className="space-y-3">
-                        <Button
-                          onClick={() => downloadPDF(roofReport._id)}
-                          disabled={downloading === roofReport._id}
-                          className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                        >
-                          {downloading === roofReport._id ? (
-                            <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                          ) : (
-                            <Printer className="w-5 h-5 ml-2" />
-                          )}
-                          طباعة التقرير
-                        </Button>
-
-                        {roofReport.sentToOwnerAt && (
-                          <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>تم الإرسال: {formatDate(roofReport.sentToOwnerAt)}</span>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    whileHover={{ y: -8, scale: 1.02 }}
+                  >
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
+                            <Blocks className="w-8 h-8 text-white" />
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                          <div>
+                            <CardTitle className="text-xl font-bold">تقرير كمية الخرسانة</CardTitle>
+                            <CardDescription className="text-emerald-100 text-lg">
+                              السقف
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      </CardHeader>
+                      <CardContent className="p-8 space-y-6">
+                        <div className="space-y-4">
+                          <Button
+                            onClick={() => downloadPDF(roofReport._id)}
+                            disabled={downloading === roofReport._id}
+                            className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
+                          >
+                            <div className="flex items-center gap-3 relative z-10">
+                              {downloading === roofReport._id ? (
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                              ) : (
+                                <Printer className="w-6 h-6" />
+                              )}
+                              <span>طباعة التقرير</span>
+                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700" />
+                          </Button>
+
+                          {roofReport.sentToOwnerAt && (
+                            <div className="text-center p-3 bg-slate-50 rounded-lg">
+                              <div className="flex items-center justify-center gap-2 text-slate-600">
+                                <Calendar className="w-4 h-4" />
+                                <span className="font-medium">تم الإرسال: {formatDate(roofReport.sentToOwnerAt)}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 )}
 
                 {/* Ground Bridges Report Card */}
                 {groundBridgesReport && (
-                  <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                    <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Blocks className="w-7 h-7 text-white" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                          <CardDescription className="text-emerald-100">
-                            الجسور الأرضية
-                          </CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-6">
-
-                      <div className="space-y-3">
-                        <Button
-                          onClick={() => downloadPDF(groundBridgesReport._id)}
-                          disabled={downloading === groundBridgesReport._id}
-                          className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                        >
-                          {downloading === groundBridgesReport._id ? (
-                            <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                          ) : (
-                            <Printer className="w-5 h-5 ml-2" />
-                          )}
-                          طباعة التقرير
-                        </Button>
-
-                        {groundBridgesReport.sentToOwnerAt && (
-                          <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>تم الإرسال: {formatDate(groundBridgesReport.sentToOwnerAt)}</span>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    whileHover={{ y: -8, scale: 1.02 }}
+                  >
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
+                            <Blocks className="w-8 h-8 text-white" />
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                          <div>
+                            <CardTitle className="text-xl font-bold">تقرير كمية الخرسانة</CardTitle>
+                            <CardDescription className="text-emerald-100 text-lg">
+                              الجسور الأرضية
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      </CardHeader>
+                      <CardContent className="p-8 space-y-6">
+                        <div className="space-y-4">
+                          <Button
+                            onClick={() => downloadPDF(groundBridgesReport._id)}
+                            disabled={downloading === groundBridgesReport._id}
+                            className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
+                          >
+                            <div className="flex items-center gap-3 relative z-10">
+                              {downloading === groundBridgesReport._id ? (
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                              ) : (
+                                <Printer className="w-6 h-6" />
+                              )}
+                              <span>طباعة التقرير</span>
+                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700" />
+                          </Button>
+
+                          {groundBridgesReport.sentToOwnerAt && (
+                            <div className="text-center p-3 bg-slate-50 rounded-lg">
+                              <div className="flex items-center justify-center gap-2 text-slate-600">
+                                <Calendar className="w-4 h-4" />
+                                <span className="font-medium">تم الإرسال: {formatDate(groundBridgesReport.sentToOwnerAt)}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 )}
 
                 {/* Ground Slab Report Card */}
                 {groundSlabReport && (
-                  <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group">
-                    <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Blocks className="w-7 h-7 text-white" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                          <CardDescription className="text-emerald-100">
-                            أرضية المبنى (المِدّة)
-                          </CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-6">
-
-                      <div className="space-y-3">
-                        <Button
-                          onClick={() => downloadPDF(groundSlabReport._id)}
-                          disabled={downloading === groundSlabReport._id}
-                          className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                        >
-                          {downloading === groundSlabReport._id ? (
-                            <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                          ) : (
-                            <Printer className="w-5 h-5 ml-2" />
-                          )}
-                          طباعة التقرير
-                        </Button>
-
-                        {groundSlabReport.sentToOwnerAt && (
-                          <div className="text-center text-sm text-slate-500 flex items-center justify-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>تم الإرسال: {formatDate(groundSlabReport.sentToOwnerAt)}</span>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    whileHover={{ y: -8, scale: 1.02 }}
+                  >
+                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden group bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20">
+                      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600" />
+                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
+                            <Blocks className="w-8 h-8 text-white" />
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                          <div>
+                            <CardTitle className="text-xl font-bold">تقرير كمية الخرسانة</CardTitle>
+                            <CardDescription className="text-emerald-100 text-lg">
+                              أرضية المبنى (المِدّة)
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      </CardHeader>
+                      <CardContent className="p-8 space-y-6">
+                        <div className="space-y-4">
+                          <Button
+                            onClick={() => downloadPDF(groundSlabReport._id)}
+                            disabled={downloading === groundSlabReport._id}
+                            className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
+                          >
+                            <div className="flex items-center gap-3 relative z-10">
+                              {downloading === groundSlabReport._id ? (
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                              ) : (
+                                <Printer className="w-6 h-6" />
+                              )}
+                              <span>طباعة التقرير</span>
+                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700" />
+                          </Button>
+
+                          {groundSlabReport.sentToOwnerAt && (
+                            <div className="text-center p-3 bg-slate-50 rounded-lg">
+                              <div className="flex items-center justify-center gap-2 text-slate-600">
+                                <Calendar className="w-4 h-4" />
+                                <span className="font-medium">تم الإرسال: {formatDate(groundSlabReport.sentToOwnerAt)}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 )}
 
                 {/* Foundation Steel Report Card */}
@@ -2008,7 +2073,7 @@ export default function OwnerQuantityReportsPage() {
                         <Button
                           onClick={() => downloadPDF(foundationSteelReport._id)}
                           disabled={downloading === foundationSteelReport._id}
-                          className="w-full h-14 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
                         >
                           {downloading === foundationSteelReport._id ? (
                             <Loader2 className="w-5 h-5 animate-spin ml-2" />
@@ -2078,7 +2143,7 @@ export default function OwnerQuantityReportsPage() {
                         <Button
                           onClick={() => downloadPDF(groundBeamsSteelReport._id)}
                           disabled={downloading === groundBeamsSteelReport._id}
-                          className="w-full h-14 bg-gradient-to-r from-orange-600 to-yellow-600 hover:from-orange-700 hover:to-yellow-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
                         >
                           {downloading === groundBeamsSteelReport._id ? (
                             <Loader2 className="w-5 h-5 animate-spin ml-2" />
@@ -2152,7 +2217,7 @@ export default function OwnerQuantityReportsPage() {
                         <Button
                           onClick={() => downloadPDF(groundSlabSteelReport._id)}
                           disabled={downloading === groundSlabSteelReport._id}
-                          className="w-full h-14 bg-gradient-to-r from-orange-600 to-yellow-600 hover:from-orange-700 hover:to-yellow-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
                         >
                           {downloading === groundSlabSteelReport._id ? (
                             <Loader2 className="w-5 h-5 animate-spin ml-2" />
@@ -2211,7 +2276,7 @@ export default function OwnerQuantityReportsPage() {
                         <Button
                           onClick={() => downloadPDF(roofRibsSteelReport._id)}
                           disabled={downloading === roofRibsSteelReport._id}
-                          className="w-full h-14 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
                         >
                           {downloading === roofRibsSteelReport._id ? (
                             <Loader2 className="w-5 h-5 animate-spin ml-2" />
@@ -2285,7 +2350,7 @@ export default function OwnerQuantityReportsPage() {
                         <Button
                           onClick={() => downloadPDF(roofSlabSteelReport._id)}
                           disabled={downloading === roofSlabSteelReport._id}
-                          className="w-full h-14 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
                         >
                           {downloading === roofSlabSteelReport._id ? (
                             <Loader2 className="w-5 h-5 animate-spin ml-2" />
@@ -2351,7 +2416,7 @@ export default function OwnerQuantityReportsPage() {
                         <Button
                           onClick={() => downloadPDF(columnTiesSteelReport._id)}
                           disabled={downloading === columnTiesSteelReport._id}
-                          className="w-full h-14 bg-gradient-to-r from-orange-600 to-yellow-600 hover:from-orange-700 hover:to-yellow-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          className="w-full h-16 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 group/btn relative overflow-hidden text-lg"
                         >
                           {downloading === columnTiesSteelReport._id ? (
                             <Loader2 className="w-5 h-5 animate-spin ml-2" />
@@ -2424,7 +2489,7 @@ export default function OwnerQuantityReportsPage() {
                         <Button
                           onClick={() => downloadPDF(roofBeamsSteelReport._id)}
                           disabled={downloading === roofBeamsSteelReport._id}
-                          className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                          className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
                         >
                           {downloading === roofBeamsSteelReport._id ? (
                             <Loader2 className="w-5 h-5 animate-spin ml-2" />
@@ -2583,7 +2648,7 @@ export default function OwnerQuantityReportsPage() {
                                   onClick={() => downloadPDF(report._id)}
                                   disabled={downloading === report._id}
                                   size="lg"
-                                  className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-600 hover:from-emerald-700 hover:via-emerald-800 hover:to-teal-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 px-6 py-3 group/btn relative overflow-hidden"
+                                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all duration-300 px-6 py-3 group/btn relative overflow-hidden"
                                 >
                                   <div className="flex items-center gap-2 relative z-10">
                                     {downloading === report._id ? (
