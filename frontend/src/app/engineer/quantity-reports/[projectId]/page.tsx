@@ -1129,7 +1129,7 @@ export default function ProjectReportsPage() {
               <div class="info-boxes">
                 <div class="info-box">
                   <label>قطر القضيب</label>
-                  <div class="value">${isGroundSlab ? '6' : (steelData?.barDiameter || inputs?.barDiameter || results?.barDiameter || report.steelData?.details?.inputs?.barDiameter || report.steelData?.details?.barDiameter || report.steelData?.details?.inputs?.rodDiameter || report.steelData?.details?.rodDiameter || 'N/A')} ملم</div>
+                  <div class="value">${isGroundSlab || isRoofSlab ? '6' : (steelData?.barDiameter || inputs?.barDiameter || results?.barDiameter || report.steelData?.details?.inputs?.barDiameter || report.steelData?.details?.barDiameter || report.steelData?.details?.inputs?.rodDiameter || report.steelData?.details?.rodDiameter || 'N/A')} ملم</div>
                 </div>
               </div>
 
