@@ -2167,23 +2167,30 @@ export default function ProjectReportsPage() {
 
               <TabsContent value="reports" className="mt-6">
                 {/* View Toggle & Delete All */}
-                <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                  <div className="flex items-center gap-2 rounded-lg p-1 bg-gradient-to-r from-slate-50 to-blue-50 border border-blue-200 shadow-sm">
+                <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
+                  <div className="flex items-center bg-white/80 backdrop-blur-sm rounded-xl p-1.5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300 w-full sm:w-auto">
                     <Button 
-                      variant={viewMode === 'cards' ? 'default' : 'ghost'} 
+                      variant="ghost"
                       onClick={() => setViewMode('cards')} 
-                      className="px-4 py-2 gap-2 transition-all duration-200 hover:bg-blue-100 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                      className={`px-5 py-2.5 gap-2.5 transition-all duration-300 ease-in-out rounded-lg font-medium text-sm
+                        ${viewMode === 'cards' 
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-100' 
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'}`}
                     >
-                      <Building2 className="w-4 h-4" />
-                      بطاقات
+                      <Building2 className="w-4 h-4 flex-shrink-0" />
+                      <span className="whitespace-nowrap">عرض البطاقات</span>
                     </Button>
+                    <div className="h-5 w-px bg-slate-200 mx-1"></div>
                     <Button 
-                      variant={viewMode === 'table' ? 'default' : 'ghost'} 
+                      variant="ghost"
                       onClick={() => setViewMode('table')} 
-                      className="px-4 py-2 gap-2 transition-all duration-200 hover:bg-blue-100 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                      className={`px-5 py-2.5 gap-2.5 transition-all duration-300 ease-in-out rounded-lg font-medium text-sm
+                        ${viewMode === 'table' 
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-100' 
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'}`}
                     >
-                      <TableIcon className="w-4 h-4" />
-                      جدول
+                      <TableIcon className="w-4 h-4 flex-shrink-0" />
+                      <span className="whitespace-nowrap">عرض الجدول</span>
                     </Button>
                   </div>
                   
