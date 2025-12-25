@@ -20,6 +20,7 @@ import {
   Send,
   TrendingUp,
   BarChart3,
+  Table as TableIcon, // Renamed import to avoid conflict with UI Table component
   Activity,
   Package,
 } from "lucide-react";
@@ -38,6 +39,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface QuantityReport {
@@ -70,6 +79,7 @@ interface QuantityReport {
       height: number;
       volume: number;
     }>;
+    columnsVolume?: number;
     [key: string]: any;
   };
   steelData: {
@@ -141,6 +151,7 @@ export default function ProjectReportsPage() {
   const [deletingAll, setDeletingAll] = useState(false);
 
   const [activeTab, setActiveTab] = useState('overview');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   useEffect(() => {
     fetchReports();
@@ -1772,21 +1783,74 @@ export default function ProjectReportsPage() {
 
   const sentReportsCount = reports.filter(report => report.sentToOwner).length;
 
-  // Separate reports by type
-  const foundationReport = reports.find(r => r.calculationType === 'foundation');
-  const columnFootingsReport = reports.find(r => r.calculationType === 'column-footings');
-  const columnsReport = reports.find(r => r.calculationType === 'columns');
-  const roofReport = reports.find(r => r.calculationType === 'roof');
-  const groundBridgesReport = reports.find(r => r.calculationType === 'ground-bridges');
-  const groundSlabReport = reports.find(r => r.calculationType === 'ground-slab');
-  const foundationSteelReport = reports.find(r => r.calculationType === 'foundation-steel');
-  const groundBeamsSteelReport = reports.find(r => r.calculationType === 'ground-beams-steel');
-  const groundSlabSteelReport = reports.find(r => r.calculationType === 'ground-slab-steel');
-  const roofRibsSteelReport = reports.find(r => r.calculationType === 'roof-ribs-steel');
-  const roofSlabSteelReport = reports.find(r => r.calculationType === 'roof-slab-steel');
-  const columnTiesSteelReport = reports.find(r => r.calculationType === 'column-ties-steel');
-  const steelColumnBaseReport = reports.find(r => r.calculationType === 'steel-column-base');
-  const roofBeamsSteelReport = reports.find(r => r.calculationType === 'roof-beams-steel');
+  const steelReportTypes = [
+    'foundation-steel',
+    'ground-beams-steel',
+    'ground-slab-steel',
+    'roof-ribs-steel',
+    'roof-slab-steel',
+    'column-ties-steel',
+    'steel-column-base',
+    'roof-beams-steel',
+  ];
+
+  const concreteReports = reports.filter(r => !steelReportTypes.includes(r.calculationType));
+  const steelReports = reports.filter(r => steelReportTypes.includes(r.calculationType));
+
+  const getReportName = (calculationType: string) => {
+    switch (calculationType) {
+      case 'foundation':
+        return 'صبة النظافة والقواعد';
+      case 'column-footings':
+        return 'شروش الأعمدة';
+      case 'columns':
+        return 'الأعمدة';
+      case 'roof':
+        return 'السقف';
+      case 'ground-bridges':
+        return 'الجسور الأرضية';
+      case 'ground-slab':
+        return 'أرضية المبنى (المِدّة)';
+      case 'foundation-steel':
+        return 'حديد القواعد';
+      case 'ground-beams-steel':
+        return 'حديد الجسور الأرضية';
+      case 'ground-slab-steel':
+        return 'حديد أرضية المبنى';
+      case 'roof-ribs-steel':
+        return 'حديد أعصاب السقف';
+      case 'roof-slab-steel':
+        return 'حديد السقف';
+      case 'column-ties-steel':
+        return 'حديد الأعمدة والكانات';
+      case 'steel-column-base':
+        return 'حديد شروش الأعمدة';
+      case 'roof-beams-steel':
+        return 'حديد جسور السقف';
+      default:
+        return calculationType;
+    }
+  };
+
+  // Helper to get concrete volume for a single report based on type
+  const getReportVolume = (report: QuantityReport): number => {
+    if (report.calculationType === 'column-footings') {
+      return report.concreteData?.totalFootingsVolume || report.concreteData?.totalConcrete || 0;
+    } else if (report.calculationType === 'columns') {
+      return report.concreteData?.columnsVolume || report.concreteData?.totalConcrete || 0;
+    } else if (report.calculationType === 'roof') {
+      return report.concreteData?.totalConcrete || 0;
+    } else if (report.calculationType === 'ground-bridges') {
+      return report.concreteData?.totalVolume || report.concreteData?.totalConcrete || 0;
+    } else if (report.calculationType === 'ground-slab') {
+      return report.concreteData?.groundSlabVolume || report.concreteData?.totalConcrete || 0;
+    } else {
+      const cleaning = report.concreteData?.cleaningVolume || 0;
+      const foundations = report.concreteData?.foundationsVolume || 0;
+      const groundSlab = report.concreteData?.groundSlabVolume || 0;
+      return cleaning + foundations + groundSlab;
+    }
+  };
 
   if (loading) {
     return (
@@ -1814,7 +1878,7 @@ export default function ProjectReportsPage() {
         {/* Back Button */}
         <div className="mb-6">
           <Link href="/engineer/quantity-reports">
-            <Button variant="ghost" className="gap-2 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 shadow-sm hover:shadow-md transition-all duration-300 px-4 py-2 rounded-lg">
+            <Button variant="ghost" className="gap-2 text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 shadow-sm hover:shadow-md transition-all duration-300 px-4 py-2 rounded-lg">
               <ArrowRight className="w-4 h-4" />
               العودة لقائمة المشاريع
             </Button>
@@ -1863,7 +1927,7 @@ export default function ProjectReportsPage() {
                 قم بإجراء حسابات الكميات من صفحة المشروع لإنشاء التقارير
               </p>
               <Link href="/engineer/quantity-survey/calculate-materials">
-                <Button className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 text-lg shadow-lg hover:shadow-2xl hover:shadow-emerald-500/50 hover:text-white hover:font-bold transition-all duration-300">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 text-lg shadow-lg hover:shadow-emerald-500/50 text-white font-bold transition-all duration-300">
                   العودة الى صفحة حساب كميات المواد
                 </Button>
               </Link>
@@ -1996,1182 +2060,427 @@ export default function ProjectReportsPage() {
               </TabsContent>
 
               <TabsContent value="reports" className="mt-6">
-                {/* Delete All Reports Button */}
-                {reports.length > 0 && (
-                  <div className="mb-6 flex justify-end">
-                    <Button
-                      onClick={() => setDeleteAllDialog(true)}
-                      disabled={deletingAll}
-                      variant="destructive"
-                      className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all"
+                {/* View Toggle & Delete All */}
+                <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <div className="flex items-center gap-2 rounded-lg p-1 bg-gradient-to-r from-slate-50 to-blue-50 border border-blue-200 shadow-sm">
+                    <Button 
+                      variant={viewMode === 'cards' ? 'default' : 'ghost'} 
+                      onClick={() => setViewMode('cards')} 
+                      className="px-4 py-2 gap-2 transition-all duration-200 hover:bg-blue-100 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
                     >
-                      {deletingAll ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                          جاري حذف جميع التقارير...
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="w-4 h-4 ml-2" />
-                          حذف جميع التقارير ({reports.length})
-                        </>
-                      )}
+                      <Building2 className="w-4 h-4" />
+                      بطاقات
                     </Button>
+                    <Button 
+                      variant={viewMode === 'table' ? 'default' : 'ghost'} 
+                      onClick={() => setViewMode('table')} 
+                      className="px-4 py-2 gap-2 transition-all duration-200 hover:bg-blue-100 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                    >
+                      <TableIcon className="w-4 h-4" />
+                      جدول
+                    </Button>
+                  </div>
+                  
+                  <Button
+                    onClick={() => setDeleteAllDialog(true)}
+                    disabled={deletingAll}
+                    variant="destructive"
+                    className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+                  >
+                    {deletingAll ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                        جاري حذف جميع التقارير...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 ml-2" />
+                        حذف جميع التقارير ({reports.length})
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* VIEW MODE: CARDS */}
+                {viewMode === 'cards' && (
+                  <div>
+                    {/* Concrete Reports Section */}
+                    <div className="mb-12">
+                      <h2 className="text-2xl font-bold text-slate-800 mb-4 border-r-4 border-emerald-500 pr-4">تقارير الخرسانة</h2>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {concreteReports.map(report => (
+                          <Card key={report._id} className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
+                            <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
+                              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                              <div className="relative z-10">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Blocks className="w-7 h-7 text-white" />
+                                  </div>
+                                  <div>
+                                    <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
+                                    <CardDescription className="text-emerald-100">
+                                      {getReportName(report.calculationType)}
+                                    </CardDescription>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                              <div className="space-y-3">
+                                <Button
+                                  onClick={() => downloadPDF(report._id, 'concrete')}
+                                  disabled={downloading === `${report._id}-concrete`}
+                                  className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                                >
+                                  {downloading === `${report._id}-concrete` ? (
+                                    <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                                  ) : (
+                                    <Printer className="w-5 h-5 ml-2" />
+                                  )}
+                                  طباعة تقرير الخرسانة PDF
+                                </Button>
+
+                                <Button
+                                  onClick={() => handleSendToOwner(report._id)}
+                                  disabled={sendingToOwner === report._id || report.sentToOwner}
+                                  className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${report.sentToOwner
+                                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                                    }`}
+                                >
+                                  {sendingToOwner === report._id ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                      جاري الإرسال...
+                                    </>
+                                  ) : report.sentToOwner ? (
+                                    <>
+                                      <CheckCircle2 className="w-4 h-4 ml-2" />
+                                      تم الإرسال للمالك
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Send className="w-4 h-4 ml-2" />
+                                      إرسال التقرير للمالك
+                                    </>
+                                  )}
+                                </Button>
+
+                                <Button
+                                  onClick={() => handleDeleteReport(report._id)}
+                                  disabled={deleting === report._id}
+                                  variant="destructive"
+                                  className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                                >
+                                  {deleting === report._id ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                      جاري الحذف...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Trash2 className="w-4 h-4 ml-2" />
+                                      حذف التقرير
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-800 mb-4 border-r-4 border-red-500 pr-4">تقارير الحديد</h2>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {steelReports.map(report => (
+                          <Card key={report._id} className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
+                            <CardHeader className="bg-gradient-to-br from-red-500 to-red-700 text-white relative overflow-hidden">
+                              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                              <div className="relative z-10">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Blocks className="w-7 h-7 text-white" />
+                                  </div>
+                                  <div>
+                                    <CardTitle className="text-xl">تقرير كمية الحديد</CardTitle>
+                                    <CardDescription className="text-red-100">
+                                      {getReportName(report.calculationType)}
+                                    </CardDescription>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                              <div className="space-y-3">
+                                <Button
+                                  onClick={() => downloadPDF(report._id, 'steel')}
+                                  disabled={downloading === `${report._id}-steel`}
+                                  className="w-full h-14 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-lg font-bold shadow-lg hover:shadow-xl transition-all text-white"
+                                >
+                                  {downloading === `${report._id}-steel` ? (
+                                    <Loader2 className="w-5 h-5 animate-spin ml-2" />
+                                  ) : (
+                                    <Printer className="w-5 h-5 ml-2" />
+                                  )}
+                                  طباعة تقرير الحديد PDF
+                                </Button>
+
+                                <Button
+                                  onClick={() => handleSendToOwner(report._id)}
+                                  disabled={sendingToOwner === report._id || report.sentToOwner}
+                                  className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${report.sentToOwner
+                                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
+                                    }`}
+                                >
+                                  {sendingToOwner === report._id ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                      جاري الإرسال...
+                                    </>
+                                  ) : report.sentToOwner ? (
+                                    <>
+                                      <CheckCircle2 className="w-4 h-4 ml-2" />
+                                      تم الإرسال للمالك
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Send className="w-4 h-4 ml-2" />
+                                      إرسال التقرير للمالك
+                                    </>
+                                  )}
+                                </Button>
+
+                                <Button
+                                  onClick={() => handleDeleteReport(report._id)}
+                                  disabled={deleting === report._id}
+                                  variant="destructive"
+                                  className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
+                                >
+                                  {deleting === report._id ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                      جاري الحذف...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Trash2 className="w-4 h-4 ml-2" />
+                                      حذف التقرير
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* Reports Cards - Side by Side */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-                  {/* Foundation Report Card */}
-                  {foundationReport && (
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
-                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                        <div className="relative z-10">
-                          <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <Blocks className="w-7 h-7 text-white" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                              <CardDescription className="text-emerald-100">
-                                صبة النظافة والقواعد
-                              </CardDescription>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(foundationReport._id, 'concrete')}
-                            disabled={downloading === `${foundationReport._id}-concrete`}
-                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${foundationReport._id}-concrete` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة تقرير الخرسانة PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(foundationReport._id)}
-                            disabled={sendingToOwner === foundationReport._id || foundationReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${foundationReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === foundationReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : foundationReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(foundationReport._id)}
-                            disabled={deleting === foundationReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === foundationReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Column Footings Report Card */}
-                  {columnFootingsReport && (
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
-                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                        <div className="relative z-10">
-                          <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <Blocks className="w-7 h-7 text-white" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                              <CardDescription className="text-emerald-100">
-                                شروش الأعمدة
-                              </CardDescription>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(columnFootingsReport._id, 'concrete')}
-                            disabled={downloading === `${columnFootingsReport._id}-concrete`}
-                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${columnFootingsReport._id}-concrete` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة تقرير الخرسانة PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(columnFootingsReport._id)}
-                            disabled={sendingToOwner === columnFootingsReport._id || columnFootingsReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${columnFootingsReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === columnFootingsReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : columnFootingsReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(columnFootingsReport._id)}
-                            disabled={deleting === columnFootingsReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === columnFootingsReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Columns Report Card */}
-                  {columnsReport && (
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
-                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                        <div className="relative z-10">
-                          <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <Blocks className="w-7 h-7 text-white" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                              <CardDescription className="text-emerald-100">
-                                الأعمدة
-                              </CardDescription>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(columnsReport._id, 'concrete')}
-                            disabled={downloading === `${columnsReport._id}-concrete`}
-                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${columnsReport._id}-concrete` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة تقرير الخرسانة PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(columnsReport._id)}
-                            disabled={sendingToOwner === columnsReport._id || columnsReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${columnsReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === columnsReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : columnsReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(columnsReport._id)}
-                            disabled={deleting === columnsReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === columnsReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Roof Report Card */}
-                  {roofReport && (
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
-                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                        <div className="relative z-10">
-                          <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <Blocks className="w-7 h-7 text-white" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                              <CardDescription className="text-emerald-100">
-                                السقف
-                              </CardDescription>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(roofReport._id, 'concrete')}
-                            disabled={downloading === `${roofReport._id}-concrete`}
-                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${roofReport._id}-concrete` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة تقرير الخرسانة PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(roofReport._id)}
-                            disabled={sendingToOwner === roofReport._id || roofReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${roofReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === roofReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : roofReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(roofReport._id)}
-                            disabled={deleting === roofReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === roofReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Ground Bridges Report Card */}
-                  {groundBridgesReport && (
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
-                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                        <div className="relative z-10">
-                          <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <Blocks className="w-7 h-7 text-white" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                              <CardDescription className="text-emerald-100">
-                                الجسور الأرضية
-                              </CardDescription>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(groundBridgesReport._id, 'concrete')}
-                            disabled={downloading === `${groundBridgesReport._id}-concrete`}
-                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${groundBridgesReport._id}-concrete` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة تقرير الخرسانة PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(groundBridgesReport._id)}
-                            disabled={sendingToOwner === groundBridgesReport._id || groundBridgesReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${groundBridgesReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === groundBridgesReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : groundBridgesReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(groundBridgesReport._id)}
-                            disabled={deleting === groundBridgesReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === groundBridgesReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Ground Slab Report Card */}
-                  {groundSlabReport && (
-                    <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden group bg-white/90 backdrop-blur-sm">
-                      <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                        <div className="relative z-10">
-                          <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                              <Blocks className="w-7 h-7 text-white" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-xl">تقرير كمية الخرسانة</CardTitle>
-                              <CardDescription className="text-emerald-100">
-                                أرضية المبنى (المِدّة)
-                              </CardDescription>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(groundSlabReport._id, 'concrete')}
-                            disabled={downloading === `${groundSlabReport._id}-concrete`}
-                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${groundSlabReport._id}-concrete` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة تقرير الخرسانة PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(groundSlabReport._id)}
-                            disabled={sendingToOwner === groundSlabReport._id || groundSlabReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${groundSlabReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === groundSlabReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : groundSlabReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(groundSlabReport._id)}
-                            disabled={deleting === groundSlabReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === groundSlabReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Foundation Steel Report Card */}
-                  {foundationSteelReport && (
-                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                      <CardHeader className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white border-b border-white/20">
+                {/* VIEW MODE: TABLE */}
+                {viewMode === 'table' && (
+                  <div className="space-y-8">
+                    {/* Concrete Reports Table */}
+                    <Card className="border-0 shadow-md bg-white/90 backdrop-blur-sm overflow-hidden">
+                      <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-4">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl flex items-center gap-3">
-                            <Blocks className="w-6 h-6" />
-                            تقرير حديد القواعد
-                          </CardTitle>
-                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                            {foundationSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
-                          </Badge>
+                          <CardTitle className="text-lg">تقارير الخرسانة</CardTitle>
+                          <span className="text-emerald-100 text-sm bg-white/20 px-3 py-1 rounded-full">
+                            {concreteReports.length} تقرير
+                          </span>
                         </div>
-                        <CardDescription className="text-green-100 mt-2">
-                          تاريخ التقرير: {formatDate(foundationSteelReport.updatedAt)}
-                        </CardDescription>
                       </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(foundationSteelReport._id, 'steel')}
-                            disabled={downloading === `${foundationSteelReport._id}-steel`}
-                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${foundationSteelReport._id}-steel` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة التقرير PDF
-                          </Button>
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-gradient-to-r from-slate-50 to-blue-50 hover:from-slate-50 hover:to-blue-50">
+                            <TableHead className="text-right font-bold text-slate-700">اسم التقرير</TableHead>
+                            <TableHead className="text-right font-bold text-slate-700">التاريخ</TableHead>
+                            <TableHead className="text-right font-bold text-slate-700">الحالة</TableHead>
+                            <TableHead className="text-center font-bold text-slate-700">الإجراءات</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {concreteReports.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center text-slate-500 py-8">
+                                لا توجد تقارير خرسانة
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            concreteReports.map((report) => (
+                              <TableRow key={report._id} className="hover:bg-slate-50/50 transition-colors">
+                                <TableCell className="font-medium text-slate-900">
+                                  {getReportName(report.calculationType)}
+                                </TableCell>
+                                <TableCell className="text-slate-600">
+                                  {formatDate(report.createdAt)}
+                                </TableCell>
+                                <TableCell>
+                                  {report.sentToOwner ? (
+                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">
+                                      <CheckCircle2 className="w-3 h-3 ml-1" /> تم الإرسال
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="bg-slate-100 text-slate-600">
+                                      لم يُرسل
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      onClick={() => downloadPDF(report._id, 'concrete')}
+                                      disabled={downloading === `${report._id}-concrete`}
+                                      className="h-8 w-8 border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all duration-200"
+                                    >
+                                      {downloading === `${report._id}-concrete` ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Printer className="w-4 h-4" />
+                                      )}
+                                    </Button>
+                                    
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      onClick={() => handleSendToOwner(report._id)}
+                                      disabled={sendingToOwner === report._id || report.sentToOwner}
+                                      className="h-8 w-8 border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-200"
+                                    >
+                                      {sendingToOwner === report._id ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Send className="w-4 h-4" />
+                                      )}
+                                    </Button>
 
-                          <Button
-                            onClick={() => handleSendToOwner(foundationSteelReport._id)}
-                            disabled={sendingToOwner === foundationSteelReport._id || foundationSteelReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${foundationSteelReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === foundationSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : foundationSteelReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(foundationSteelReport._id)}
-                            disabled={deleting === foundationSteelReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === foundationSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      onClick={() => handleDeleteReport(report._id)}
+                                      disabled={deleting === report._id}
+                                      className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200"
+                                    >
+                                      {deleting === report._id ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="w-4 h-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
                     </Card>
-                  )}
 
-                  {/* Ground Beams Steel Report Card */}
-                  {groundBeamsSteelReport && (
-                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                      <CardHeader className="bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 text-white border-b border-white/20">
+                    {/* Steel Reports Table */}
+                    <Card className="border-0 shadow-md bg-white/90 backdrop-blur-sm overflow-hidden">
+                      <CardHeader className="bg-gradient-to-r from-red-500 to-red-700 text-white py-4">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl flex items-center gap-3">
-                            <Blocks className="w-6 h-6" />
-                            تقرير حديد الجسور الأرضية
-                          </CardTitle>
-                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                            {groundBeamsSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
-                          </Badge>
+                          <CardTitle className="text-lg">تقارير الحديد</CardTitle>
+                          <span className="text-red-100 text-sm bg-white/20 px-3 py-1 rounded-full">
+                            {steelReports.length} تقرير
+                          </span>
                         </div>
-                        <CardDescription className="text-orange-100 mt-2">
-                          تاريخ التقرير: {formatDate(groundBeamsSteelReport.updatedAt)}
-                        </CardDescription>
                       </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(groundBeamsSteelReport._id, 'steel')}
-                            disabled={downloading === `${groundBeamsSteelReport._id}-steel`}
-                            className="w-full h-14 bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-700 hover:via-amber-700 hover:to-yellow-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${groundBeamsSteelReport._id}-steel` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة التقرير PDF
-                          </Button>
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-gradient-to-r from-slate-50 to-blue-50 hover:from-slate-50 hover:to-blue-50">
+                            <TableHead className="text-right font-bold text-slate-700">اسم التقرير</TableHead>
+                            <TableHead className="text-right font-bold text-slate-700">التاريخ</TableHead>
+                            <TableHead className="text-right font-bold text-slate-700">الحالة</TableHead>
+                            <TableHead className="text-center font-bold text-slate-700">الإجراءات</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {steelReports.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center text-slate-500 py-8">
+                                لا توجد تقارير حديد
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            steelReports.map((report) => (
+                              <TableRow key={report._id} className="hover:bg-slate-50/50 transition-colors">
+                                <TableCell className="font-medium text-slate-900">
+                                  {getReportName(report.calculationType)}
+                                </TableCell>
+                                <TableCell className="text-slate-600">
+                                  {formatDate(report.createdAt)}
+                                </TableCell>
+                                <TableCell>
+                                  {report.sentToOwner ? (
+                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">
+                                      <CheckCircle2 className="w-3 h-3 ml-1" /> تم الإرسال
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="bg-slate-100 text-slate-600">
+                                      لم يُرسل
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      onClick={() => downloadPDF(report._id, 'steel')}
+                                      disabled={downloading === `${report._id}-steel`}
+                                      className="h-8 w-8 border-green-200 text-green-600 hover:bg-green-600 hover:text-white hover:border-green-600 transition-all duration-200"
+                                    >
+                                      {downloading === `${report._id}-steel` ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Printer className="w-4 h-4" />
+                                      )}
+                                    </Button>
+                                    
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      onClick={() => handleSendToOwner(report._id)}
+                                      disabled={sendingToOwner === report._id || report.sentToOwner}
+                                      className="h-8 w-8 border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-200"
+                                    >
+                                      {sendingToOwner === report._id ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Send className="w-4 h-4" />
+                                      )}
+                                    </Button>
 
-                          <Button
-                            onClick={() => handleSendToOwner(groundBeamsSteelReport._id)}
-                            disabled={sendingToOwner === groundBeamsSteelReport._id || groundBeamsSteelReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${groundBeamsSteelReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === groundBeamsSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : groundBeamsSteelReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(groundBeamsSteelReport._id)}
-                            disabled={deleting === groundBeamsSteelReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === groundBeamsSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      onClick={() => handleDeleteReport(report._id)}
+                                      disabled={deleting === report._id}
+                                      className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200"
+                                    >
+                                      {deleting === report._id ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="w-4 h-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
                     </Card>
-                  )}
-
-                  {/* Ground Slab Steel Report Card */}
-                  {groundSlabSteelReport && (
-                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                      <CardHeader className="bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 text-white border-b border-white/20">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl flex items-center gap-3">
-                            <Blocks className="w-6 h-6" />
-                            تقرير حديد أرضية المبنى
-                          </CardTitle>
-                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                            {groundSlabSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
-                          </Badge>
-                        </div>
-                        <CardDescription className="text-orange-100 mt-2">
-                          تاريخ التقرير: {formatDate(groundSlabSteelReport.updatedAt)}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(groundSlabSteelReport._id, 'steel')}
-                            disabled={downloading === `${groundSlabSteelReport._id}-steel`}
-                            className="w-full h-14 bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 hover:from-orange-700 hover:via-amber-700 hover:to-yellow-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${groundSlabSteelReport._id}-steel` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة التقرير PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(groundSlabSteelReport._id)}
-                            disabled={sendingToOwner === groundSlabSteelReport._id || groundSlabSteelReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${groundSlabSteelReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === groundSlabSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : groundSlabSteelReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(groundSlabSteelReport._id)}
-                            disabled={deleting === groundSlabSteelReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === groundSlabSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Roof Ribs Steel Report Card */}
-                  {roofRibsSteelReport && (
-                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                      <CardHeader className="bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white border-b border-white/20">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl flex items-center gap-3">
-                            <Blocks className="w-6 h-6" />
-                            تقرير حديد أعصاب السقف
-                          </CardTitle>
-                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                            {roofRibsSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
-                          </Badge>
-                        </div>
-                        <CardDescription className="text-purple-100 mt-2">
-                          تاريخ التقرير: {formatDate(roofRibsSteelReport.updatedAt)}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(roofRibsSteelReport._id, 'steel')}
-                            disabled={downloading === `${roofRibsSteelReport._id}-steel`}
-                            className="w-full h-14 bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-700 hover:via-indigo-700 hover:to-pink-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${roofRibsSteelReport._id}-steel` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة التقرير PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(roofRibsSteelReport._id)}
-                            disabled={sendingToOwner === roofRibsSteelReport._id || roofRibsSteelReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${roofRibsSteelReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === roofRibsSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : roofRibsSteelReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(roofRibsSteelReport._id)}
-                            disabled={deleting === roofRibsSteelReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === roofRibsSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Roof Slab Steel Report Card */}
-                  {roofSlabSteelReport && (
-                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                      <CardHeader className="bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 text-white border-b border-white/20">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl flex items-center gap-3">
-                            <Blocks className="w-6 h-6" />
-                            تقرير حديد السقف
-                          </CardTitle>
-                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                            {roofSlabSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
-                          </Badge>
-                        </div>
-                        <CardDescription className="text-rose-100 mt-2">
-                          تاريخ التقرير: {formatDate(roofSlabSteelReport.updatedAt)}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(roofSlabSteelReport._id, 'steel')}
-                            disabled={downloading === `${roofSlabSteelReport._id}-steel`}
-                            className="w-full h-14 bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 hover:from-red-700 hover:via-orange-700 hover:to-amber-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${roofSlabSteelReport._id}-steel` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة التقرير PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(roofSlabSteelReport._id)}
-                            disabled={sendingToOwner === roofSlabSteelReport._id || roofSlabSteelReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${roofSlabSteelReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === roofSlabSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : roofSlabSteelReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(roofSlabSteelReport._id)}
-                            disabled={deleting === roofSlabSteelReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === roofSlabSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Steel Column Base Report Card */}
-                  {steelColumnBaseReport && (
-                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                      <CardHeader className="bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 text-white border-b border-white/20">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl flex items-center gap-3">
-                            <Blocks className="w-6 h-6" />
-                            تقرير حديد شروش الأعمدة
-                          </CardTitle>
-                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                            {steelColumnBaseReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
-                          </Badge>
-                        </div>
-                        <CardDescription className="text-indigo-100 mt-2">
-                          تاريخ التقرير: {formatDate(steelColumnBaseReport.updatedAt)}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(steelColumnBaseReport._id, 'steel')}
-                            disabled={downloading === `${steelColumnBaseReport._id}-steel`}
-                            className="w-full h-14 bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 hover:from-indigo-700 hover:via-blue-700 hover:to-cyan-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${steelColumnBaseReport._id}-steel` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة التقرير PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(steelColumnBaseReport._id)}
-                            disabled={sendingToOwner === steelColumnBaseReport._id || steelColumnBaseReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${steelColumnBaseReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === steelColumnBaseReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : steelColumnBaseReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(steelColumnBaseReport._id)}
-                            disabled={deleting === steelColumnBaseReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === steelColumnBaseReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Column Ties Steel Report Card */}
-                  {columnTiesSteelReport && (
-                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                      <CardHeader className="bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 text-white border-b border-white/20">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl flex items-center gap-3">
-                            <Blocks className="w-6 h-6" />
-                            تقرير حديد الأعمدة والكانات
-                          </CardTitle>
-                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                            {columnTiesSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
-                          </Badge>
-                        </div>
-                        <CardDescription className="text-pink-100 mt-2">
-                          تاريخ التقرير: {formatDate(columnTiesSteelReport.updatedAt)}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(columnTiesSteelReport._id, 'steel')}
-                            disabled={downloading === `${columnTiesSteelReport._id}-steel`}
-                            className="w-full h-14 bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 hover:from-pink-700 hover:via-rose-700 hover:to-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${columnTiesSteelReport._id}-steel` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة التقرير PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(columnTiesSteelReport._id)}
-                            disabled={sendingToOwner === columnTiesSteelReport._id || columnTiesSteelReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${columnTiesSteelReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === columnTiesSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : columnTiesSteelReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(columnTiesSteelReport._id)}
-                            disabled={deleting === columnTiesSteelReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === columnTiesSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Roof Beams Steel Report Card */}
-                  {roofBeamsSteelReport && (
-                    <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                      <CardHeader className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white border-b border-white/20">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-xl flex items-center gap-3">
-                            <Blocks className="w-6 h-6" />
-                            تقرير حديد جسور السقف
-                          </CardTitle>
-                          <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                            {roofBeamsSteelReport.sentToOwner ? 'تم الإرسال' : 'محفوظ'}
-                          </Badge>
-                        </div>
-                        <CardDescription className="text-emerald-100 mt-2">
-                          تاريخ التقرير: {formatDate(roofBeamsSteelReport.updatedAt)}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-3">
-                          <Button
-                            onClick={() => downloadPDF(roofBeamsSteelReport._id, 'steel')}
-                            disabled={downloading === `${roofBeamsSteelReport._id}-steel`}
-                            className="w-full h-14 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:via-teal-700 hover:to-cyan-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {downloading === `${roofBeamsSteelReport._id}-steel` ? (
-                              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-                            ) : (
-                              <Printer className="w-5 h-5 ml-2" />
-                            )}
-                            طباعة التقرير PDF
-                          </Button>
-
-                          <Button
-                            onClick={() => handleSendToOwner(roofBeamsSteelReport._id)}
-                            disabled={sendingToOwner === roofBeamsSteelReport._id || roofBeamsSteelReport.sentToOwner}
-                            className={`w-full h-12 font-bold shadow-lg hover:shadow-xl transition-all ${roofBeamsSteelReport.sentToOwner
-                              ? 'bg-green-600 hover:bg-green-700 text-white'
-                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                              }`}
-                          >
-                            {sendingToOwner === roofBeamsSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : roofBeamsSteelReport.sentToOwner ? (
-                              <>
-                                <CheckCircle2 className="w-4 h-4 ml-2" />
-                                تم الإرسال للمالك
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-4 h-4 ml-2" />
-                                إرسال التقرير للمالك
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            onClick={() => handleDeleteReport(roofBeamsSteelReport._id)}
-                            disabled={deleting === roofBeamsSteelReport._id}
-                            variant="destructive"
-                            className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg hover:shadow-xl transition-all"
-                          >
-                            {deleting === roofBeamsSteelReport._id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                                جاري الحذف...
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4 ml-2" />
-                                حذف التقرير
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-
-                </div>
-
-
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="analytics" className="mt-6">
