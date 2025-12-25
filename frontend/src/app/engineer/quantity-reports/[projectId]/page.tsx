@@ -421,6 +421,76 @@ export default function ProjectReportsPage() {
                   </tbody>
                 </table>
               `;
+        } else if (isRoofRibs) {
+          specificTablesHtml = `
+                <div class="section-title">بيانات الحساب</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${inputs.barDiameter || 0} ملم</td>
+                      <td>قطر القضيب</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.reinforcementRatio ? (inputs.reinforcementRatio * 100).toFixed(2) : 0}%</td>
+                      <td>نسبة التسليح</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.roofBeamLength || 0} م</td>
+                      <td>طول جسر السقف</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.buildingType || 'غير محدد'}</td>
+                      <td>نوع المبنى</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.effectiveDepth || 0} م</td>
+                      <td>العمق الفعال</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.ribSpacing || 0} م</td>
+                      <td>المسافة بين الأعصاب</td>
+                    </tr>
+                    <tr>
+                      <td>${inputs.numberOfRibs || 0}</td>
+                      <td>عدد الأعصاب</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">نتائج الحساب</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>القيمة</th>
+                      <th>البيان</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>${results?.totalLoad?.toFixed(2) || 0} كيلو نيوتن/متر</td>
+                      <td>إجمالي الحمل</td>
+                    </tr>
+                    <tr>
+                      <td>${results?.moment?.toFixed(2) || 0} كيلو نيوتن.متر</td>
+                      <td>العزم</td>
+                    </tr>
+                    <tr>
+                      <td>${results?.requiredBarArea?.toFixed(2) || 0} سم²</td>
+                      <td>مساحة القضبان المطلوبة</td>
+                    </tr>
+                    <tr style="background: #d1fae5; font-weight: bold;">
+                      <td>${results?.numberOfBars || 0}</td>
+                      <td>عدد القضبان المطلوبة</td>
+                    </tr>
+                  </tbody>
+                </table>
+              `;
         } else if (isGroundSlab) {
           const type = results?.type;
 

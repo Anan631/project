@@ -397,7 +397,10 @@ export default function RoofRibsCalculationPage() {
                     beamSteel: results.numberOfBars,
                     slabSteel: 0,
                     details: {
-                        inputs: results.inputs,
+                        inputs: {
+                            ...results.inputs,
+                            roofBeamLength: results.inputs.roofBeamLength || 0
+                        },
                         results: {
                             totalLoad: results.totalLoad,
                             moment: results.moment,
