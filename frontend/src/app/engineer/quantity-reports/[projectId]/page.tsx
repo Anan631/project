@@ -890,6 +890,18 @@ export default function ProjectReportsPage() {
                 border-radius: 12px;
                 margin-bottom: 40px;
                 text-align: center;
+                position: relative;
+              }
+              
+              .logo {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                width: 150px;
+                height: 150px;
+                object-fit: contain;
+                border: none;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
               }
               
               .header h1 {
@@ -1020,11 +1032,81 @@ export default function ProjectReportsPage() {
                 color: #718096;
                 margin-top: 50px;
               }
+              
+              .stamp-section {
+                text-align: center;
+                border: 2px dashed #718096;
+                border-radius: 50%;
+                width: 120px;
+                height: 120px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                opacity: 0.7;
+                margin: 20px auto;
+              }
+              
+              .stamp-text {
+                font-size: 14px;
+                color: #4a5568;
+                font-weight: 600;
+                line-height: 1.2;
+              }
+              
+              .signature-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                margin-top: 100px;
+              }
+              
+              .signature-box {
+                text-align: center;
+                width: 45%;
+                padding: 20px;
+                background: ${isGroundBeams || isGroundSlab || isColumnTies || isSteelColumnBase ? '#fff7ed' : '#f0fdf4'};
+                border-radius: 10px;
+                border: 2px solid ${isGroundBeams || isGroundSlab || isColumnTies || isSteelColumnBase ? '#fed7aa' : '#d1fae5'};
+              }
+              
+              .signature-line {
+                border-bottom: 3px solid #4a5568;
+                margin-bottom: 15px;
+                height: 70px;
+              }
+              
+              .signature-title {
+                font-size: 20px;
+                font-weight: 700;
+                color: #2d3748;
+                margin-bottom: 8px;
+              }
+              
+              .signature-name {
+                font-size: 18px;
+                color: #4a5568;
+                margin-bottom: 5px;
+              }
+              
+              .signature-label {
+                font-size: 16px;
+                color: #718096;
+              }
+              
+              .signature-date {
+                text-align: center;
+                margin-top: 40px;
+                font-size: 16px;
+                color: #4a5568;
+                font-weight: 500;
+              }
             </style>
           </head>
           <body>
             <div class="container">
               <div class="header">
+                <img src="/header-bg.jpg" alt="شعار الموقع" class="logo">
                 <h1>${reportTitle}</h1>
                 <p>${reportSubtitle}</p>
               </div>
@@ -1052,6 +1134,30 @@ export default function ProjectReportsPage() {
               </div>
 
               ${specificTablesHtml}
+
+              <div class="signature-section">
+                <div class="signature-row">
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المهندس المسؤول</div>
+                    <div class="signature-name">${report.engineerName}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                  <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-title">المالك / العميل</div>
+                    <div class="signature-name">${report.ownerName || 'غير محدد'}</div>
+                    <div class="signature-label">التوقيع</div>
+                  </div>
+                </div>
+                <div class="signature-date">
+                  تاريخ التوقيع: _______________
+                </div>
+              </div>
+
+              <div class="stamp-section">
+                <div class="stamp-text">الختم<br/>إن وجد</div>
+              </div>
 
               <div class="footer">
                 <p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p>
