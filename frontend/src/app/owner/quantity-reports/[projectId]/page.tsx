@@ -1704,40 +1704,6 @@ export default function OwnerQuantityReportsPage() {
                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-teal-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       </CardHeader>
                       <CardContent className="p-8 space-y-6">
-                        {foundationReport?.concreteData && (
-                          <div className="space-y-4 mb-6">
-                            <div className="flex justify-between items-center p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200/50 hover:shadow-md transition-all">
-                              <span className="text-slate-700 font-medium">حجم صبة النظافة</span>
-                              <span className="font-bold text-emerald-600 text-lg">
-                                {foundationReport.concreteData.cleaningVolume?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200/50 hover:shadow-md transition-all">
-                              <span className="text-slate-700 font-medium">حجم القواعد</span>
-                              <span className="font-bold text-emerald-600 text-lg">
-                                {foundationReport.concreteData.foundationsVolume?.toFixed(3) || 0} م³
-                              </span>
-                            </div>
-                            {foundationReport.concreteData.groundSlabVolume && foundationReport.concreteData.groundSlabVolume > 0 && (
-                              <div className="flex justify-between items-center p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200/50 hover:shadow-md transition-all">
-                                <span className="text-slate-700 font-medium">حجم أرضية المبنى</span>
-                                <span className="font-bold text-emerald-600 text-lg">
-                                  {foundationReport.concreteData.groundSlabVolume.toFixed(3)} م³
-                                </span>
-                              </div>
-                            )}
-                            <Separator className="my-6" />
-                            <div className="flex justify-between items-center p-6 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl border-2 border-emerald-300/50 shadow-lg">
-                              <div className="flex items-center gap-3">
-                                <Calculator className="w-6 h-6 text-emerald-600" />
-                                <span className="font-bold text-slate-800 text-lg">إجمالي الخرسانة</span>
-                              </div>
-                              <span className="text-3xl font-black text-emerald-600">
-                                {getTotalVolume(foundationReport).toFixed(3)} م³
-                              </span>
-                            </div>
-                          </div>
-                        )}
 
                         <div className="space-y-4">
                           <Button
@@ -1787,41 +1753,6 @@ export default function OwnerQuantityReportsPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="p-6">
-                      {columnFootingsReport?.concreteData && (
-                        <div className="space-y-4 mb-6">
-                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                            <span className="text-slate-600">حجم شروش الأعمدة</span>
-                            <span className="font-bold text-emerald-600">
-                              {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) ||
-                                columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                            </span>
-                          </div>
-                          {columnFootingsReport.concreteData.numberOfColumns && (
-                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                              <span className="text-slate-600">عدد الأعمدة</span>
-                              <span className="font-bold text-emerald-600">
-                                {columnFootingsReport.concreteData.numberOfColumns}
-                              </span>
-                            </div>
-                          )}
-                          {columnFootingsReport.concreteData.finalColumnDimensions?.displayText && (
-                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                              <span className="text-slate-600">أبعاد العمود</span>
-                              <span className="font-bold text-emerald-600">
-                                {columnFootingsReport.concreteData.finalColumnDimensions.displayText}
-                              </span>
-                            </div>
-                          )}
-                          <Separator />
-                          <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                            <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                            <span className="text-2xl font-black text-emerald-600">
-                              {columnFootingsReport.concreteData.totalFootingsVolume?.toFixed(3) ||
-                                columnFootingsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                            </span>
-                          </div>
-                        </div>
-                      )}
 
                       <div className="space-y-3">
                         <Button
@@ -1865,33 +1796,6 @@ export default function OwnerQuantityReportsPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="p-6">
-                      {columnsReport?.concreteData && (
-                        <div className="space-y-4 mb-6">
-                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                            <span className="text-slate-600">حجم الأعمدة</span>
-                            <span className="font-bold text-emerald-600">
-                              {columnsReport.concreteData.columnsVolume?.toFixed(3) ||
-                                columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                            </span>
-                          </div>
-                          {columnsReport.concreteData.columnsData && columnsReport.concreteData.columnsData.length > 0 && (
-                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                              <span className="text-slate-600">عدد الأعمدة</span>
-                              <span className="font-bold text-emerald-600">
-                                {columnsReport.concreteData.columnsData.length}
-                              </span>
-                            </div>
-                          )}
-                          <Separator />
-                          <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                            <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                            <span className="text-2xl font-black text-emerald-600">
-                              {columnsReport.concreteData.columnsVolume?.toFixed(3) ||
-                                columnsReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                            </span>
-                          </div>
-                        </div>
-                      )}
 
                       <div className="space-y-3">
                         <Button
@@ -1935,43 +1839,6 @@ export default function OwnerQuantityReportsPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="p-6">
-                      {roofReport?.concreteData && (
-                        <div className="space-y-4 mb-6">
-                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                            <span className="text-slate-600">حجم السقف</span>
-                            <span className="font-bold text-emerald-600">
-                              {roofReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                            </span>
-                          </div>
-                          {roofReport.concreteData.roofData && (
-                            <>
-                              {roofReport.concreteData.roofData.area && (
-                                <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                                  <span className="text-slate-600">مساحة السقف</span>
-                                  <span className="font-bold text-emerald-600">
-                                    {roofReport.concreteData.roofData.area.toFixed(2)} م²
-                                  </span>
-                                </div>
-                              )}
-                              {roofReport.concreteData.roofData.roofType && (
-                                <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                                  <span className="text-slate-600">نوع السقف</span>
-                                  <span className="font-bold text-emerald-600">
-                                    {roofReport.concreteData.roofData.roofType === 'with-ribs' ? 'مع ربس' : 'بدون ربس'}
-                                  </span>
-                                </div>
-                              )}
-                            </>
-                          )}
-                          <Separator />
-                          <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                            <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                            <span className="text-2xl font-black text-emerald-600">
-                              {roofReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                            </span>
-                          </div>
-                        </div>
-                      )}
 
                       <div className="space-y-3">
                         <Button
@@ -2015,33 +1882,6 @@ export default function OwnerQuantityReportsPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="p-6">
-                      {groundBridgesReport?.concreteData && (
-                        <div className="space-y-4 mb-6">
-                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                            <span className="text-slate-600">حجم الجسور الأرضية</span>
-                            <span className="font-bold text-emerald-600">
-                              {groundBridgesReport.concreteData.totalVolume?.toFixed(3) ||
-                                groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                            </span>
-                          </div>
-                          {groundBridgesReport.concreteData.bridgesCount && (
-                            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                              <span className="text-slate-600">عدد الجسور</span>
-                              <span className="font-bold text-emerald-600">
-                                {groundBridgesReport.concreteData.bridgesCount}
-                              </span>
-                            </div>
-                          )}
-                          <Separator />
-                          <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                            <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                            <span className="text-2xl font-black text-emerald-600">
-                              {groundBridgesReport.concreteData.totalVolume?.toFixed(3) ||
-                                groundBridgesReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                            </span>
-                          </div>
-                        </div>
-                      )}
 
                       <div className="space-y-3">
                         <Button
@@ -2085,25 +1925,6 @@ export default function OwnerQuantityReportsPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="p-6">
-                      {groundSlabReport?.concreteData && (
-                        <div className="space-y-4 mb-6">
-                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                            <span className="text-slate-600">حجم أرضية المبنى</span>
-                            <span className="font-bold text-emerald-600">
-                              {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) ||
-                                groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                            </span>
-                          </div>
-                          <Separator />
-                          <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-lg border-2 border-emerald-200">
-                            <span className="font-bold text-slate-800">إجمالي الخرسانة</span>
-                            <span className="text-2xl font-black text-emerald-600">
-                              {groundSlabReport.concreteData.groundSlabVolume?.toFixed(3) ||
-                                groundSlabReport.concreteData.totalConcrete?.toFixed(3) || 0} م³
-                            </span>
-                          </div>
-                        </div>
-                      )}
 
                       <div className="space-y-3">
                         <Button
