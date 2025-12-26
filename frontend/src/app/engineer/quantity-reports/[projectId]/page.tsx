@@ -1131,6 +1131,12 @@ export default function ProjectReportsPage() {
                   <label>قطر القضيب</label>
                   <div class="value">${isGroundSlab || isRoofSlab ? '6' : (steelData?.barDiameter || inputs?.barDiameter || results?.barDiameter || inputs?.rodDiameterMm || report.steelData?.details?.inputs?.barDiameter || report.steelData?.details?.barDiameter || report.steelData?.details?.inputs?.rodDiameter || report.steelData?.details?.rodDiameter || 'N/A')} ملم</div>
                 </div>
+                ${isGroundSlab ? `
+                <div class="info-box">
+                  <label>نوع الحساب</label>
+                  <div class="value">${results?.type === 'mesh' ? 'شبك حديد' : 'حديد مفرق'}</div>
+                </div>
+                ` : ''}
               </div>
 
               ${specificTablesHtml}

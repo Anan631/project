@@ -495,7 +495,7 @@ export default function OwnerQuantityReportsPage() {
               </div>
               <div class="info-boxes">
                 <div class="info-box"><label>نوع الحساب</label><div class="value">${results?.type === 'mesh' ? 'شبك حديد' : 'حديد مفرق'}</div></div>
-                <div class="info-box"><label>الكمية الإجمالية</label><div class="value">${results?.type === 'mesh' ? (results.meshBars + ' شبكة') : (results.totalBars + ' قضيب')}</div></div>
+                <div class="info-box"><label>قطر القضيب</label><div class="value">6 ملم</div></div>
               </div>
               
               ${results?.type === 'mesh' ? `
