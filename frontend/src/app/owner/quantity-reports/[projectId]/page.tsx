@@ -687,7 +687,7 @@ export default function OwnerQuantityReportsPage() {
                       <td>قطر القضيب</td>
                     </tr>
                     <tr>
-                      <td>${inputs.beamLength || 0} م</td>
+                      <td>${inputs.roofBeamLength || inputs.beamLength || 0} م</td>
                       <td>طول الجسر</td>
                     </tr>
                     <tr>
@@ -719,19 +719,19 @@ export default function OwnerQuantityReportsPage() {
                   </thead>
                   <tbody>
                     <tr>
-                      <td>${Number(results.totalLoad || 0).toFixed(3)} kN/m</td>
+                      <td>${Number(results?.totalLoad || 0).toFixed(3)} kN/m</td>
                       <td>الحمل الموزع الكلي</td>
                     </tr>
                     <tr>
-                      <td>${Number(results.moment || 0).toFixed(3)} kN.m</td>
+                      <td>${Number(results?.moment || 0).toFixed(3)} kN.m</td>
                       <td>العزم M</td>
                     </tr>
                     <tr>
-                      <td>${Number(results.requiredBarArea || 0).toFixed(3)} سم²</td>
+                      <td>${Number(results?.requiredBarArea || 0).toFixed(3)} سم²</td>
                       <td>مساحة الحديد المطلوبة As</td>
                     </tr>
                     <tr style="background: #d1fae5; font-weight: bold; color: #059669;">
-                      <td>${results.numberOfBars || 0} قضيب</td>
+                      <td>${results?.numberOfBars || 0} قضيب</td>
                       <td>عدد القضبان المطلوبة</td>
                     </tr>
                   </tbody>

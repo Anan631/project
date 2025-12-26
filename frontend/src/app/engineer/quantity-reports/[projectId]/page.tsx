@@ -423,7 +423,7 @@ export default function ProjectReportsPage() {
               `;
         } else if (isRoofRibs) {
           specificTablesHtml = `
-                <div class="section-title">بيانات الحساب</div>
+                <div class="section-title">بيانات المدخلات (أعصاب السقف)</div>
                 <table>
                   <thead>
                     <tr>
@@ -437,33 +437,29 @@ export default function ProjectReportsPage() {
                       <td>قطر القضيب</td>
                     </tr>
                     <tr>
-                      <td>${inputs.reinforcementRatio ? (inputs.reinforcementRatio * 100).toFixed(2) : 0}%</td>
-                      <td>نسبة التسليح</td>
+                      <td>${inputs.roofBeamLength || inputs.beamLength || 0} م</td>
+                      <td>طول الجسر</td>
                     </tr>
                     <tr>
-                      <td>${inputs.roofBeamLength || 0} م</td>
-                      <td>طول جسر السقف</td>
+                      <td>${inputs.effectiveDepth || 0} سم</td>
+                      <td>العمق الفعال d</td>
                     </tr>
                     <tr>
-                      <td>${inputs.buildingType || 'غير محدد'}</td>
-                      <td>نوع المبنى</td>
-                    </tr>
-                    <tr>
-                      <td>${inputs.effectiveDepth || 0} م</td>
-                      <td>العمق الفعال</td>
-                    </tr>
-                    <tr>
-                      <td>${inputs.ribSpacing || 0} م</td>
+                      <td>${inputs.ribSpacing || 0} سم</td>
                       <td>المسافة بين الأعصاب</td>
                     </tr>
                     <tr>
                       <td>${inputs.numberOfRibs || 0}</td>
                       <td>عدد الأعصاب</td>
                     </tr>
+                    <tr>
+                      <td>${inputs.buildingType || 'غير محدد'}</td>
+                      <td>نوع المبنى/المنشأة</td>
+                    </tr>
                   </tbody>
                 </table>
 
-                <div class="section-title">نتائج الحساب</div>
+                <div class="section-title">نتائج الحساب (أعصاب السقف)</div>
                 <table>
                   <thead>
                     <tr>
@@ -473,19 +469,19 @@ export default function ProjectReportsPage() {
                   </thead>
                   <tbody>
                     <tr>
-                      <td>${results?.totalLoad?.toFixed(2) || 0} كيلو نيوتن/متر</td>
-                      <td>إجمالي الحمل</td>
+                      <td>${Number(results?.totalLoad || 0).toFixed(3)} kN/m</td>
+                      <td>الحمل الموزع الكلي</td>
                     </tr>
                     <tr>
-                      <td>${results?.moment?.toFixed(2) || 0} كيلو نيوتن.متر</td>
-                      <td>العزم</td>
+                      <td>${Number(results?.moment || 0).toFixed(3)} kN.m</td>
+                      <td>العزم M</td>
                     </tr>
                     <tr>
-                      <td>${results?.requiredBarArea?.toFixed(2) || 0} سم²</td>
-                      <td>مساحة القضبان المطلوبة</td>
+                      <td>${Number(results?.requiredBarArea || 0).toFixed(3)} سم²</td>
+                      <td>مساحة الحديد المطلوبة As</td>
                     </tr>
                     <tr style="background: #d1fae5; font-weight: bold;">
-                      <td>${results?.numberOfBars || 0}</td>
+                      <td>${results?.numberOfBars || 0} قضيب</td>
                       <td>عدد القضبان المطلوبة</td>
                     </tr>
                   </tbody>
@@ -667,72 +663,6 @@ export default function ProjectReportsPage() {
                 </table>
              `;
           }
-        } else if (isRoofRibs) {
-          specificTablesHtml = `
-                <div class="section-title">بيانات المدخلات (أعصاب السقف)</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>القيمة</th>
-                      <th>البيان</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>${inputs.barDiameter || 0} ملم</td>
-                      <td>قطر القضيب</td>
-                    </tr>
-                    <tr>
-                      <td>${inputs.beamLength || 0} م</td>
-                      <td>طول الجسر</td>
-                    </tr>
-                    <tr>
-                      <td>${inputs.effectiveDepth || 0} سم</td>
-                      <td>العمق الفعال d</td>
-                    </tr>
-                    <tr>
-                      <td>${inputs.ribSpacing || 0} سم</td>
-                      <td>المسافة بين الأعصاب</td>
-                    </tr>
-                    <tr>
-                      <td>${inputs.numberOfRibs || 0}</td>
-                      <td>عدد الأعصاب</td>
-                    </tr>
-                    <tr>
-                      <td>${inputs.buildingType || 'غير محدد'}</td>
-                      <td>نوع المبنى/المنشأة</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <div class="section-title">نتائج الحساب (أعصاب السقف)</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>القيمة</th>
-                      <th>البيان</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>${Number(results.totalLoad || 0).toFixed(3)} kN/m</td>
-                      <td>الحمل الموزع الكلي</td>
-                    </tr>
-                    <tr>
-                      <td>${Number(results.moment || 0).toFixed(3)} kN.m</td>
-                      <td>العزم M</td>
-                    </tr>
-                    <tr>
-                      <td>${Number(results.requiredBarArea || 0).toFixed(3)} سم²</td>
-                      <td>مساحة الحديد المطلوبة As</td>
-                    </tr>
-                    <tr style="background: #d1fae5; font-weight: bold;">
-                      <td>${results.numberOfBars || 0} قضيب</td>
-                      <td>عدد القضبان المطلوبة</td>
-                    </tr>
-                  </tbody>
-                </table>
-              `;
         } else if (isRoofBeams) {
           specificTablesHtml = `
                 <div class="section-title">بيانات المدخلات (جسور السقف)</div>
@@ -2239,31 +2169,31 @@ export default function ProjectReportsPage() {
                 {/* View Toggle & Delete All */}
                 <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 w-full">
                   <div className="flex items-center bg-white/80 backdrop-blur-sm rounded-xl p-1.5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300 w-full sm:w-auto">
-                    <Button 
+                    <Button
                       variant="ghost"
-                      onClick={() => setViewMode('cards')} 
+                      onClick={() => setViewMode('cards')}
                       className={`px-5 py-2.5 gap-2.5 transition-all duration-300 ease-in-out rounded-lg font-medium text-sm
-                        ${viewMode === 'cards' 
-                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-100' 
+                        ${viewMode === 'cards'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-100'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'}`}
                     >
                       <Building2 className="w-4 h-4 flex-shrink-0" />
                       <span className="whitespace-nowrap">عرض البطاقات</span>
                     </Button>
                     <div className="h-5 w-px bg-slate-200 mx-1"></div>
-                    <Button 
+                    <Button
                       variant="ghost"
-                      onClick={() => setViewMode('table')} 
+                      onClick={() => setViewMode('table')}
                       className={`px-5 py-2.5 gap-2.5 transition-all duration-300 ease-in-out rounded-lg font-medium text-sm
-                        ${viewMode === 'table' 
-                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-100' 
+                        ${viewMode === 'table'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-100'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'}`}
                     >
                       <TableIcon className="w-4 h-4 flex-shrink-0" />
                       <span className="whitespace-nowrap">عرض الجدول</span>
                     </Button>
                   </div>
-                  
+
                   <Button
                     onClick={() => setDeleteAllDialog(true)}
                     disabled={deletingAll}
@@ -2528,7 +2458,7 @@ export default function ProjectReportsPage() {
                                         <Printer className="w-4 h-4" />
                                       )}
                                     </Button>
-                                    
+
                                     <Button
                                       size="icon"
                                       variant="outline"
@@ -2626,7 +2556,7 @@ export default function ProjectReportsPage() {
                                         <Printer className="w-4 h-4" />
                                       )}
                                     </Button>
-                                    
+
                                     <Button
                                       size="icon"
                                       variant="outline"
