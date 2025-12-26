@@ -823,7 +823,7 @@ export default function OwnerQuantityReportsPage() {
 
                <div class="info-boxes">
                 <div class="info-box"><label>نوع التسليح</label><div class="value">${results?.type === 'mesh' ? 'شبك حديد' : 'حديد مفرق'}</div></div>
-                <div class="info-box"><label>تاريخ الاستلام</label><div class="value">${report.sentToOwnerAt ? new Date(report.sentToOwnerAt).toLocaleDateString('ar-EG') : 'N/A'}</div></div>
+                <div class="info-box"><label>قطر القضيب</label><div class="value">6 ملم</div></div>
               </div>
 
                ${results?.type === 'mesh' ? `
