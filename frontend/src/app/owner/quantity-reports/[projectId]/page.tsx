@@ -1128,6 +1128,9 @@ export default function OwnerQuantityReportsPage() {
                 <div class="info-box"><label>المهندس المسؤول</label><div class="value">${report.engineerName}</div></div>
                 <div class="info-box"><label>المالك / العميل</label><div class="value">${report.ownerName || 'غير محدد'}</div></div>
               </div>
+              <div class="info-boxes">
+                <div class="info-box"><label>قطر القضيب</label><div class="value">${inputs.rodDiameterMm || 0} ملم</div></div>
+              </div>
 
               <div class="section-title">بيانات العمود والمدخلات</div>
               <table>

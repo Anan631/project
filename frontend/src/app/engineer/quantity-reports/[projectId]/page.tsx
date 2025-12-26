@@ -253,6 +253,10 @@ export default function ProjectReportsPage() {
                       <td>${inputs.slabThicknessCm || 0} سم</td>
                       <td>سمك السقف</td>
                     </tr>
+                    <tr>
+                      <td>${inputs.columnShape === 'square' ? 'مربع' : inputs.columnShape === 'rectangle' ? 'مستطيل' : 'دائري'}</td>
+                      <td>شكل العمود</td>
+                    </tr>
                   </tbody>
                 </table>
 
