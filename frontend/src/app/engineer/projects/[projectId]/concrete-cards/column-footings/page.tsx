@@ -325,13 +325,6 @@ export default function ColumnFootingsCalculationPage() {
         }
       }
 
-      // Validate footing height range (15-20 cm)
-      if (numericInputs.footingHeight < 0.15 || numericInputs.footingHeight > 0.20) {
-        setError('ارتفاع الشرش يجب أن يكون بين 15 و 20 سم (0.15 - 0.20 متر)');
-        setIsLoading(false);
-        return;
-      }
-
       // Check if report already exists for this project and calculation type
       try {
         const reportsResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
@@ -798,7 +791,7 @@ export default function ColumnFootingsCalculationPage() {
                       <h4 className="font-bold text-blue-900">مدى ارتفاع الشرش</h4>
                     </div>
                     <p className="text-blue-800 font-medium">
-                      يجب أن يكون بين <span className="font-bold">15-20 سم</span> (0.15 - 0.20 متر)
+                      أدخل ارتفاع الشرش المطلوب
                     </p>
                   </div>
                 </CardContent>

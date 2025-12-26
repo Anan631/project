@@ -76,14 +76,10 @@ export default function FoundationCalculationPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [saving, setSaving] = useState(false);
 
-    // Iron bars data
-    const [ironBars, setIronBars] = useState<IronBar[]>([]);
-    const [selectedBarDiameter, setSelectedBarDiameter] = useState<string>('');
-    const [barCrossSectionalArea, setBarCrossSectionalArea] = useState<number>(0);
-
     // Input fields
-    const [uSteelSpacing, setUSteelSpacing] = useState<string>('');
+    const [selectedBarDiameter, setSelectedBarDiameter] = useState<string>('16'); // Default to 16mm
     const [areSimilar, setAreSimilar] = useState<boolean>(true);
+    const [barSpacing, setBarSpacing] = useState<string>('0.20'); // Default to 20cm spacing
 
     // For similar foundations
     const [foundationLength, setFoundationLength] = useState<string>('');
@@ -103,25 +99,8 @@ export default function FoundationCalculationPage() {
     const [existingReportId, setExistingReportId] = useState<string | null>(null);
     const [showRecalculationWarning, setShowRecalculationWarning] = useState(false);
 
-    // Fetch iron bars data and check for existing reports
+    // Check for existing reports
     useEffect(() => {
-        const fetchIronBars = async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/engineering-data/iron-bars`);
-                const data = await response.json();
-                if (data.success) {
-                    setIronBars(data.data);
-                }
-            } catch (error) {
-                console.error('Error fetching iron bars:', error);
-                toast({
-                    title: 'خطأ',
-                    description: 'فشل في تحميل بيانات قضبان الحديد',
-                    variant: 'destructive'
-                });
-            }
-        };
-
         const checkExistingReport = async () => {
             try {
                 const response = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
@@ -139,17 +118,8 @@ export default function FoundationCalculationPage() {
             }
         };
 
-        fetchIronBars();
         checkExistingReport();
     }, [projectId]);
-
-    const handleBarDiameterChange = (diameter: string) => {
-        setSelectedBarDiameter(diameter);
-        const selectedBar = ironBars.find(bar => bar.diameter.toString() === diameter);
-        if (selectedBar) {
-            setBarCrossSectionalArea(selectedBar.crossSectionalAreaCm2);
-        }
-    };
 
     const addFoundation = () => {
         const newId = foundations.length + 1;
@@ -169,14 +139,6 @@ export default function FoundationCalculationPage() {
     };
 
     const validateInputs = (): boolean => {
-        if (!uSteelSpacing || parseFloat(uSteelSpacing) <= 0) {
-            setError('المسافة بين حديد حرف U يجب أن تكون أكبر من صفر');
-            return false;
-        }
-        if (!selectedBarDiameter) {
-            setError('يرجى اختيار قطر القضيب');
-            return false;
-        }
 
         if (areSimilar) {
             if (!foundationLength || parseFloat(foundationLength) <= 0) {
@@ -208,50 +170,38 @@ export default function FoundationCalculationPage() {
     };
 
     const calculateFoundation = (length: number, width: number) => {
-        const spacing = parseFloat(uSteelSpacing);
-        const diameter = parseFloat(selectedBarDiameter);
+        const spacing = parseFloat(barSpacing) || 0.20; // المسافة بين القضبان بالمتر
 
-        // 3.1: U-shaped steel quantity
-        const uSteelCount = Math.floor(length / spacing) + 1;
+        // جميع القيم بالأمتار
+        const lengthM = length; // طول القاعدة بالأمتار
+        const widthM = width; // عرض القاعدة بالأمتار
+        const spacingM = spacing; // المسافة بين القضبان بالأمتار
 
-        // 3.2: Bend length for each end
-        const bendLength = (diameter / 10) * 10;
-
-        // 3.3: Sea length for U steel
-        const seaLength = (width - 0.1) + (length - 0.1);
-
-        // 3.4: Total U steel length
-        const totalUSteelLength = bendLength + seaLength;
-
-        // 3.5: Upper and lower reinforcement
+        // Upper and lower reinforcement
         const reinforcement: ReinforcementRow[] = [
             {
                 type: 'التسليح القصير السفلي',
-                numberOfBars: Math.ceil(width * 7),
-                barLength: (width - 0.1) * 7
+                numberOfBars: Math.ceil((lengthM - 0.10) / spacingM), // (طول القاعدة - 0.1 متر) / المسافة بين القضبان
+                barLength: widthM - 0.10 // عرض القاعدة - 0.1 متر
             },
             {
                 type: 'التسليح الطويل السفلي',
-                numberOfBars: Math.ceil(length * 7),
-                barLength: (length - 0.1) * 7
+                numberOfBars: Math.ceil((widthM - 0.10) / spacingM), // (عرض القاعدة - 0.1 متر) / المسافة بين القضبان
+                barLength: lengthM - 0.10 // طول القاعدة - 0.1 متر
             },
             {
                 type: 'التسليح الطويل العلوي',
                 numberOfBars: 4, // Fixed
-                barLength: length - 0.1
+                barLength: lengthM - 0.10 // طول القاعدة - 0.1 متر
             },
             {
                 type: 'التسليح القصير العلوي',
                 numberOfBars: 4, // Fixed
-                barLength: length
+                barLength: lengthM // طول القاعدة بالأمتار
             }
         ];
 
         return {
-            uSteelCount,
-            bendLength,
-            seaLength,
-            totalUSteelLength,
             reinforcement
         };
     };
@@ -334,9 +284,6 @@ export default function FoundationCalculationPage() {
     };
 
     const reset = () => {
-        setUSteelSpacing('');
-        setSelectedBarDiameter('');
-        setBarCrossSectionalArea(0);
         setAreSimilar(true);
         setFoundationLength('');
         setFoundationWidth('');
@@ -380,13 +327,12 @@ export default function FoundationCalculationPage() {
                 calculationType: 'foundation-steel',
                 steelData: {
                     totalSteelWeight: 0,
-                    foundationSteel: results.type === 'similar' ? results.uSteelCount : 0,
+                    foundationSteel: 0,
                     columnSteel: 0,
                     beamSteel: 0,
                     slabSteel: 0,
                     details: {
                         inputs: {
-                            uSteelSpacing,
                             barDiameter: selectedBarDiameter,
                             areSimilar,
                             foundationLength: results.type === 'similar' ? results.foundationLength : null,
@@ -399,9 +345,7 @@ export default function FoundationCalculationPage() {
                 },
                 calculationData: {
                     inputs: {
-                        uSteelSpacing,
-                        barDiameter: selectedBarDiameter,
-                        areSimilar
+                        areSimilar,
                     },
                     results: results,
                     timestamp: new Date().toISOString()
@@ -522,39 +466,19 @@ export default function FoundationCalculationPage() {
                             <CardContent className="p-6">
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* U Steel Spacing */}
+
+                                        {/* Bar Spacing */}
                                         <InputField
-                                            id="uSteelSpacing"
-                                            label="المسافة بين حديد حرف U (متر)"
-                                            value={uSteelSpacing}
-                                            onChange={setUSteelSpacing}
+                                            id="barSpacing"
+                                            label="المسافة بين قضبان الحديد (متر)"
+                                            value={barSpacing}
+                                            onChange={setBarSpacing}
                                             unit="متر"
                                             icon={Ruler}
                                         />
 
                                         {/* Bar Diameter */}
                                         <div className="group">
-                                            <Label htmlFor="barDiameter" className="text-base font-bold text-slate-900 mb-4 block flex items-center gap-2">
-                                                <Ruler className="w-5 h-5 text-green-500" />
-                                                قطر القضيب (ملم)
-                                            </Label>
-                                            <Select value={selectedBarDiameter} onValueChange={handleBarDiameterChange}>
-                                                <SelectTrigger className="h-14 text-lg font-bold bg-gradient-to-r from-white/80 to-slate-50/80 hover:from-white hover:to-slate-50 border-2 border-slate-200 hover:border-green-300 focus:border-green-500 shadow-xl focus:shadow-green-200/50 transition-all duration-400 rounded-2xl backdrop-blur-sm">
-                                                    <SelectValue placeholder="اختر قطر القضيب" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {ironBars.map((bar) => (
-                                                        <SelectItem key={bar._id} value={bar.diameter.toString()}>
-                                                            {bar.diameter} ملم
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            {barCrossSectionalArea > 0 && (
-                                                <p className="text-sm text-slate-600 mt-2">
-                                                    مساحة المقطع: {barCrossSectionalArea} سم²
-                                                </p>
-                                            )}
                                         </div>
                                     </div>
 
@@ -741,16 +665,6 @@ export default function FoundationCalculationPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* U Steel Results */}
-                                                <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-                                                    <h3 className="font-bold text-green-900 mb-4 text-lg">حديد U</h3>
-                                                    <div className="space-y-3">
-                                                        <ResultRow label="عدد قطع حديد U" value={results.uSteelCount} unit="قطعة" />
-                                                        <ResultRow label="طول الثنية" value={results.bendLength.toFixed(2)} unit="متر" />
-                                                        <ResultRow label="طول البحر" value={results.seaLength.toFixed(2)} unit="متر" />
-                                                        <ResultRow label="الطول الكلي لحديد U" value={results.totalUSteelLength.toFixed(2)} unit="متر" highlight />
-                                                    </div>
-                                                </div>
 
                                                 {/* Reinforcement Table */}
                                                 <div className="p-4 bg-slate-50 rounded-xl border-2 border-slate-200">
@@ -788,14 +702,6 @@ export default function FoundationCalculationPage() {
                                                     <div key={idx} className="p-4 bg-slate-50 rounded-xl border-2 border-slate-200 space-y-4">
                                                         <h3 className="font-bold text-slate-900 text-lg">قاعدة {foundation.id}</h3>
 
-                                                        {/* U Steel Results */}
-                                                        <div className="p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                                                            <h4 className="font-bold text-green-900 mb-3">حديد U</h4>
-                                                            <div className="space-y-2 text-sm">
-                                                                <ResultRow label="عدد قطع حديد U" value={foundation.uSteelCount} unit="قطعة" />
-                                                                <ResultRow label="الطول الكلي" value={foundation.totalUSteelLength.toFixed(2)} unit="متر" />
-                                                            </div>
-                                                        </div>
 
                                                         {/* Reinforcement Table */}
                                                         <Table>
