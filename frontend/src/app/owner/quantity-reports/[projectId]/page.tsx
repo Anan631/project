@@ -315,6 +315,9 @@ export default function OwnerQuantityReportsPage() {
               .signature-name { font-size: 18px; color: #4a5568; margin-bottom: 5px; }
               .signature-label { font-size: 14px; color: #718096; font-style: italic; }
               .footer { border-top: 2px solid #e2e8f0; padding-top: 25px; text-align: center; font-size: 14px; color: #718096; margin-top: 50px; }
+              .total-box { background: linear-gradient(135deg, #d4f4dd, #bbf7d0); border: 3px solid #059669; border-radius: 12px; padding: 20px; margin-top: 20px; text-align: center; }
+              .total-box label { display: block; font-size: 18px; color: #064e3b; margin-bottom: 5px; font-weight: 700; }
+              .total-box .value { font-size: 28px; color: #064e3b; font-weight: 900; }
             </style>
           </head>
           <body>
@@ -330,57 +333,81 @@ export default function OwnerQuantityReportsPage() {
               </div>
               <div class="info-boxes">
                 <div class="info-box"><label>نوع الحساب</label><div class="value">${results?.type === 'similar' ? 'جسور متشابهة' : 'جسور مختلفة'}</div></div>
-                <div class="info-box"><label>إجمالي الحديد</label><div class="value">${report.steelData?.totalSteelWeight?.toFixed(2) || 0} كجم</div></div>
+                <div class="info-box"><label>قطر القضيب</label><div class="value">${results?.barDiameter || 'N/A'} ملم</div></div>
               </div>
               
               ${results?.type === 'similar' ? `
-                <div class="section-title">معلومات الجسور</div>
-                <table><thead><tr><th>القيمة</th><th>البيان</th></tr></thead><tbody>
-                  <tr><td>${results.numberOfBeams || 0}</td><td>عدد الجسور</td></tr>
-                  <tr><td>${results.beamLength || 0} متر</td><td>طول الجسر</td></tr>
-                  <tr><td>${results.mainBottomBars || 0}</td><td>عدد القضبان السفلية الرئيسية</td></tr>
-                  <tr><td>${results.mainTopBars || 0}</td><td>عدد القضبان العلوية الرئيسية</td></tr>
-                </tbody></table>
-                <div class="section-title">تفاصيل التسليح</div>
-                 <table><thead><tr><th>القطر (ملم)</th><th>العدد</th><th>الطول (متر)</th><th>الوزن (كجم)</th><th>النوع</th></tr></thead><tbody>
-                  ${results?.mainBars?.map((bar: any) => `
+                <div class="section-title">بيانات الجسور</div>
+                <table>
+                  <thead>
                     <tr>
-                      <td>${bar.diameter}</td>
-                      <td>${bar.count}</td>
-                      <td>${bar.length}</td>
-                      <td>${bar.weight?.toFixed(2)}</td>
-                      <td>${bar.name}</td>
+                      <th>القيمة</th>
+                      <th>البيان</th>
                     </tr>
-                  `).join('') || ''}
-                  ${results?.stirrups?.map((stirrup: any) => `
+                  </thead>
+                  <tbody>
                     <tr>
-                      <td>${stirrup.diameter}</td>
-                      <td>${stirrup.count}</td>
-                      <td>${stirrup.length?.toFixed(2)}</td>
-                      <td>${stirrup.weight?.toFixed(2)}</td>
-                      <td>كانات</td>
+                      <td>${results.numberOfBeams || 0} جسر</td>
+                      <td>عدد الجسور</td>
                     </tr>
-                  `).join('') || ''}
-                </tbody></table>
-              ` : `
-                <div class="section-title">نتائج الجسور المختلفة</div>
-                ${results?.beams?.map((beam: any) => `
-                  <div style="margin-bottom: 30px;">
-                    <h3 style="background: #f0fdf4; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px;">جسر ${beam.name}</h3>
-                    <table><thead><tr><th>القيمة</th><th>البيان</th></tr></thead><tbody>
-                      <tr><td>${beam.length || 0} متر</td><td>الطول</td></tr>
-                      <tr><td>${beam.mainTopBars || 0}</td><td>عدد قضبان علوي</td></tr>
-                      <tr><td>${beam.mainBottomBars || 0}</td><td>عدد قضبان سفلي</td></tr>
-                      <tr><td>${beam.subTotalWeight?.toFixed(2) || 0} كجم</td><td>وزن الحديد</td></tr>
-                    </tbody></table>
-                  </div>
-                `).join('') || ''}
-              `}
+                    <tr>
+                      <td>${results.beamHeight || 0} سم</td>
+                      <td>ارتفاع الجسر</td>
+                    </tr>
+                    <tr>
+                      <td>${results.beamWidth || 0} سم</td>
+                      <td>عرض الجسر</td>
+                    </tr>
+                  </tbody>
+                </table>
 
-              <div class="total-box" style="background: linear-gradient(135deg, #d4f4dd, #bbf7d0); border: 3px solid #22c55e; border-radius: 12px; padding: 30px; margin-bottom: 40px; text-align: center; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);">
-                <label style="display: block; font-size: 20px; color: #2d3748; margin-bottom: 12px; font-weight: 600;">إجمالي وزن الحديد:</label>
-                <div class="value" style="font-size: 32px; font-weight: 900; color: #16a34a;">${report.steelData?.totalSteelWeight?.toFixed(2) || 0} كجم</div>
-              </div>
+                <div class="section-title">نتائج الحديد</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>القيمة</th>
+                            <th>البيان</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${results.barsPerBeam || 0} قضيب</td>
+                            <td>عدد القضبان في الجسر الواحد</td>
+                        </tr>
+                         <tr style="background: #d1fae5; font-weight: bold;">
+                            <td>${results.totalBars || 0} قضيب</td>
+                            <td>المجموع الكلي للقضبان</td>
+                        </tr>
+                    </tbody>
+                </table>
+              ` : `
+                <div class="section-title">بيانات الجسور المختلفة</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>عدد القضبان</th>
+                            <th>العرض (سم)</th>
+                            <th>الارتفاع (سم)</th>
+                            <th>رقم الجسر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${results?.beams?.map((beam: any) => `
+                            <tr>
+                                <td>${beam.barsPerBeam}</td>
+                                <td>${beam.width}</td>
+                                <td>${beam.height}</td>
+                                <td>${beam.id}</td>
+                            </tr>
+                        `).join('') || ''}
+                    </tbody>
+                </table>
+                 
+                <div class="total-box">
+                    <label>المجموع الكلي للقضبان:</label>
+                    <div class="value">${results?.totalBars || 0} قضيب</div>
+                </div>
+              `}
 
               <div class="signature-section">
                 <div class="signature-row">
