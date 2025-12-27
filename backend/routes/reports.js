@@ -54,13 +54,19 @@ router.post('/', async (req, res) => {
       });
     }
 
-    if (!data.items || !Array.isArray(data.items) || data.items.length === 0) {
-      console.error('❌ Missing or empty items array');
+    // Items array is optional - allow empty array for initial report creation
+    if (data.items && !Array.isArray(data.items)) {
+      console.error('❌ items must be an array');
       return res.status(400).json({
         success: false,
-        message: 'At least one item is required',
-        error: 'items array is missing or empty'
+        message: 'Items must be an array',
+        error: 'items is not an array'
       });
+    }
+
+    // Ensure items is always an array (default to empty if not provided)
+    if (!data.items) {
+      data.items = [];
     }
 
     console.log('✓ All validations passed, creating report...');
