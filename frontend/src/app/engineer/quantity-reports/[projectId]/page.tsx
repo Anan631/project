@@ -749,42 +749,6 @@ export default function ProjectReportsPage() {
                       <td>${results.foundationWidth || 0} متر</td>
                       <td>العرض</td>
                     </tr>
-                    <tr>
-                      <td>${inputs?.uSteelSpacing || 0} متر</td>
-                      <td>المسافة بين حديد U</td>
-                    </tr>
-                    <tr>
-                      <td>${inputs?.barDiameter || results?.barDiameter || report.steelData?.details?.inputs?.barDiameter || 'N/A'} ملم</td>
-                      <td>قطر القضيب</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <div class="section-title">نتائج حديد U</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>القيمة</th>
-                      <th>البيان</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>${results.uSteelCount || 0} قطعة</td>
-                      <td>عدد قطع حديد U</td>
-                    </tr>
-                    <tr>
-                      <td>${results.bendLength?.toFixed(2) || 0} متر</td>
-                      <td>طول الثنية</td>
-                    </tr>
-                    <tr>
-                      <td>${results.seaLength?.toFixed(2) || 0} متر</td>
-                      <td>طول البحر</td>
-                    </tr>
-                    <tr style="background: #d1fae5; font-weight: bold;">
-                      <td>${results.totalUSteelLength?.toFixed(2) || 0} متر</td>
-                      <td>الطول الكلي لحديد U</td>
-                    </tr>
                   </tbody>
                 </table>
 
@@ -827,14 +791,6 @@ export default function ProjectReportsPage() {
                         <tr>
                           <td>${foundation.foundationWidth || 0} متر</td>
                           <td>العرض</td>
-                        </tr>
-                        <tr>
-                          <td>${foundation.uSteelCount || 0} قطعة</td>
-                          <td>عدد قطع حديد U</td>
-                        </tr>
-                        <tr>
-                          <td>${foundation.totalUSteelLength?.toFixed(2) || 0} متر</td>
-                          <td>الطول الكلي لحديد U</td>
                         </tr>
                       </tbody>
                     </table>
