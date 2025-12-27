@@ -626,31 +626,18 @@ export default function OwnerProjectDetailPage() {
                     project.comments.slice().reverse().map((comment, index) => (
                       <div key={comment.id || `comment-${index}`} className={cn(
                         "p-4 rounded-xl border transition-all duration-200",
-                        comment.user === "المالك"
+                        comment.user === "المالك" || (comment.user !== "المهندس" && comment.user !== "المهندس (أنت)")
                           ? "bg-blue-50/50 border-blue-200 shadow-sm"
                           : "bg-gray-50/50 border-gray-200"
                       )}>
                         <div className="flex items-start gap-4">
-                          <div className="flex-shrink-0">
-                            {comment.avatar ? (
-                              <Image
-                                src={comment.avatar}
-                                alt={comment.user}
-                                width={48}
-                                height={48}
-                                className="rounded-full border-2 border-white shadow-sm"
-                              />
-                            ) : (
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-                                {comment.user.substring(0, 1)}
-                              </div>
-                            )}
-                          </div>
                           <div className="flex-1 min-w-0 space-y-3">
                             <div className="flex justify-between items-start">
                               <div className="space-y-1">
                                 <p className="text-sm font-semibold text-gray-900">
-                                  {comment.user}
+                                  {comment.user === "المهندس" || comment.user === "المهندس (أنت)"
+                                    ? (project.engineer || "المهندس")
+                                    : "أنت"}
                                 </p>
                                 <p className="text-xs text-gray-500">
                                   {new Date(comment.date).toLocaleString('ar-EG', {
@@ -662,7 +649,7 @@ export default function OwnerProjectDetailPage() {
                                   })}
                                 </p>
                               </div>
-                              {comment.user === 'المالك' && (
+                              {(comment.user === 'المالك' || (comment.user !== 'المهندس' && comment.user !== 'المهندس (أنت)')) && (
                                 <div className="flex items-center gap-1">
                                   <Button
                                     variant="ghost"

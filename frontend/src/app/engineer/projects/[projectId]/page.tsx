@@ -43,9 +43,9 @@ export default function EngineerProjectDetailPage() {
   const [progressUpdate, setProgressUpdate] = useState({ percentage: '', notes: '' });
   const [linkedOwnerEmailInput, setLinkedOwnerEmailInput] = useState('');
   const [ownerSearchQuery, setOwnerSearchQuery] = useState('');
-  const [ownerSearchResults, setOwnerSearchResults] = useState<{id: string, name: string, email: string}[]>([]);
+  const [ownerSearchResults, setOwnerSearchResults] = useState<{ id: string, name: string, email: string }[]>([]);
   const [isSearchingOwners, setIsSearchingOwners] = useState(false);
-  const [selectedOwner, setSelectedOwner] = useState<{id: string, name: string, email: string} | null>(null);
+  const [selectedOwner, setSelectedOwner] = useState<{ id: string, name: string, email: string } | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadCaption, setUploadCaption] = useState('');
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -132,7 +132,7 @@ export default function EngineerProjectDetailPage() {
 
     const commentToAdd: ProjectComment = {
       id: crypto.randomUUID(),
-      user: isOwnerView ? "المالك" : "المهندس (أنت)",
+      user: isOwnerView ? (project.clientName || "المالك") : "المهندس",
       text: newComment,
       date: new Date().toISOString(),
       avatar: isOwnerView ? "https://placehold.co/40x40.png?text=OW" : "https://placehold.co/40x40.png?text=ME",
@@ -197,12 +197,12 @@ export default function EngineerProjectDetailPage() {
       setOwnerSearchResults([]);
       return;
     }
-    
+
     setIsSearchingOwners(true);
     try {
       // Use the searchOwners function from db.ts
       const result = await searchOwners(query);
-      
+
       if (result.success && result.owners) {
         setOwnerSearchResults(result.owners);
       } else {
@@ -218,7 +218,7 @@ export default function EngineerProjectDetailPage() {
   };
 
   // Handle owner selection
-  const handleOwnerSelect = (owner: {id: string, name: string, email: string}) => {
+  const handleOwnerSelect = (owner: { id: string, name: string, email: string }) => {
     setSelectedOwner(owner);
     setLinkedOwnerEmailInput(owner.email);
     setOwnerSearchQuery(owner.name);
@@ -232,14 +232,14 @@ export default function EngineerProjectDetailPage() {
       return;
     }
 
-    const updatedProjectResult = await dbUpdateProject(project.id.toString(), { 
+    const updatedProjectResult = await dbUpdateProject(project.id.toString(), {
       linkedOwnerEmail: linkedOwnerEmailInput,
       clientName: selectedOwner?.name || project.clientName
     });
     if (updatedProjectResult.success) {
       await refreshProjectData();
-      toast({ 
-        title: "تم ربط المالك بنجاح", 
+      toast({
+        title: "تم ربط المالك بنجاح",
         description: (
           <div className="flex flex-col gap-2">
             <div>تم ربط المالك <span className="font-bold">{selectedOwner?.name || "غير محدد"}</span> بالمشروع <span className="font-bold">{project.name}</span> بنجاح.</div>
@@ -247,7 +247,7 @@ export default function EngineerProjectDetailPage() {
               <div className="text-sm text-gray-600">سيتم إشعار المالك على بريده الإلكتروني: {selectedOwner.email}</div>
             )}
           </div>
-        ) 
+        )
       });
       setSelectedOwner(null);
       setOwnerSearchQuery('');
@@ -995,8 +995,8 @@ export default function EngineerProjectDetailPage() {
     if (printWindow) {
       const engineerName = project.engineer || 'غير معروف';
       // استخدام اسم المالك المربوط بالمشروع أولاً، ثم العميل كبديل
-      const ownerName = project.linkedOwnerEmail ? 
-        (selectedOwner?.name || project.clientName || project.linkedOwnerEmail) : 
+      const ownerName = project.linkedOwnerEmail ?
+        (selectedOwner?.name || project.clientName || project.linkedOwnerEmail) :
         (project.clientName || 'غير محدد');
       const clientName = ownerName; // للتوافق مع باقي الكود
       const totalTasks = project.timelineTasks.length;
@@ -1008,10 +1008,10 @@ export default function EngineerProjectDetailPage() {
         const taskStart = new Date(task.startDate);
         const taskEnd = new Date(task.endDate);
         const duration = Math.ceil((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        
-        const statusColor = task.status === 'مكتمل' ? '#10b981' : 
-                           task.status === 'قيد التنفيذ' ? '#f59e0b' : '#6b7280';
-        
+
+        const statusColor = task.status === 'مكتمل' ? '#10b981' :
+          task.status === 'قيد التنفيذ' ? '#f59e0b' : '#6b7280';
+
         return `
           <tr>
             <td>${task.name}</td>
@@ -1554,18 +1554,14 @@ export default function EngineerProjectDetailPage() {
                         project.comments.slice().reverse().map((comment, index) => (
                           <div key={comment.id || `comment-${index}`} className={cn(
                             "p-4 rounded-xl border shadow-sm transition-all hover:shadow-md",
-                            comment.user === "المالك" ? "bg-yellow-50 border-pink-200" : "bg-gray-50 border-gray-200"
+                            comment.user === "المهندس" || comment.user === "المهندس (أنت)" ? "bg-gray-50 border-gray-200" : "bg-yellow-50 border-pink-200"
                           )}>
                             <div className="flex items-start gap-3">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={comment.avatar} alt={comment.user} />
-                                <AvatarFallback className={comment.user === "المالك" ? "bg-yellow-200 text-yellow-800" : "bg-blue-200 text-blue-800"}>
-                                  {comment.user.substring(0, 1)}
-                                </AvatarFallback>
-                              </Avatar>
                               <div className="flex-grow">
                                 <div className="flex justify-between items-start">
-                                  <p className="font-semibold text-gray-800">{comment.user}</p>
+                                  <p className="font-semibold text-gray-800">
+                                    {comment.user === "المهندس" || comment.user === "المهندس (أنت)" ? "أنت" : (comment.user || project.clientName || "المالك")}
+                                  </p>
                                   <p className="text-xs text-gray-500">{new Date(comment.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                                 </div>
                                 <p className="text-gray-700 mt-2">{comment.text}</p>
@@ -1675,10 +1671,10 @@ export default function EngineerProjectDetailPage() {
                   <GanttChartSquare size={28} /> الجدول الزمني للمشروع
                 </CardTitle>
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white transition-colors" 
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white transition-colors"
                     onClick={handleDownloadTimelineReport}
                   >
                     <Download size={18} className="ms-1.5" /> تحميل تقرير PDF
@@ -2079,7 +2075,7 @@ export default function EngineerProjectDetailPage() {
                       </TableHeader>
                       <TableBody>
                         {costReports.map((report, index) => (
-                          <TableRow 
+                          <TableRow
                             key={report.id || `cost-report-${index}`}
                             className={selectedCostReports.includes(report.id) ? "bg-blue-50" : ""}
                           >
@@ -2132,7 +2128,7 @@ export default function EngineerProjectDetailPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="owner" className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
@@ -2159,7 +2155,7 @@ export default function EngineerProjectDetailPage() {
                                 setOwnerSearchQuery(e.target.value);
                                 searchForOwners(e.target.value);
                               }}
-                              className="focus:border-indigo-500 focus:ring-indigo-500 pr-12 text-lg py-3" 
+                              className="focus:border-indigo-500 focus:ring-indigo-500 pr-12 text-lg py-3"
                               placeholder="اكتب اسم المالك أو بريده الإلكتروني..."
                             />
                             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -2167,7 +2163,7 @@ export default function EngineerProjectDetailPage() {
                               <Loader2 className="absolute left-12 top-1/2 transform -translate-y-1/2 text-indigo-500 h-5 w-5 animate-spin" />
                             )}
                           </div>
-                          
+
                           {ownerSearchResults.length > 0 && (
                             <div className="mt-3 border border-gray-200 rounded-lg shadow-md max-h-64 overflow-y-auto bg-white z-10 absolute w-full">
                               <div className="p-2 bg-gray-50 border-b border-gray-200 font-semibold text-sm text-gray-700">النتائج ({ownerSearchResults.length})</div>
@@ -2189,7 +2185,7 @@ export default function EngineerProjectDetailPage() {
                             </div>
                           )}
                         </div>
-                        
+
                         <div>
                           <Label htmlFor="ownerEmail" className="font-semibold text-gray-700 flex items-center gap-2 mb-2">
                             <Mail className="h-4 w-4" />
@@ -2203,19 +2199,19 @@ export default function EngineerProjectDetailPage() {
                           />
                         </div>
                       </div>
-                      
-                      <Button 
-                        type="submit" 
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 text-lg shadow-lg transition-all duration-200 transform hover:scale-[1.02]" 
+
+                      <Button
+                        type="submit"
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 text-lg shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
                       >
-                        <Link2 size={20} className="ms-2" /> 
+                        <Link2 size={20} className="ms-2" />
                         {project.linkedOwnerEmail ? "تحديث ربط المالك" : "ربط المالك"}
                       </Button>
                     </form>
                   </CardContent>
                 </Card>
               </div>
-              
+
               <div className="space-y-6">
                 {project.linkedOwnerEmail && (
                   <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 shadow-lg overflow-hidden">
@@ -2236,7 +2232,7 @@ export default function EngineerProjectDetailPage() {
                             <p className="text-sm text-blue-600">{project.linkedOwnerEmail}</p>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-100 p-2 rounded-lg">
                           <CalendarDays className="h-4 w-4" />
                           <span>تم الربط: {new Date().toLocaleDateString('ar-SA')}</span>
@@ -2245,7 +2241,7 @@ export default function EngineerProjectDetailPage() {
                     </CardContent>
                   </Card>
                 )}
-                
+
                 <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 shadow-lg overflow-hidden">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg font-bold text-amber-800 flex items-center gap-2">
@@ -2277,7 +2273,7 @@ export default function EngineerProjectDetailPage() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 shadow-lg overflow-hidden">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg font-bold text-purple-800 flex items-center gap-2">
