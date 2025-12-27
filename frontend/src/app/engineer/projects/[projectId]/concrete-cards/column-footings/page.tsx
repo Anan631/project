@@ -16,7 +16,11 @@ import {
   LayoutDashboard,
   Columns,
   AlertTriangle,
-  X
+  X,
+  Plus,
+  Trash2,
+  Save,
+  Download
 } from "lucide-react";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -72,7 +76,7 @@ function InputField({ id, label, value, onChange, placeholder, type = "number", 
           inputMode={inputMode}
           lang={lang}
           dir={dir as any}
-          className="pr-12 pl-3 h-12 text-right border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors rounded-xl"
+          className="pr-12 pl-3 h-12 text-right border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors rounded-xl text-base font-bold"
         />
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-sm">{unit}</span>
       </div>
@@ -93,7 +97,7 @@ function SelectField({ id, label, value, onChange, options, placeholder = "اخ�
     <div className="space-y-2">
       <Label htmlFor={id} className="text-sm font-bold text-gray-900">{label}</Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-12 text-right border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors rounded-xl">
+        <SelectTrigger className="h-12 text-right border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors rounded-xl text-base font-bold">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -108,21 +112,15 @@ function SelectField({ id, label, value, onChange, options, placeholder = "اخ�
   );
 }
 
-// Helper: normalize Arabic-Indic digits to English ASCII digits
-function toEnglishDigits(val: any): string {
-  const str = String(val ?? '').trim();
-  const map: Record<string, string> = {
-    '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
-    '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9'
-  };
-  return str
-    .replace(/[٠-٩۰-۹]/g, d => map[d] || d)
-    .replace(/[٬،]/g, '') // remove Arabic thousands separator if present
-    .replace('٫', '.'); // Arabic decimal separator
+// Interface for footing
+interface Footing {
+  id: number;
+  length: string;
+  width: string;
+  height: string;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-const ESTIMATED_STEEL_WEIGHT_PER_M3 = 80; // kg/m³ for footings
 
 export default function ColumnFootingsCalculationPage() {
   const params = useParams();
@@ -138,49 +136,61 @@ export default function ColumnFootingsCalculationPage() {
     reportId: null,
   });
 
-  // State for all inputs
-  const [inputs, setInputs] = useState({
-    numberOfColumns: '',
-    footingHeight: '',
-    baseLength: '',
-    baseWidth: '',
+  // State for building info (for column dimensions calculation)
+  const [buildingInfo, setBuildingInfo] = useState({
     slabArea: '',
     numberOfFloors: '',
     buildingType: '',
     columnShape: ''
   });
 
-  // State for foundation data source
-  const [useFoundationData, setUseFoundationData] = useState(false);
-  const [foundationData, setFoundationData] = useState(null);
-  const [serverAvailable, setServerAvailable] = useState(true);
-
-  // State for results and errors
-  const [results, setResults] = useState<{
-    numberOfColumns: number;
-    footingHeight: number;
-    baseLength: number;
-    baseWidth: number;
+  // State for column dimensions results
+  const [columnResults, setColumnResults] = useState<{
     slabArea: number;
     numberOfFloors: number;
     buildingType: string;
     columnShape: string;
-    valueA: number;
     columnDimensions: {
       length?: number;
       width?: number;
       diameter?: number;
       displayText: string;
     };
-    totalFootingsVolume: number;
     deadLoad: number;
     liveLoad: number;
     totalLoad: number;
+    valueA: number;
   } | null>(null);
+
+  // State for concrete calculation
+  const [areSimilar, setAreSimilar] = useState<boolean>(true);
+  const [similarFooting, setSimilarFooting] = useState({
+    length: '',
+    width: '',
+    height: '',
+    numberOfFootings: ''
+  });
+  const [footings, setFootings] = useState<Footing[]>([
+    { id: 1, length: '', width: '', height: '' }
+  ]);
+  const [concreteResults, setConcreteResults] = useState<{
+    totalConcreteVolume: number;
+    footingDetails: Array<{
+      id: number;
+      length: number;
+      width: number;
+      height: number;
+      volume: number;
+    }>;
+    numberOfFootings: number;
+  } | null>(null);
+
+  // State for errors and loading
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeSection, setActiveSection] = useState<'dimensions' | 'concrete'>('dimensions');
 
-  // Building types (same as foundation page)
+  // Building types
   const buildingTypes = [
     { value: 'المباني السكنية (شقق ومنازل)', label: 'المباني السكنية (شقق ومنازل)', dead: 7.0, live: 3.35 },
     { value: 'المكاتب', label: 'المكاتب', dead: 7.0, live: 3.6 },
@@ -201,123 +211,56 @@ export default function ColumnFootingsCalculationPage() {
     { value: 'مستطيل', label: 'مستطيل' }
   ];
 
-  const handleInputChange = (field: string, value: string) => {
-    setInputs(prev => ({ ...prev, [field]: value }));
+  const handleBuildingInfoChange = (field: string, value: string) => {
+    setBuildingInfo(prev => ({ ...prev, [field]: value }));
     if (error) setError(null);
   };
 
-  // Check server availability
-  const checkServerAvailability = async () => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const handleSimilarFootingChange = (field: string, value: string) => {
+    setSimilarFooting(prev => ({ ...prev, [field]: value }));
+    if (error) setError(null);
+  };
 
-      const response = await fetch(`${API_BASE_URL}/api/health`, {
-        method: 'GET',
-        signal: controller.signal
-      });
+  const addFooting = () => {
+    const newId = footings.length + 1;
+    setFootings([...footings, { id: newId, length: '', width: '', height: '' }]);
+  };
 
-      clearTimeout(timeoutId);
-      setServerAvailable(response.ok);
-      return response.ok;
-    } catch (error) {
-      setServerAvailable(false);
-      return false;
+  const removeFooting = (id: number) => {
+    if (footings.length > 1) {
+      setFootings(footings.filter(f => f.id !== id));
     }
   };
 
-  // Check server on component mount
-  useEffect(() => {
-    checkServerAvailability();
-  }, []);
-
-  // Function to fetch foundation data
-  const fetchFoundationData = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/foundation-calculations/${projectId}`);
-
-      // Check if response is ok and content-type is JSON
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح. تأكد من تشغيل الخادم الخلفي.');
-      }
-
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        setFoundationData(data.data);
-        // Auto-fill foundation dimensions if available
-        if (data.data.foundationLength && data.data.foundationWidth) {
-          setInputs(prev => ({
-            ...prev,
-            baseLength: data.data.foundationLength.toString(),
-            baseWidth: data.data.foundationWidth.toString()
-          }));
-        }
-        toast({
-          title: 'تم جلب البيانات',
-          description: 'تم جلب أبعاد القواعد من صفحة صبة النظافة والقواعد',
-        });
-      } else {
-        toast({
-          title: 'لا توجد بيانات',
-          description: 'لم يتم العثور على بيانات القواعد. يرجى إدخال الأبعاد يدوياً',
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching foundation data:', error);
-      let errorMessage = 'حدث خطأ أثناء جلب بيانات القواعد';
-
-      if (error instanceof Error) {
-        if (error.message.includes('Failed to fetch')) {
-          errorMessage = 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي على المنفذ 5000';
-        } else if (error.message.includes('JSON')) {
-          errorMessage = error.message;
-        }
-      }
-
-      toast({
-        title: 'خطأ في الاتصال',
-        description: errorMessage,
-        variant: 'destructive'
-      });
-
-      // Reset to manual input mode
-      setUseFoundationData(false);
-    }
+  const updateFooting = (id: number, field: 'length' | 'width' | 'height', value: string) => {
+    setFootings(footings.map(f =>
+      f.id === id ? { ...f, [field]: value } : f
+    ));
   };
 
-  const calculateResults = async () => {
+  // Calculate column dimensions
+  const calculateColumnDimensions = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Validate inputs
-      const requiredFields = ['numberOfColumns', 'footingHeight', 'baseLength', 'baseWidth', 'slabArea', 'numberOfFloors', 'buildingType', 'columnShape'];
+      // Validate building info inputs
+      const requiredFields = ['slabArea', 'numberOfFloors', 'buildingType', 'columnShape'];
       for (const field of requiredFields) {
-        if (!inputs[field as keyof typeof inputs]) {
-          setError('يرجى ملء جميع الحقول المطلوبة');
+        if (!buildingInfo[field as keyof typeof buildingInfo]) {
+          setError('يرجى ملء جميع الحقول في قسم معلومات المبنى');
           setIsLoading(false);
           return;
         }
       }
 
-      // Convert to numbers and validate
-      const numericInputs = {
-        numberOfColumns: parseFloat(inputs.numberOfColumns),
-        footingHeight: parseFloat(inputs.footingHeight),
-        baseLength: parseFloat(inputs.baseLength),
-        baseWidth: parseFloat(inputs.baseWidth),
-        slabArea: parseFloat(inputs.slabArea),
-        numberOfFloors: parseFloat(inputs.numberOfFloors)
+      // Validate numeric values
+      const numericValues = {
+        slabArea: parseFloat(buildingInfo.slabArea),
+        numberOfFloors: parseFloat(buildingInfo.numberOfFloors)
       };
 
-      for (const [key, value] of Object.entries(numericInputs)) {
+      for (const [key, value] of Object.entries(numericValues)) {
         if (isNaN(value) || value <= 0) {
           setError(`قيمة ${key} غير صالحة`);
           setIsLoading(false);
@@ -325,78 +268,51 @@ export default function ColumnFootingsCalculationPage() {
         }
       }
 
-      // Check if report already exists for this project and calculation type
-      try {
-        const reportsResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
-        const reportsData = await reportsResponse.json();
-
-        if (reportsData.success && reportsData.reports && reportsData.reports.length > 0) {
-          const existingReport = reportsData.reports.find((r: any) => r.calculationType === 'column-footings');
-
-          if (existingReport) {
-            // Show warning dialog
-            setExistingReportDialog({
-              open: true,
-              reportId: existingReport._id,
-            });
-            setIsLoading(false);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('Could not check for existing reports:', err);
-        // Continue with calculation if check fails
-      }
-
-      // 1) حساب حجم خرسانة شرش العمود الواحد وإجمالي الكمية
-      const singleFootingVolume = numericInputs.baseLength * numericInputs.baseWidth * numericInputs.footingHeight; // م³
-      const totalFootingsVolume = singleFootingVolume * numericInputs.numberOfColumns; // م³
-
-      // 2) جلب الأحمال (الميتة + الحية) تلقائياً من نوع المبنى
-      const bt = buildingTypes.find((t) => t.value === inputs.buildingType);
+      // Get loads from building type
+      const bt = buildingTypes.find((t) => t.value === buildingInfo.buildingType);
       if (!bt) {
         setError('نوع المبنى غير معروف');
         setIsLoading(false);
         return;
       }
-      const deadLoad = bt.dead; // كن/م²
-      const liveLoad = bt.live; // كن/م²
-      const totalLoad = deadLoad + liveLoad; // كن/م²
+      const deadLoad = bt.dead;
+      const liveLoad = bt.live;
+      const totalLoad = deadLoad + liveLoad;
 
-      // 3) حساب القيمة A
-      const valueA = (numericInputs.slabArea * numericInputs.numberOfFloors * totalLoad) / 0.195;
+      // Calculate value A
+      const valueA = (numericValues.slabArea * numericValues.numberOfFloors * totalLoad) / 0.195;
 
-      // 4) تحديد أبعاد العمود حسب الشكل المختار
-      const shape = inputs.columnShape;
+      // Determine column dimensions based on shape
+      const shape = buildingInfo.columnShape;
       let columnDimensions: { length?: number; width?: number; diameter?: number; displayText: string } = {
         displayText: ''
       };
 
       if (shape === 'مستطيل') {
-        // حساب العرض: B = √(A ÷ 2)
         const B = Math.sqrt(valueA / 2);
-        const width = B >= 25 ? B : 25; // إذا كانت قيمة B < 25 سم → العرض = 25 سم
-
-        // حساب الطول: C = B × 2
+        const width = B >= 25 ? B : 25;
         const C = width * 2;
-        const length = C >= 50 ? C : 50; // إذا كانت قيمة C < 50 سم → الطول = 50 سم
+        const length = C >= 50 ? C : 50;
 
         columnDimensions.length = parseFloat(length.toFixed(1));
         columnDimensions.width = parseFloat(width.toFixed(1));
         columnDimensions.displayText = `${columnDimensions.length} × ${columnDimensions.width} سم`;
       } else if (shape === 'دائري') {
-        // حساب القطر: D = √(A ÷ π) × 2
-        const D = Math.sqrt(valueA / Math.PI) * 2;
-        const diameter = D >= 30 ? D : 30; // إذا كانت قيمة D < 30 سم → القطر = 30 سم
+        // Calculate diameter directly in cm
+        // Using the formula: D = 2 * sqrt(A/π)
+        // Where A is the area in cm²
+        const D = 2 * Math.sqrt(valueA / Math.PI);
+        
+        // Round to nearest 1 cm for precision
+        const roundedD = Math.round(D);
+        // Ensure minimum diameter of 30 cm as per standard
+        const diameter = Math.max(roundedD, 30);
 
-        columnDimensions.diameter = parseFloat(diameter.toFixed(1));
-        columnDimensions.displayText = `${columnDimensions.diameter} سم (قطر)`;
+        columnDimensions.diameter = diameter;
+        columnDimensions.displayText = `${diameter} سم (قطر)`;
       } else if (shape === 'مربع') {
-        // حساب البعد: F = √(A ÷ 2)
         const F = Math.sqrt(valueA / 2);
-        const width = F >= 35 ? F : 35; // إذا كانت قيمة F < 35 سم → العرض = 35 سم
-
-        // تحديد الأبعاد: الطول = العرض
+        const width = F >= 35 ? F : 35;
         const length = width;
 
         columnDimensions.length = parseFloat(length.toFixed(1));
@@ -408,28 +324,7 @@ export default function ColumnFootingsCalculationPage() {
         return;
       }
 
-      // إعداد النتائج النهائية وإظهارها في اللوحة
-      const computedResults = {
-        numberOfColumns: numericInputs.numberOfColumns,
-        footingHeight: numericInputs.footingHeight,
-        baseLength: numericInputs.baseLength,
-        baseWidth: numericInputs.baseWidth,
-        slabArea: numericInputs.slabArea,
-        numberOfFloors: numericInputs.numberOfFloors,
-        buildingType: inputs.buildingType,
-        columnShape: inputs.columnShape,
-        valueA,
-        columnDimensions,
-        totalFootingsVolume,
-        deadLoad,
-        liveLoad,
-        totalLoad,
-      } as typeof results extends infer T ? T extends object ? any : any : any;
-
-      setResults(computedResults);
-
-      // حفظ أبعاد العمود في Local Storage للاستيراد في صفحة الأعمدة
-      // نحفظ فقط الأبعاد المناسبة للشكل المختار
+      // Save column dimensions to Local Storage
       const columnDimensionsData: {
         shape: string;
         length?: number;
@@ -437,36 +332,164 @@ export default function ColumnFootingsCalculationPage() {
         diameter?: number;
         displayText: string;
       } = {
-        shape: inputs.columnShape,
+        shape: buildingInfo.columnShape,
         displayText: columnDimensions.displayText
       };
 
-      // حفظ الأبعاد حسب الشكل
-      if (inputs.columnShape === 'مربع' || inputs.columnShape === 'مستطيل') {
+      if (buildingInfo.columnShape === 'مربع' || buildingInfo.columnShape === 'مستطيل') {
         if (columnDimensions.length !== undefined) {
-          columnDimensionsData.length = columnDimensions.length; // بالسم
+          columnDimensionsData.length = columnDimensions.length;
         }
-        if (inputs.columnShape === 'مستطيل' && columnDimensions.width !== undefined) {
-          columnDimensionsData.width = columnDimensions.width; // بالسم
-        } else if (inputs.columnShape === 'مربع' && columnDimensions.width !== undefined) {
-          // للمربع، نحفظ width أيضاً (لكن في صفحة الأعمدة سنستخدم length فقط)
-          columnDimensionsData.width = columnDimensions.width; // بالسم
+        if (columnDimensions.width !== undefined) {
+          columnDimensionsData.width = columnDimensions.width;
         }
-      } else if (inputs.columnShape === 'دائري') {
+      } else if (buildingInfo.columnShape === 'دائري') {
         if (columnDimensions.diameter !== undefined) {
-          columnDimensionsData.diameter = columnDimensions.diameter; // بالسم
+          columnDimensionsData.diameter = columnDimensions.diameter;
         }
       }
 
       localStorage.setItem('columnDimensionsFromFootings', JSON.stringify(columnDimensionsData));
 
+      // Set column results
+      const computedColumnResults = {
+        slabArea: numericValues.slabArea,
+        numberOfFloors: numericValues.numberOfFloors,
+        buildingType: buildingInfo.buildingType,
+        columnShape: buildingInfo.columnShape,
+        columnDimensions,
+        deadLoad,
+        liveLoad,
+        totalLoad,
+        valueA,
+      };
+
+      setColumnResults(computedColumnResults);
+      
       toast({
-        title: 'تم الحساب بنجاح',
-        description: 'تم حساب كميات شروش الأعمدة وتحديد أبعاد الأعمدة',
+        title: 'تم حساب أبعاد العمود بنجاح',
+        description: 'يمكنك الآن الانتقال إلى حساب كمية الخرسانة',
       });
     } catch (error) {
       console.error('Calculation error:', error);
-      setError('حدث خطأ غير متوقع أثناء الحساب');
+      setError('حدث خطأ غير متوقع أثناء حساب أبعاد العمود');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Calculate concrete volume
+  const calculateConcreteVolume = () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Validate footing inputs based on type
+      if (areSimilar) {
+        const requiredSimilarFields = ['length', 'width', 'height', 'numberOfFootings'];
+        for (const field of requiredSimilarFields) {
+          if (!similarFooting[field as keyof typeof similarFooting]) {
+            setError('يرجى ملء جميع الحقول في قسم حساب الخرسانة');
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Validate numeric values for similar footings
+        const similarNumericValues = {
+          length: parseFloat(similarFooting.length),
+          width: parseFloat(similarFooting.width),
+          height: parseFloat(similarFooting.height),
+          numberOfFootings: parseFloat(similarFooting.numberOfFootings)
+        };
+
+        for (const [key, value] of Object.entries(similarNumericValues)) {
+          if (isNaN(value) || value <= 0) {
+            setError(`قيمة ${key} في شروش الأعمدة غير صالحة`);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } else {
+        // Validate different footings
+        for (const footing of footings) {
+          if (!footing.length || !footing.width || !footing.height) {
+            setError(`يرجى ملء جميع أبعاد شرش العمود ${footing.id}`);
+            setIsLoading(false);
+            return;
+          }
+
+          const length = parseFloat(footing.length);
+          const width = parseFloat(footing.width);
+          const height = parseFloat(footing.height);
+
+          if (isNaN(length) || length <= 0 || 
+              isNaN(width) || width <= 0 || 
+              isNaN(height) || height <= 0) {
+            setError(`أبعاد شرش العمود ${footing.id} غير صالحة`);
+            setIsLoading(false);
+            return;
+          }
+        }
+      }
+
+      // Calculate concrete volume
+      let totalConcreteVolume = 0;
+      let footingDetails: Array<{ id: number; length: number; width: number; height: number; volume: number }> = [];
+      let numberOfFootings = 0;
+
+      if (areSimilar) {
+        const length = parseFloat(similarFooting.length);
+        const width = parseFloat(similarFooting.width);
+        const height = parseFloat(similarFooting.height);
+        const numFootings = parseInt(similarFooting.numberOfFootings);
+        
+        const singleVolume = length * width * height;
+        totalConcreteVolume = singleVolume * numFootings;
+        numberOfFootings = numFootings;
+        
+        footingDetails = [{
+          id: 1,
+          length,
+          width,
+          height,
+          volume: singleVolume
+        }];
+      } else {
+        for (const footing of footings) {
+          const length = parseFloat(footing.length);
+          const width = parseFloat(footing.width);
+          const height = parseFloat(footing.height);
+          
+          const volume = length * width * height;
+          totalConcreteVolume += volume;
+          footingDetails.push({
+            id: footing.id,
+            length,
+            width,
+            height,
+            volume
+          });
+        }
+        numberOfFootings = footings.length;
+      }
+
+      // Set concrete results
+      const computedConcreteResults = {
+        totalConcreteVolume,
+        footingDetails,
+        numberOfFootings,
+      };
+
+      setConcreteResults(computedConcreteResults);
+
+      toast({
+        title: 'تم حساب كمية الخرسانة بنجاح',
+        description: `إجمالي كمية الخرسانة: ${totalConcreteVolume.toFixed(3)} م³`,
+      });
+    } catch (error) {
+      console.error('Concrete calculation error:', error);
+      setError('حدث خطأ غير متوقع أثناء حساب كمية الخرسانة');
     } finally {
       setIsLoading(false);
     }
@@ -475,13 +498,10 @@ export default function ColumnFootingsCalculationPage() {
   const handleRecalculate = async () => {
     if (!existingReportDialog.reportId) {
       setExistingReportDialog({ open: false, reportId: null });
-      // Continue with calculation by calling calculateResults again
-      calculateResults();
       return;
     }
 
     try {
-      // Delete existing report (soft delete)
       const deleteResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/${existingReportDialog.reportId}`, {
         method: 'DELETE'
       });
@@ -493,12 +513,7 @@ export default function ColumnFootingsCalculationPage() {
         });
       }
 
-      // Close dialog and continue with calculation
       setExistingReportDialog({ open: false, reportId: null });
-
-      // Continue with calculation by calling calculateResults again
-      // This time it won't find the report, so it will proceed
-      calculateResults();
     } catch (error) {
       console.error('Error deleting existing report:', error);
       toast({
@@ -507,31 +522,44 @@ export default function ColumnFootingsCalculationPage() {
         variant: 'destructive'
       });
       setExistingReportDialog({ open: false, reportId: null });
-      // Continue with calculation anyway
-      calculateResults();
     }
   };
 
-  const resetCalculation = () => {
-    setInputs({
-      numberOfColumns: '',
-      footingHeight: '',
-      baseLength: '',
-      baseWidth: '',
+  const resetDimensionsCalculation = () => {
+    setBuildingInfo({
       slabArea: '',
       numberOfFloors: '',
       buildingType: '',
       columnShape: ''
     });
-    setResults(null);
+    setColumnResults(null);
     setError(null);
   };
 
+  const resetConcreteCalculation = () => {
+    setAreSimilar(true);
+    setSimilarFooting({
+      length: '',
+      width: '',
+      height: '',
+      numberOfFootings: ''
+    });
+    setFootings([{ id: 1, length: '', width: '', height: '' }]);
+    setConcreteResults(null);
+    setError(null);
+  };
+
+  const resetAll = () => {
+    resetDimensionsCalculation();
+    resetConcreteCalculation();
+    setActiveSection('dimensions');
+  };
+
   const saveToReports = async () => {
-    if (!results) {
+    if (!columnResults || !concreteResults) {
       toast({
-        title: 'لا توجد نتائج',
-        description: 'يرجى إجراء الحسابات أولاً',
+        title: 'لا توجد نتائج كاملة',
+        description: 'يرجى إجراء جميع الحسابات أولاً',
         variant: 'destructive'
       });
       return;
@@ -542,22 +570,15 @@ export default function ColumnFootingsCalculationPage() {
       const engineerId = localStorage.getItem('userId') || '';
       const engineerName = localStorage.getItem('userName') || 'المهندس';
 
-      // Fetch project details to get owner info
       const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
 
       if (!projectRes.ok) {
         throw new Error(`HTTP error! status: ${projectRes.status}`);
       }
 
-      const projectContentType = projectRes.headers.get('content-type');
-      if (!projectContentType || !projectContentType.includes('application/json')) {
-        throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح. تأكد من تشغيل الخادم الخلفي.');
-      }
-
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
 
-      // تحضير البيانات للحفظ في قاعدة البيانات
       const reportData = {
         projectId,
         projectName: project?.name || `مشروع #${projectId}`,
@@ -567,14 +588,13 @@ export default function ColumnFootingsCalculationPage() {
         ownerEmail: project?.linkedOwnerEmail || '',
         calculationType: 'column-footings',
         concreteData: {
-          ...results,
-          totalConcrete: results.totalFootingsVolume,
-          // حفظ أبعاد العمود النهائية
-          finalColumnDimensions: results.columnDimensions,
-          // حفظ القيمة A المحسوبة
-          calculatedValueA: results.valueA
+          columnDimensions: columnResults,
+          concreteVolume: concreteResults,
+          areSimilar,
+          similarFooting: areSimilar ? similarFooting : null,
+          differentFootings: !areSimilar ? footings : null,
+          totalConcrete: concreteResults.totalConcreteVolume
         },
-        // إزالة بيانات الحديد - لم تبدأ حسابات الحديد بعد
         steelData: {
           totalSteelWeight: 0,
           foundationSteel: 0,
@@ -584,7 +604,6 @@ export default function ColumnFootingsCalculationPage() {
         }
       };
 
-      // حفظ النتائج في قاعدة البيانات
       const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -595,26 +614,19 @@ export default function ColumnFootingsCalculationPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const responseContentType = response.headers.get('content-type');
-      if (!responseContentType || !responseContentType.includes('application/json')) {
-        throw new Error('الخادم لا يستجيب بتنسيق JSON صحيح');
-      }
-
       const data = await response.json();
 
       if (data.success) {
-        // حفظ إضافي لبيانات الأعمدة المحددة
         const columnData = {
           projectId,
-          columnShape: results.columnShape,
-          columnDimensions: results.columnDimensions,
-          valueA: results.valueA,
-          totalFootingsVolume: results.totalFootingsVolume,
-          numberOfColumns: results.numberOfColumns,
+          columnShape: columnResults.columnShape,
+          columnDimensions: columnResults.columnDimensions,
+          valueA: columnResults.valueA,
+          totalConcreteVolume: concreteResults.totalConcreteVolume,
+          numberOfFootings: concreteResults.numberOfFootings,
           calculationDate: new Date().toISOString()
         };
 
-        // حفظ بيانات الأعمدة في جدول منفصل
         await fetch(`${API_BASE_URL}/api/column-calculations`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -623,32 +635,18 @@ export default function ColumnFootingsCalculationPage() {
 
         toast({
           title: 'تم الحفظ بنجاح',
-          description: 'تم حفظ كميات الخرسانة وأبعاد الأعمدة في قاعدة البيانات',
+          description: 'تم حفظ أبعاد الأعمدة وكميات الخرسانة في قاعدة البيانات',
         });
 
-        // Navigate to reports page
         router.push(`/engineer/quantity-reports/${projectId}`);
       } else {
         throw new Error(data.message);
       }
     } catch (error) {
       console.error('Error saving report:', error);
-
-      let errorMessage = 'حدث خطأ أثناء حفظ التقرير';
-
-      if (error instanceof Error) {
-        if (error.message.includes('Failed to fetch')) {
-          errorMessage = 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم الخلفي على المنفذ 5000';
-        } else if (error.message.includes('JSON')) {
-          errorMessage = error.message;
-        } else if (error.message.includes('HTTP error')) {
-          errorMessage = 'خطأ في الخادم. يرجى المحاولة مرة أخرى';
-        }
-      }
-
       toast({
         title: 'خطأ في الحفظ',
-        description: errorMessage,
+        description: 'حدث خطأ أثناء حفظ التقرير',
         variant: 'destructive'
       });
     } finally {
@@ -656,17 +654,41 @@ export default function ColumnFootingsCalculationPage() {
     }
   };
 
+  const saveColumnDimensions = () => {
+    if (!columnResults) {
+      toast({
+        title: 'لا توجد نتائج',
+        description: 'يرجى حساب أبعاد العمود أولاً',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Save to localStorage for use in columns page
+    const columnDimensionsData = {
+      shape: columnResults.columnShape,
+      ...columnResults.columnDimensions
+    };
+
+    localStorage.setItem('columnDimensionsFromFootings', JSON.stringify(columnDimensionsData));
+
+    toast({
+      title: 'تم حفظ أبعاد العمود',
+      description: 'يمكنك استيراد هذه الأبعاد في صفحة حساب أعمدة الحديد',
+      duration: 3000,
+    });
+  };
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50" dir="rtl">
-        {/* Animated Background Pattern */}
         <div className="fixed inset-0 opacity-20">
           <div className="absolute inset-0 bg-grid-slate-100 [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,transparent_0%,transparent_30%,black_50%)] bg-center bg-repeat" />
         </div>
 
         <div className="relative z-10 container mx-auto px-4 py-8 lg:py-12 lg:px-8 max-w-7xl">
 
-          {/* Enhanced Header */}
+          {/* Header */}
           <div className="mb-12 lg:mb-16">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
               <div className="flex items-center gap-3">
@@ -676,9 +698,7 @@ export default function ColumnFootingsCalculationPage() {
                     العودة إلى حاسبة الباطون
                   </Button>
                 </Link>
-
               </div>
-
             </div>
 
             <div className="relative group">
@@ -695,37 +715,49 @@ export default function ColumnFootingsCalculationPage() {
                   <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-blue-800 bg-clip-text text-transparent leading-tight mb-4">
                     حساب شروش الأعمدة
                   </h1>
-
+                  <p className="text-lg lg:text-xl text-slate-600 font-semibold leading-relaxed max-w-2xl">
+                    قسمين منفصلين: 1) حساب أبعاد العمود 2) حساب خرسانة الشروش
+                  </p>
                 </div>
               </div>
               <div className="absolute -inset-4 bg-gradient-to-r from-blue-400/20 via-indigo-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
             </div>
           </div>
 
+          {/* Section Navigation Tabs */}
+          <div className="mb-8">
+            <div className="flex space-x-4 border-b">
+              <button
+                onClick={() => setActiveSection('dimensions')}
+                className={`px-6 py-3 text-lg font-bold rounded-t-lg transition-all ${activeSection === 'dimensions'
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'bg-white text-blue-600 hover:bg-blue-50 border-b-2 border-transparent'
+                  }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Ruler className="w-5 h-5" />
+                  حساب أبعاد العمود
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveSection('concrete')}
+                className={`px-6 py-3 text-lg font-bold rounded-t-lg transition-all ${activeSection === 'concrete'
+                    ? 'bg-green-600 text-white shadow-lg'
+                    : 'bg-white text-green-600 hover:bg-green-50 border-b-2 border-transparent'
+                  }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Box className="w-5 h-5" />
+                  حساب كمية الخرسانة
+                </div>
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 items-start">
 
-            {/* Enhanced Input Sections */}
+            {/* Input Sections */}
             <div className="xl:col-span-8 space-y-6 lg:space-y-8">
-
-              {/* Server Status Warning */}
-              {!serverAvailable && (
-                <div className="p-4 lg:p-6 bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-2xl shadow-xl">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-                      <AlertCircle className="w-7 h-7 text-amber-500" />
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-amber-900 mb-2">تحذير: الخادم الخلفي غير متاح</p>
-                      <p className="text-amber-700">
-                        لا يمكن حفظ النتائج أو جلب البيانات من القواعد. يمكنك إجراء الحسابات لكن لن يتم حفظها.
-                      </p>
-                      <p className="text-amber-600 text-sm mt-2">
-                        تأكد من تشغيل الخادم الخلفي على المنفذ 5000
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Error Display */}
               {error && (
@@ -742,296 +774,388 @@ export default function ColumnFootingsCalculationPage() {
                 </div>
               )}
 
-              {/* بيانات الأعمدة */}
-              <Card className="border-0 shadow-xl shadow-blue-200/50 hover:shadow-blue-300/60 transition-all duration-500 overflow-hidden bg-white/90 backdrop-blur-sm">
-                <CardHeader className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-white py-6 px-6 border-b border-white/30">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl shadow-xl border border-white/40">
-                      <Columns className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl font-bold">بيانات الأعمدة</CardTitle>
-                      <CardDescription className="text-blue-100 text-base">
-                        المعلومات الأساسية للأعمدة وشروشها
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6 lg:p-8 pt-0 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <InputField
-                    id="numberOfColumns"
-                    label="عدد الأعمدة"
-                    value={inputs.numberOfColumns}
-                    onChange={(value) => handleInputChange('numberOfColumns', value)}
-
-                    type="number"
-                    unit="عمود"
-                    icon={Grid}
-                  />
-                  <SelectField
-                    id="columnShape"
-                    label="شكل العمود"
-                    value={inputs.columnShape}
-                    onChange={(value) => handleInputChange('columnShape', value)}
-                    options={columnShapes}
-                  />
-                  <InputField
-                    id="footingHeight"
-                    label="ارتفاع الشرش"
-                    value={inputs.footingHeight}
-                    onChange={(value) => handleInputChange('footingHeight', value)}
-
-
-                    unit="متر"
-                    icon={Ruler}
-                  />
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <AlertCircle className="w-5 h-5 text-blue-600" />
-                      <h4 className="font-bold text-blue-900">مدى ارتفاع الشرش</h4>
-                    </div>
-                    <p className="text-blue-800 font-medium">
-                      أدخل ارتفاع الشرش المطلوب
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* أبعاد القاعدة */}
-              <Card className="border-0 shadow-xl shadow-purple-200/50 hover:shadow-purple-300/60 transition-all duration-500 overflow-hidden bg-white/90 backdrop-blur-sm">
-                <CardHeader className="bg-gradient-to-br from-purple-600 via-purple-700 to-pink-700 text-white py-6 px-6 border-b border-white/30">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl shadow-xl border border-white/40">
-                      <Ruler className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl font-bold">أبعاد القاعدة</CardTitle>
-                      <CardDescription className="text-purple-100 text-base">
-                        أبعاد قواعد الأعمدة الخرسانية
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6 lg:p-8 pt-0 space-y-6">
-                  {/* خيار مصدر البيانات */}
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-2xl p-4">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Building2 className="w-5 h-5 text-purple-600" />
-                      <h4 className="font-bold text-purple-900">مصدر بيانات القاعدة</h4>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button
-                        variant={!useFoundationData ? "default" : "outline"}
-                        onClick={() => setUseFoundationData(false)}
-                        className="flex-1 h-12 font-bold"
-                      >
-                        إدخال يدوي
-                      </Button>
-                      <Button
-                        variant={useFoundationData ? "default" : "outline"}
-                        onClick={() => {
-                          try {
-                            const raw = localStorage.getItem(`foundationDimensions-${projectId}`);
-                            if (!raw) {
-                              toast({
-                                title: 'لا توجد بيانات',
-                                description: 'لم يتم العثور على أبعاد القواعد. يرجى إجراء الحساب في صفحة القواعد أولاً',
-                                variant: 'destructive'
-                              });
-                              setUseFoundationData(false);
-                              return;
-                            }
-                            const parsed = JSON.parse(raw);
-                            const lenStr = toEnglishDigits(parsed.baseLength);
-                            const widStr = toEnglishDigits(parsed.baseWidth);
-                            const len = Number(lenStr);
-                            const wid = Number(widStr);
-                            if (!Number.isFinite(len) || !Number.isFinite(wid) || len <= 0 || wid <= 0) {
-                              toast({
-                                title: 'بيانات غير صالحة',
-                                description: 'الأبعاد المخزنة غير صالحة. أعد الحساب في صفحة القواعد',
-                                variant: 'destructive'
-                              });
-                              setUseFoundationData(false);
-                              return;
-                            }
-                            // Force English ASCII digits in inputs with en-US locale formatting
-                            const lenEn = len.toLocaleString('en-US', { useGrouping: false, maximumFractionDigits: 10 });
-                            const widEn = wid.toLocaleString('en-US', { useGrouping: false, maximumFractionDigits: 10 });
-                            setInputs(prev => ({ ...prev, baseLength: lenEn, baseWidth: widEn }));
-                            setUseFoundationData(true);
-                            toast({
-                              title: 'تم جلب البيانات',
-                              description: 'تم جلب أبعاد القاعدة (صفحة القواعد)'
-                            });
-                          } catch (e) {
-                            console.error('Local fetch error', e);
-                            toast({
-                              title: 'خطأ في الجلب',
-                              description: 'تعذر قراءة البيانات المحلية. أعد الحساب في صفحة القواعد',
-                              variant: 'destructive'
-                            });
-                            setUseFoundationData(false);
-                          }
-                        }}
-                        className="flex-1 h-12 font-bold"
-                      >
-                        جلب من صفحة القواعد
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* حقول الإدخال */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <InputField
-                      id="baseLength"
-                      label="طول القاعدة"
-                      value={inputs.baseLength}
-                      onChange={(value) => handleInputChange('baseLength', value)}
-                      type="text"
-                      inputMode="decimal"
-                      lang="en"
-                      dir="ltr"
-                      unit="متر"
-                      icon={Ruler}
-                    />
-                    <InputField
-                      id="baseWidth"
-                      label="عرض القاعدة"
-                      value={inputs.baseWidth}
-                      onChange={(value) => handleInputChange('baseWidth', value)}
-                      type="text"
-                      inputMode="decimal"
-                      lang="en"
-                      dir="ltr"
-                      unit="متر"
-                      icon={Ruler}
-                    />
-                  </div>
-
-                  {/* عرض بيانات القواعد المجلوبة */}
-                  {useFoundationData && (
-                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-4">
-                      <div className="flex items-center gap-3 mb-2">
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        <h4 className="font-bold text-green-900">بيانات مجلوبة من صفحة القواعد</h4>
+              {/* Column Dimensions Section */}
+              {activeSection === 'dimensions' && (
+                <Card className="border-0 shadow-xl shadow-blue-200/50 hover:shadow-blue-300/60 transition-all duration-500 overflow-hidden bg-white/90 backdrop-blur-sm">
+                  <CardHeader className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-white py-6 px-6 border-b border-white/30">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl shadow-xl border border-white/40">
+                        <Ruler className="w-6 h-6 text-white" />
                       </div>
-                      <p className="text-green-800 font-medium text-sm">
-                        تم جلب أبعاد القواعد بنجاح من حسابات صبة النظافة والقواعد
-                      </p>
+                      <div>
+                        <CardTitle className="text-xl font-bold">حساب أبعاد العمود</CardTitle>
+                        <CardDescription className="text-blue-100 text-base">
+                          (لتحديد أبعاد العمود الواحد بالاعتماد على المساحة الواقعة على العمود)
+                        </CardDescription>
+                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* معلومات المبنى */}
-              <Card className="border-0 shadow-xl shadow-emerald-200/50 hover:shadow-emerald-300/60 transition-all duration-500 overflow-hidden bg-white/90 backdrop-blur-sm">
-                <CardHeader className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 text-white py-6 px-6 border-b border-white/30">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl shadow-xl border border-white/40">
-                      <Building2 className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl font-bold">معلومات المبنى</CardTitle>
-                      <CardDescription className="text-emerald-100 text-base">
-                        البيانات الأساسية لتحديد الأحمال الهندسية
-                      </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6 lg:p-8 pt-0 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <InputField
+                      id="numberOfFloors"
+                      label="عدد الطوابق"
+                      value={buildingInfo.numberOfFloors}
+                      onChange={(value) => handleBuildingInfoChange('numberOfFloors', value)}
+                      type="number"
+                      unit="طابق"
+                      icon={Layers}
+                    />
+                    <InputField
+                      id="slabArea"
+                      label="مساحة البلاطة"
+                      value={buildingInfo.slabArea}
+                      onChange={(value) => handleBuildingInfoChange('slabArea', value)}
+                      unit="م²"
+                      icon={Grid}
+                    />
+                    <SelectField
+                      id="buildingType"
+                      label="نوع المبنى"
+                      value={buildingInfo.buildingType}
+                      onChange={(value) => handleBuildingInfoChange('buildingType', value)}
+                      options={buildingTypes.map((type) => ({
+                        value: type.value,
+                        label: `${type.label} (ميتة ${type.dead} كن/م² | حية ${type.live} كن/م²)`
+                      }))}
+                      placeholder="اختر"
+                    />
+                    <SelectField
+                      id="columnShape"
+                      label="شكل العمود"
+                      value={buildingInfo.columnShape}
+                      onChange={(value) => handleBuildingInfoChange('columnShape', value)}
+                      options={columnShapes}
+                    />
+                  </CardContent>
+                  <div className="p-6 pt-0">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <Button
+                        onClick={calculateColumnDimensions}
+                        disabled={isLoading}
+                        className="flex-1 h-14 text-lg font-bold shadow-2xl hover:shadow-3xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 hover:from-blue-700 hover:via-blue-800 hover:to-indigo-800 transform hover:-translate-y-1 transition-all duration-300 rounded-2xl border-0"
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            جاري حساب أبعاد العمود...
+                          </div>
+                        ) : (
+                          <>
+                            <Calculator className="w-5 h-5 ml-2" />
+                            حساب أبعاد العمود
+                          </>
+                        )}
+                      </Button>
+                      {columnResults && (
+                        <Button
+                          onClick={saveColumnDimensions}
+                          variant="outline"
+                          className="h-14 px-6 text-lg font-bold border-2 border-green-400 hover:border-green-600 hover:bg-green-50 hover:text-green-900 transition-all duration-300 rounded-2xl flex items-center gap-3"
+                        >
+                          <Save className="w-5 h-5" />
+                          حفظ الأبعاد
+                        </Button>
+                      )}
+                      <Button
+                        onClick={resetDimensionsCalculation}
+                        variant="outline"
+                        className="h-14 px-6 text-lg font-bold border-2 border-gray-200 hover:border-red-400 hover:bg-red-50 hover:text-red-900 transition-all duration-300 rounded-2xl flex items-center gap-3"
+                      >
+                        <CheckCircle2 className="w-5 h-5" />
+                        إعادة تعيين
+                      </Button>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="p-6 lg:p-8 pt-0 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <InputField
-                    id="numberOfFloors"
-                    label="عدد الطوابق"
-                    value={inputs.numberOfFloors}
-                    onChange={(value) => handleInputChange('numberOfFloors', value)}
-                    type="number"
-                    unit="طابق"
-                    icon={Layers}
-                  />
-                  <InputField
-                    id="slabArea"
-                    label="مساحة البلاطة"
-                    value={inputs.slabArea}
-                    onChange={(value) => handleInputChange('slabArea', value)}
-                    unit="م²"
-                    icon={Grid}
-                  />
-                  <SelectField
-                    id="buildingType"
-                    label="نوع المبنى"
-                    value={inputs.buildingType}
-                    onChange={(value) => handleInputChange('buildingType', value)}
-                    options={buildingTypes.map((type) => ({
-                      value: type.value,
-                      label: `${type.label} (ميتة ${type.dead} كن/م² | حية ${type.live} كن/م²)`
-                    }))}
-                    placeholder="اختر"
-                  />
-                  <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-2xl p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <TrendingUp className="w-5 h-5 text-emerald-600" />
-                      <h4 className="font-bold text-emerald-900">بيانات الأحمال</h4>
-                    </div>
-                    <p className="emerald-800 font-medium text-sm">
-                      سيتم جلب الأحمال الميتة والحية تلقائياً من قاعدة البيانات بناءً على نوع المبنى
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                </Card>
+              )}
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  onClick={calculateResults}
-                  disabled={isLoading}
-                  className="flex-1 h-14 text-lg font-bold shadow-2xl hover:shadow-3xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 hover:from-blue-700 hover:via-blue-800 hover:to-indigo-800 transform hover:-translate-y-1 transition-all duration-300 rounded-2xl border-0"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      جاري الحساب...
+              {/* Concrete Calculation Section */}
+              {activeSection === 'concrete' && (
+                <Card className="border-0 shadow-xl shadow-green-200/50 hover:shadow-green-300/60 transition-all duration-500 overflow-hidden bg-white/90 backdrop-blur-sm">
+                  <CardHeader className="bg-gradient-to-br from-green-600 via-emerald-700 to-teal-700 text-white py-6 px-6 border-b border-white/30">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl shadow-xl border border-white/40">
+                        <Box className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl font-bold">حساب كمية الخرسانة لشروش الأعمدة</CardTitle>
+                        <CardDescription className="text-green-100 text-base">
+                          أدخل أبعاد شروش الأعمدة لحساب كمية الخرسانة المطلوبة
+                        </CardDescription>
+                      </div>
                     </div>
-                  ) : (
-                    <>
-                      <Calculator className="w-5 h-5 ml-2" />
-                      حساب كميات الشروش
-                    </>
-                  )}
-                </Button>
-                <Button
-                  onClick={resetCalculation}
-                  variant="outline"
-                  className="h-14 px-6 text-lg font-bold border-2 border-gray-200 hover:border-red-400 hover:bg-red-50 hover:text-red-900 transition-all duration-300 rounded-2xl flex items-center gap-3"
-                >
-                  <CheckCircle2 className="w-5 h-5" />
-                  إعادة تعيين
-                </Button>
-              </div>
+                  </CardHeader>
+                  <CardContent className="p-6 lg:p-8 pt-0 space-y-6">
+                    {/* Similar/Different Toggle */}
+                    <div className="space-y-4">
+                      <Label className="text-base font-bold text-slate-900">هل شروش الأعمدة متشابهة؟</Label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          onClick={() => setAreSimilar(true)}
+                          className={`p-4 rounded-xl border-2 transition-all duration-300 ${areSimilar
+                              ? 'border-green-500 bg-green-50 shadow-lg'
+                              : 'border-gray-200 bg-white hover:border-green-300'
+                            }`}
+                        >
+                          <div className="text-2xl mb-2">✓</div>
+                          <h3 className="font-bold text-lg text-gray-800">متشابهة</h3>
+                          <p className="text-sm text-gray-600">جميع الشروش بنفس الأبعاد</p>
+                        </button>
+                        <button
+                          onClick={() => setAreSimilar(false)}
+                          className={`p-4 rounded-xl border-2 transition-all duration-300 ${!areSimilar
+                              ? 'border-green-500 bg-green-50 shadow-lg'
+                              : 'border-gray-200 bg-white hover:border-green-300'
+                            }`}
+                        >
+                          <div className="text-2xl mb-2">≠</div>
+                          <h3 className="font-bold text-lg text-gray-800">مختلفة</h3>
+                          <p className="text-sm text-gray-600">أبعاد مختلفة لكل شرش</p>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Footing Inputs */}
+                    {areSimilar ? (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <InputField
+                            id="similarLength"
+                            label="طول شرش العمود (متر)"
+                            value={similarFooting.length}
+                            onChange={(value) => handleSimilarFootingChange('length', value)}
+                            unit="متر"
+                            icon={Ruler}
+                          />
+                          <InputField
+                            id="similarWidth"
+                            label="عرض شرش العمود (متر)"
+                            value={similarFooting.width}
+                            onChange={(value) => handleSimilarFootingChange('width', value)}
+                            unit="متر"
+                            icon={Ruler}
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <InputField
+                            id="similarHeight"
+                            label="ارتفاع شرش العمود (متر)"
+                            value={similarFooting.height}
+                            onChange={(value) => handleSimilarFootingChange('height', value)}
+                            unit="متر"
+                            icon={Ruler}
+                          />
+                          <InputField
+                            id="numberOfFootings"
+                            label="عدد شروش الأعمدة"
+                            value={similarFooting.numberOfFootings}
+                            onChange={(value) => handleSimilarFootingChange('numberOfFootings', value)}
+                            unit="شرش"
+                            icon={Grid}
+                            type="number"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {footings.map((footing) => (
+                          <div key={footing.id} className="p-4 bg-slate-50 rounded-xl border-2 border-slate-200 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-bold text-slate-900">شرش عمود {footing.id}</h4>
+                              {footings.length > 1 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeFooting(footing.id)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <InputField
+                                id={`length-${footing.id}`}
+                                label="الطول (متر)"
+                                value={footing.length}
+                                onChange={(v) => updateFooting(footing.id, 'length', v)}
+                                unit="متر"
+                                icon={Ruler}
+                              />
+                              <InputField
+                                id={`width-${footing.id}`}
+                                label="العرض (متر)"
+                                value={footing.width}
+                                onChange={(v) => updateFooting(footing.id, 'width', v)}
+                                unit="متر"
+                                icon={Ruler}
+                              />
+                              <InputField
+                                id={`height-${footing.id}`}
+                                label="الارتفاع (متر)"
+                                value={footing.height}
+                                onChange={(v) => updateFooting(footing.id, 'height', v)}
+                                unit="متر"
+                                icon={Ruler}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                        <Button
+                          onClick={addFooting}
+                          variant="outline"
+                          className="w-full h-12 border-2 border-green-300 hover:border-green-600 hover:bg-green-600 hover:text-white text-green-700 transition-all duration-300"
+                        >
+                          <Plus className="w-5 h-5 ml-2" />
+                          إضافة شرش عمود
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                  <div className="p-6 pt-0">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <Button
+                        onClick={calculateConcreteVolume}
+                        disabled={isLoading}
+                        className="flex-1 h-14 text-lg font-bold shadow-2xl hover:shadow-3xl bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 transform hover:-translate-y-1 transition-all duration-300 rounded-2xl border-0"
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            جاري حساب كمية الخرسانة...
+                          </div>
+                        ) : (
+                          <>
+                            <Calculator className="w-5 h-5 ml-2" />
+                            حساب كمية الخرسانة
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={resetConcreteCalculation}
+                        variant="outline"
+                        className="h-14 px-6 text-lg font-bold border-2 border-gray-200 hover:border-red-400 hover:bg-red-50 hover:text-red-900 transition-all duration-300 rounded-2xl flex items-center gap-3"
+                      >
+                        <CheckCircle2 className="w-5 h-5" />
+                        إعادة تعيين
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              )}
             </div>
 
             {/* Results Panel */}
             <div className="xl:col-span-4">
               <Card className="border-0 shadow-2xl shadow-emerald-200/50 hover:shadow-emerald-300/75 sticky top-8 h-fit backdrop-blur-sm bg-white/80 transition-all duration-500 overflow-hidden">
-                <CardHeader className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 text-white py-6 px-6 border-b border-white/20">
+                <CardHeader className={`${activeSection === 'dimensions' ? 'bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700' : 'bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700'} text-white py-6 px-6 border-b border-white/20`}>
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-2xl shadow-lg border border-white/30">
-                      <Box className="w-6 h-6 text-white" />
+                      {activeSection === 'dimensions' ? <Ruler className="w-6 h-6 text-white" /> : <Box className="w-6 h-6 text-white" />}
                     </div>
                     <div>
                       <CardTitle className="text-xl font-bold flex items-center gap-2">
                         النتائج
                       </CardTitle>
-                      <CardDescription className="text-emerald-100 opacity-90">
-                        كميات الخرسانة المحسوبة
+                      <CardDescription className="text-white opacity-90">
+                        {activeSection === 'dimensions' ? 'أبعاد العمود المحسوبة' : 'كمية الخرسانة المحسوبة'}
                       </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-6 pt-0">
-                  {results ? (
+                  {/* Column Dimensions Results */}
+                  {activeSection === 'dimensions' && columnResults ? (
                     <div className="space-y-6">
-                      {/* Main Result */}
+                      <div className="group relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-3xl blur-xl -z-10 opacity-75 group-hover:opacity-100 transition-all duration-500" />
+                        <div className="relative bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-6 rounded-3xl shadow-2xl border border-white/30 backdrop-blur-sm text-center group-hover:shadow-3xl group-hover:-translate-y-2 transition-all duration-500 transform">
+                          <div className="w-16 h-16 mx-auto mb-3 bg-white/30 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-all duration-500">
+                            <Columns className="w-8 h-8 text-white drop-shadow-lg" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-blue-100 font-bold text-sm tracking-wide">أبعاد العمود النهائية</Label>
+                            <div className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent drop-shadow-2xl leading-none">
+                              {columnResults.columnDimensions.displayText}
+                            </div>
+                            <div className="text-lg font-bold text-blue-100 tracking-wide">{columnResults.columnShape}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Detailed Results */}
+                      <div className="space-y-3">
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4">
+                          <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+                            <Building2 className="w-4 h-4" />
+                            معلومات المبنى
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-blue-700">مساحة البلاطة:</span>
+                              <span className="font-bold text-blue-900">{columnResults.slabArea} م²</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-blue-700">عدد الطوابق:</span>
+                              <span className="font-bold text-blue-900">{columnResults.numberOfFloors}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-blue-700">نوع المبنى:</span>
+                              <span className="font-bold text-blue-900">{columnResults.buildingType}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-4">
+                          <h4 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4" />
+                            الأحمال المستخدمة
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-purple-700">الحمل الميت:</span>
+                              <span className="font-bold text-purple-900">{columnResults.deadLoad.toFixed(2)} كن/م²</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-purple-700">الحمل الحي:</span>
+                              <span className="font-bold text-purple-900">{columnResults.liveLoad.toFixed(2)} كن/م²</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-purple-700">إجمالي الحمل:</span>
+                              <span className="font-bold text-purple-900">{columnResults.totalLoad.toFixed(2)} كن/م²</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4">
+                          <h4 className="font-bold text-emerald-900 mb-3 flex items-center gap-2">
+                            <Calculator className="w-4 h-4" />
+                            بيانات الحساب
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-emerald-700">القيمة A:</span>
+                              <span className="font-bold text-emerald-900">{columnResults.valueA.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-emerald-700">شكل العمود:</span>
+                              <span className="font-bold text-emerald-900">{columnResults.columnShape}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={() => setActiveSection('concrete')}
+                        className="w-full h-12 font-bold shadow-lg hover:shadow-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transform hover:-translate-y-0.5 transition-all duration-300 rounded-xl border-0"
+                      >
+                        <ArrowRight className="w-4 h-4 ml-2 rotate-180" />
+                        الانتقال إلى حساب الخرسانة
+                      </Button>
+                    </div>
+                  ) : activeSection === 'concrete' && concreteResults ? (
+                    <div className="space-y-6">
+                      {/* Concrete Results */}
                       <div className="group relative">
                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-3xl blur-xl -z-10 opacity-75 group-hover:opacity-100 transition-all duration-500" />
                         <div className="relative bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-6 rounded-3xl shadow-2xl border border-white/30 backdrop-blur-sm text-center group-hover:shadow-3xl group-hover:-translate-y-2 transition-all duration-500 transform">
@@ -1041,145 +1165,83 @@ export default function ColumnFootingsCalculationPage() {
                           <div className="space-y-1">
                             <Label className="text-emerald-100 font-bold text-sm tracking-wide">إجمالي حجم الخرسانة</Label>
                             <div className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-white to-emerald-100 bg-clip-text text-transparent drop-shadow-2xl leading-none">
-                              {results.totalFootingsVolume.toFixed(3)}
+                              {concreteResults.totalConcreteVolume.toFixed(3)}
                             </div>
                             <div className="text-lg font-bold text-emerald-100 tracking-wide">متر مكعب</div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Detailed Results */}
+                      {/* Detailed Concrete Results */}
                       <div className="space-y-3">
                         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4">
                           <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
                             <Columns className="w-4 h-4" />
-                            بيانات الأعمدة
+                            بيانات شروش الأعمدة
                           </h4>
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                              <span className="text-blue-700">عدد الأعمدة:</span>
-                              <span className="font-bold text-blue-900">{results.numberOfColumns}</span>
+                              <span className="text-blue-700">عدد شروش الأعمدة:</span>
+                              <span className="font-bold text-blue-900">{concreteResults.numberOfFootings}</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-blue-700">شكل العمود:</span>
-                              <span className="font-bold text-blue-900">{results.columnShape}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-blue-700">ارتفاع الشرش:</span>
-                              <span className="font-bold text-blue-900">{results.footingHeight} م</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-4">
-                          <h4 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
-                            <Ruler className="w-4 h-4" />
-                            أبعاد العمود المحسوبة
-                          </h4>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-purple-700">القيمة A:</span>
-                              <span className="font-bold text-purple-900">{results.valueA.toFixed(2)}</span>
-                            </div>
-
-                            <div className="flex justify-between">
-                              <span className="text-purple-700">شكل العمود:</span>
-                              <span className="font-bold text-purple-900">{results.columnShape}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-purple-700">الأبعاد النهائية:</span>
-                              <span className="font-bold text-purple-900">{results.columnDimensions.displayText}</span>
-                            </div>
-
-
-
-                            {results.columnDimensions.diameter && (
-                              <div className="flex justify-between">
-                                <span className="text-purple-700">القطر:</span>
-                                <span className="font-bold text-purple-900">{results.columnDimensions.diameter} سم</span>
-                              </div>
-                            )}
-                            {results.columnDimensions.length && results.columnDimensions.width && (
+                            {areSimilar && concreteResults.footingDetails[0] && (
                               <>
                                 <div className="flex justify-between">
-                                  <span className="text-purple-700">الطول:</span>
-                                  <span className="font-bold text-purple-900">{results.columnDimensions.length} سم</span>
+                                  <span className="text-blue-700">حجم الشرش الواحد:</span>
+                                  <span className="font-bold text-blue-900">
+                                    {concreteResults.footingDetails[0].volume.toFixed(3)} م³
+                                  </span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-purple-700">العرض:</span>
-                                  <span className="font-bold text-purple-900">{results.columnDimensions.width} سم</span>
+                                  <span className="text-blue-700">الطول × العرض × الارتفاع:</span>
+                                  <span className="font-bold text-blue-900">
+                                    {concreteResults.footingDetails[0].length} × {concreteResults.footingDetails[0].width} × {concreteResults.footingDetails[0].height} م
+                                  </span>
                                 </div>
                               </>
                             )}
                           </div>
                         </div>
 
-                        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-2xl p-4">
-                          <h4 className="font-bold text-orange-900 mb-3 flex items-center gap-2">
-                            <Box className="w-4 h-4" />
-                            تفاصيل حساب الخرسانة
-                          </h4>
-                          <div className="space-y-2 text-sm">
-
-                            <div className="flex justify-between">
-                              <span className="text-orange-700">حجم الشرش الواحد:</span>
-                              <span className="font-bold text-orange-900">
-                                {(results.totalFootingsVolume / results.numberOfColumns).toFixed(3)} م³
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-orange-700">عدد الأعمدة:</span>
-                              <span className="font-bold text-orange-900">{results.numberOfColumns}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-orange-700">إجمالي الحجم:</span>
-                              <span className="font-bold text-orange-900">{results.totalFootingsVolume.toFixed(3)} م³</span>
+                        {!areSimilar && concreteResults.footingDetails.length > 0 && (
+                          <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-4">
+                            <h4 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
+                              <Grid className="w-4 h-4" />
+                              تفاصيل الشروش المختلفة
+                            </h4>
+                            <div className="space-y-2 text-sm max-h-40 overflow-y-auto">
+                              {concreteResults.footingDetails.map((footing) => (
+                                <div key={footing.id} className="flex justify-between items-center p-2 bg-white/50 rounded-lg">
+                                  <span className="text-purple-700">شرش {footing.id}:</span>
+                                  <span className="font-bold text-purple-900">{footing.volume.toFixed(3)} م³</span>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        </div>
+                        )}
 
-                        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4">
-                          <h4 className="font-bold text-emerald-900 mb-3 flex items-center gap-2">
-                            <TrendingUp className="w-4 h-4" />
-                            الأحمال المستخدمة
-                          </h4>
-                          <div className="space-y-2 text-sm">
-
-                            <div className="flex justify-between">
-                              <span className="text-emerald-700">الحمل الميت:</span>
-                              <span className="font-bold text-emerald-900">{results.deadLoad.toFixed(2)} كن/م²</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-emerald-700">الحمل الحي:</span>
-                              <span className="font-bold text-emerald-900">{results.liveLoad.toFixed(2)} كن/م²</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-emerald-700">إجمالي الحمل:</span>
-                              <span className="font-bold text-emerald-900">{results.totalLoad.toFixed(2)} كن/م²</span>
+                        {columnResults && (
+                          <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-2xl p-4">
+                            <h4 className="font-bold text-orange-900 mb-3 flex items-center gap-2">
+                              <Columns className="w-4 h-4" />
+                              أبعاد العمود المحفوظة
+                            </h4>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-orange-700">شكل العمود:</span>
+                                <span className="font-bold text-orange-900">{columnResults.columnShape}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-orange-700">الأبعاد النهائية:</span>
+                                <span className="font-bold text-orange-900">{columnResults.columnDimensions.displayText}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
 
-                      {/* Save Button */}
                       <Button
-                        onClick={async () => {
-                          if (!serverAvailable) {
-                            // Save locally if server is not available
-                            const localData = {
-                              projectId,
-                              results,
-                              timestamp: new Date().toISOString()
-                            };
-                            localStorage.setItem(`column-footings-${projectId}`, JSON.stringify(localData));
-                            toast({
-                              title: 'تم الحفظ محلياً',
-                              description: 'تم حفظ النتائج في المتصفح. ستحتاج لإعادة الحفظ عند توفر الخادم',
-                            });
-                            return;
-                          }
-                          await saveToReports();
-                        }}
+                        onClick={saveToReports}
                         disabled={saving}
                         className="w-full h-12 font-bold shadow-lg hover:shadow-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 transform hover:-translate-y-0.5 transition-all duration-300 rounded-xl border-0"
                       >
@@ -1190,8 +1252,8 @@ export default function ColumnFootingsCalculationPage() {
                           </div>
                         ) : (
                           <>
-                            <CheckCircle2 className="w-4 h-4 ml-2" />
-                            {serverAvailable ? 'حفظ في التقارير' : 'حفظ محلي'}
+                            <Save className="w-4 h-4 ml-2" />
+                            حفظ جميع النتائج في التقارير
                           </>
                         )}
                       </Button>
@@ -1201,9 +1263,13 @@ export default function ColumnFootingsCalculationPage() {
                       <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center shadow-xl backdrop-blur-sm border-2 border-gray-200">
                         <Calculator className="w-10 h-10 text-gray-400" />
                       </div>
-                      <h3 className="text-lg font-bold text-gray-700 mb-2">جاهز للحساب</h3>
+                      <h3 className="text-lg font-bold text-gray-700 mb-2">
+                        {activeSection === 'dimensions' ? 'جاهز لحساب أبعاد العمود' : 'جاهز لحساب كمية الخرسانة'}
+                      </h3>
                       <p className="text-gray-500 text-sm leading-relaxed">
-                        أدخل بيانات الأعمدة والمبنى واضغط "حساب كميات الشروش" للحصول على النتائج
+                        {activeSection === 'dimensions' 
+                          ? 'أدخل معلومات المبنى واضغط "حساب أبعاد العمود" للحصول على النتائج' 
+                          : 'أدخل أبعاد شروش الأعمدة واضغط "حساب كمية الخرسانة" للحصول على النتائج'}
                       </p>
                     </div>
                   )}

@@ -2026,7 +2026,7 @@ export default function ProjectReportsPage() {
 
               <TabsContent value="overview" className="mt-6">
                 {/* Statistics Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                   <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all duration-300">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
@@ -2040,36 +2040,6 @@ export default function ProjectReportsPage() {
                         </div>
                         <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
                           <FileText className="w-7 h-7 text-blue-600" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-slate-500 text-sm mb-1">إجمالي الخرسانة</p>
-                          <p className="text-3xl font-bold text-emerald-600">{totalConcreteVolume.toFixed(2)}</p>
-                          <p className="text-xs text-slate-500 mt-1">م³</p>
-                        </div>
-                        <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
-                          <Blocks className="w-7 h-7 text-emerald-600" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-md hover:shadow-lg transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-slate-500 text-sm mb-1">إجمالي الحديد</p>
-                          <p className="text-3xl font-bold text-indigo-600">{totalSteelWeight.toFixed(2)}</p>
-                          <p className="text-xs text-slate-500 mt-1">كجم</p>
-                        </div>
-                        <div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center">
-                          <Package className="w-7 h-7 text-indigo-600" />
                         </div>
                       </div>
                     </CardContent>
