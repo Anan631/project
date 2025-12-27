@@ -30,7 +30,6 @@ const PROTECTED_PATHS = [
   '/documents',
   '/timeline',
   '/ai-report-generator',
-  '/clock-test',
 ] as const;
 
 // المسارات الخاصة بـ API (يجب أن تكون متاحة دائماً)
