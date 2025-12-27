@@ -21,6 +21,11 @@ import {
   Circle,
   Square,
   RectangleHorizontal,
+  Info,
+  Hash,
+  Equal,
+  Layers,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -48,18 +53,8 @@ export default function ColumnsConcretePage() {
   const projectId = params.projectId as string;
 
   const [saving, setSaving] = useState(false);
-  const [columns, setColumns] = useState<Array<{
-    id: number;
-    shape: 'square' | 'rectangle' | 'circular';
-    length?: string;
-    width?: string;
-    diameter?: string;
-    height?: string;
-    volume: number;
-  }>>([]);
   const [nextId, setNextId] = useState(1);
   const [selectedShape, setSelectedShape] = useState<'square' | 'rectangle' | 'circular'>('square');
-  const [totalVolume, setTotalVolume] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [existingReportDialog, setExistingReportDialog] = useState<{
     open: boolean;
@@ -69,22 +64,58 @@ export default function ColumnsConcretePage() {
     reportId: null,
   });
 
+  // تحديد نوع الأعمدة (متشابهة أم مختلفة)
+  const [areSimilar, setAreSimilar] = useState<'similar' | 'different'>('similar');
+
+  // بيانات الأعمدة المتشابهة
+  const [similarColumns, setSimilarColumns] = useState({
+    shape: 'square' as 'square' | 'rectangle' | 'circular',
+    length: '',
+    width: '',
+    diameter: '',
+    height: '',
+    count: ''
+  });
+
+  // نتائج الأعمدة المتشابهة
+  const [similarResults, setSimilarResults] = useState({
+    volume: 0,
+    count: 0
+  });
+
+  // بيانات الأعمدة المختلفة
+  const [differentColumns, setDifferentColumns] = useState<Array<{
+    id: number;
+    shape: 'square' | 'rectangle' | 'circular';
+    length?: string;
+    width?: string;
+    diameter?: string;
+    height?: string;
+    volume: number;
+  }>>([]);
+
+  // نتائج الأعمدة المختلفة
+  const [differentResults, setDifferentResults] = useState({
+    totalVolume: 0,
+    totalCount: 0
+  });
+
+  // إجمالي جميع الأعمدة
+  const [totalAllColumns, setTotalAllColumns] = useState({
+    totalVolume: 0,
+    totalCount: 0
+  });
+
   // دالة حساب حجم العمود الواحد
   const calculateColumnVolume = (shape: string, length?: number, width?: number, diameter?: number, height?: number): number => {
     if (!height || height <= 0) return 0;
 
     switch (shape) {
       case 'square':
-        // المربع: نفس معادلة المستطيل (الطول × العرض × الارتفاع)
-        // في المربع، يمكن أن يكون العرض = الطول أو مختلف
-        if (!length || !width || length <= 0 || width <= 0) return 0;
-        return length * width * height;
       case 'rectangle':
-        // المستطيل: الطول × العرض × الارتفاع (نفس معادلة المربع)
         if (!length || !width || length <= 0 || width <= 0) return 0;
         return length * width * height;
       case 'circular':
-        // الدائري: (π × القطر² ÷ 4) × الارتفاع
         if (!diameter || diameter <= 0) return 0;
         return (Math.PI * Math.pow(diameter, 2) / 4) * height;
       default:
@@ -92,8 +123,54 @@ export default function ColumnsConcretePage() {
     }
   };
 
-  // إضافة عمود جديد
-  const addColumn = () => {
+  // حساب الأعمدة المتشابهة
+  const calculateSimilarColumns = () => {
+    const { shape, length, width, diameter, height, count } = similarColumns;
+
+    // التحقق من الحقول المطلوبة
+    if (!height || parseFloat(height) <= 0 || !count || parseInt(count) <= 0) {
+      setError('يرجى إدخال ارتفاع العمود وعدد الأعمدة');
+      return;
+    }
+
+    if ((shape === 'square' || shape === 'rectangle') && (!length || !width || parseFloat(length) <= 0 || parseFloat(width) <= 0)) {
+      setError('يرجى إدخال الطول والعرض للعمود');
+      return;
+    }
+
+    if (shape === 'circular' && (!diameter || parseFloat(diameter) <= 0)) {
+      setError('يرجى إدخال قطر العمود');
+      return;
+    }
+
+    // حساب حجم العمود الواحد
+    const singleVolume = calculateColumnVolume(
+      shape,
+      parseFloat(length || '0'),
+      parseFloat(width || '0'),
+      parseFloat(diameter || '0'),
+      parseFloat(height)
+    );
+
+    // حساب الحجم الإجمالي
+    const totalSimilarVolume = singleVolume * parseInt(count);
+
+    setSimilarResults({
+      volume: totalSimilarVolume,
+      count: parseInt(count)
+    });
+
+    // تحديث الإجمالي الكلي
+    updateTotalAllColumns();
+
+    toast({
+      title: 'تم حساب الأعمدة المتشابهة',
+      description: `تم حساب ${count} عمود ${getShapeName(shape)} - إجمالي الخرسانة: ${totalSimilarVolume.toFixed(3)} م³`,
+    });
+  };
+
+  // إضافة عمود مختلف جديد
+  const addDifferentColumn = () => {
     const newColumn: {
       id: number;
       shape: 'square' | 'rectangle' | 'circular';
@@ -112,24 +189,14 @@ export default function ColumnsConcretePage() {
       volume: 0
     };
 
-    // حساب الحجم الابتدائي (سيكون 0 لأن الحقول فارغة)
-    const volume = calculateColumnVolume(
-      selectedShape,
-      parseFloat(newColumn.length || '0'),
-      parseFloat(newColumn.width || '0'),
-      parseFloat(newColumn.diameter || '0'),
-      parseFloat(newColumn.height || '0')
-    );
-
-    newColumn.volume = volume;
-    setColumns(prev => [...prev, newColumn]);
+    setDifferentColumns(prev => [...prev, newColumn]);
     setNextId(prev => prev + 1);
     setError(null);
   };
 
-  // تحديث بيانات عمود
-  const updateColumn = (id: number, field: string, value: string) => {
-    setColumns(prev => prev.map(column => {
+  // تحديث بيانات عمود مختلف
+  const updateDifferentColumn = (id: number, field: string, value: string) => {
+    setDifferentColumns(prev => prev.map(column => {
       if (column.id === id) {
         const updatedColumn = { ...column, [field]: value };
 
@@ -146,42 +213,76 @@ export default function ColumnsConcretePage() {
       }
       return column;
     }));
+
+    // تحديث نتائج الأعمدة المختلفة بعد التحديث
+    setTimeout(calculateDifferentColumns, 100);
   };
 
-  // حذف عمود
-  const removeColumn = (id: number) => {
-    setColumns(prev => prev.filter(column => column.id !== id));
+  // حذف عمود مختلف
+  const removeDifferentColumn = (id: number) => {
+    setDifferentColumns(prev => prev.filter(column => column.id !== id));
+    setTimeout(calculateDifferentColumns, 100);
   };
 
-  // حذف جميع الأعمدة
-  const removeAllColumns = () => {
-    if (columns.length === 0) {
+  // حذف جميع الأعمدة المختلفة
+  const removeAllDifferentColumns = () => {
+    if (differentColumns.length === 0) {
       toast({
         title: 'لا توجد أعمدة',
-        description: 'لا توجد أعمدة للحذف',
+        description: 'لا توجد أعمدة مختلفة للحذف',
         variant: 'destructive'
       });
       return;
     }
 
-    setColumns([]);
-    setTotalVolume(0);
+    setDifferentColumns([]);
+    setDifferentResults({ totalVolume: 0, totalCount: 0 });
+    updateTotalAllColumns();
+
     toast({
       title: 'تم الحذف',
-      description: `تم حذف جميع الأعمدة (${columns.length} عمود)`,
+      description: `تم حذف جميع الأعمدة المختلفة (${differentColumns.length} عمود)`,
     });
   };
 
-  // استيراد أبعاد من صفحة شروش الأعمدة من Local Storage
+  // حساب الأعمدة المختلفة
+  const calculateDifferentColumns = () => {
+    let totalVolume = 0;
+    const totalCount = differentColumns.length;
+
+    differentColumns.forEach(column => {
+      totalVolume += column.volume;
+    });
+
+    setDifferentResults({
+      totalVolume,
+      totalCount
+    });
+
+    // تحديث الإجمالي الكلي
+    updateTotalAllColumns();
+  };
+
+  // تحديث الإجمالي الكلي لجميع الأعمدة
+  const updateTotalAllColumns = () => {
+    const totalVolume = similarResults.volume + differentResults.totalVolume;
+    const totalCount = similarResults.count + differentResults.totalCount;
+
+    setTotalAllColumns({
+      totalVolume,
+      totalCount
+    });
+  };
+
+  // استيراد أبعاد من صفحة شروش الأعمدة
   const importColumnDimensions = () => {
     try {
-      // قراءة البيانات من Local Storage
       const storedData = localStorage.getItem('columnDimensionsFromFootings');
 
       if (!storedData) {
         toast({
           title: 'لا توجد بيانات',
-          description: 'لم يتم العثور على أبعاد محفوظة من صفحة شروش الأعمدة. يرجى إجراء الحساب في صفحة شروش الأعمدة أولاً.',
+          description: 'لم يتم العثور على أبعاد محفوظة من صفحة شروش الأعمدة.',
           variant: 'destructive'
         });
         return;
@@ -199,106 +300,41 @@ export default function ColumnsConcretePage() {
         shape = 'circular';
       }
 
-      // لا نغير selectedShape هنا لأن زر "إضافة عمود" يجب أن يعمل بشكل مستقل
-      // زر الاستيراد يضيف عمود جديد بالأبعاد المستوردة فقط
+      // تحويل الأبعاد من سم إلى متر
+      if (shape === 'square' || shape === 'rectangle') {
+        const length = columnData.length ? (columnData.length / 100).toFixed(2) : '';
+        const width = columnData.width ? (columnData.width / 100).toFixed(2) : '';
 
-      // تحويل الأبعاد من سم إلى متر (القسمة على 100)
-      let length: string | undefined;
-      let width: string | undefined;
-      let diameter: string | undefined;
-
-      // ملء الأبعاد حسب الشكل
-      if (shape === 'square') {
-        // للمربع: نستخدم length و width (نفس المستطيل)
-        if (columnData.length) {
-          length = (columnData.length / 100).toFixed(2); // تحويل من سم إلى متر
-        }
-        if (columnData.width) {
-          width = (columnData.width / 100).toFixed(2); // تحويل من سم إلى متر
-        } else if (columnData.length) {
-          // إذا لم يكن width موجوداً، نستخدم length كقيمة للعرض أيضاً
-          width = (columnData.length / 100).toFixed(2);
-        }
-      } else if (shape === 'rectangle') {
-        // للمستطيل: نستخدم length و width
-        if (columnData.length) {
-          length = (columnData.length / 100).toFixed(2); // تحويل من سم إلى متر
-        }
-        if (columnData.width) {
-          width = (columnData.width / 100).toFixed(2); // تحويل من سم إلى متر
-        }
+        setSimilarColumns(prev => ({
+          ...prev,
+          shape: shape,
+          length: length,
+          width: width || length,
+          height: '3.0'
+        }));
       } else if (shape === 'circular') {
-        // للدائري: نستخدم diameter فقط
-        if (columnData.diameter) {
-          diameter = (columnData.diameter / 100).toFixed(2); // تحويل من سم إلى متر
-        }
+        const diameter = columnData.diameter ? (columnData.diameter / 100).toFixed(2) : '';
+        setSimilarColumns(prev => ({
+          ...prev,
+          shape: shape,
+          diameter: diameter,
+          height: '3.0'
+        }));
       }
-
-      // التحقق من وجود الأبعاد المطلوبة
-      if (shape === 'square' && (!length || !width)) {
-        toast({
-          title: 'خطأ في البيانات',
-          description: 'لم يتم العثور على أبعاد صحيحة للعمود المربع',
-          variant: 'destructive'
-        });
-        return;
-      }
-      if (shape === 'rectangle' && (!length || !width)) {
-        toast({
-          title: 'خطأ في البيانات',
-          description: 'لم يتم العثور على أبعاد صحيحة للعمود المستطيل',
-          variant: 'destructive'
-        });
-        return;
-      }
-      if (shape === 'circular' && !diameter) {
-        toast({
-          title: 'خطأ في البيانات',
-          description: 'لم يتم العثور على قطر صحيح للعمود الدائري',
-          variant: 'destructive'
-        });
-        return;
-      }
-
-      // إنشاء عمود جديد بالأبعاد المستوردة
-      const newColumn = {
-        id: nextId,
-        shape: shape,
-        length: length,
-        width: width,
-        diameter: diameter,
-        height: '3.0', // القيمة الافتراضية للارتفاع
-        volume: calculateColumnVolume(
-          shape,
-          length ? parseFloat(length) : undefined,
-          width ? parseFloat(width) : undefined,
-          diameter ? parseFloat(diameter) : undefined,
-          3.0
-        )
-      };
-
-      setColumns(prev => [...prev, newColumn]);
-      setNextId(prev => prev + 1);
 
       toast({
         title: 'تم الاستيراد بنجاح',
-        description: `تم استيراد أبعاد العمود ${getShapeName(shape)} (${columnData.displayText || columnData.shape}) من صفحة شروش الأعمدة`,
+        description: `تم استيراد أبعاد العمود ${getShapeName(shape)} إلى الأعمدة المتشابهة`,
       });
     } catch (error) {
       console.error('Error importing column dimensions:', error);
       toast({
         title: 'خطأ في الاستيراد',
-        description: 'حدث خطأ أثناء استيراد الأبعاد. تأكد من وجود بيانات صحيحة في Local Storage.',
+        description: 'حدث خطأ أثناء استيراد الأبعاد',
         variant: 'destructive'
       });
     }
   };
-
-  // حساب المجموع الكلي
-  useEffect(() => {
-    const total = columns.reduce((sum, column) => sum + column.volume, 0);
-    setTotalVolume(total);
-  }, [columns]);
 
   // التحقق من وجود تقرير سابق
   const checkExistingReport = async () => {
@@ -322,7 +358,7 @@ export default function ColumnsConcretePage() {
     }
   };
 
-  // حذف التقرير السابق (soft delete)
+  // حذف التقرير السابق
   const deleteExistingReport = async (reportId: string) => {
     try {
       const response = await fetch(`http://localhost:5000/api/quantity-reports/${reportId}`, {
@@ -338,10 +374,13 @@ export default function ColumnsConcretePage() {
 
   // حفظ التقرير
   const saveToReports = async (shouldDeleteExisting: boolean = false) => {
-    if (columns.length === 0) {
+    const totalVolume = totalAllColumns.totalVolume;
+    const totalCount = totalAllColumns.totalCount;
+
+    if (totalCount === 0) {
       toast({
         title: 'لا توجد أعمدة',
-        description: 'يرجى إضافة أعمدة أولاً',
+        description: 'يرجى إدخال بيانات الأعمدة أولاً',
         variant: 'destructive'
       });
       return;
@@ -349,7 +388,6 @@ export default function ColumnsConcretePage() {
 
     setSaving(true);
     try {
-      // حذف التقرير السابق إذا طُلب ذلك
       if (shouldDeleteExisting && existingReportDialog.reportId) {
         await deleteExistingReport(existingReportDialog.reportId);
       }
@@ -361,6 +399,38 @@ export default function ColumnsConcretePage() {
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
 
+      // تحضير بيانات الأعمدة
+      const similarColumnsData = [];
+      const differentColumnsData = [];
+
+      // إضافة الأعمدة المتشابهة
+      if (similarResults.count > 0) {
+        similarColumnsData.push({
+          type: 'similar',
+          shape: similarColumns.shape,
+          length: similarColumns.shape === 'circular' ? null : parseFloat(similarColumns.length || '0'),
+          width: similarColumns.shape === 'circular' ? null : parseFloat(similarColumns.width || '0'),
+          diameter: similarColumns.shape === 'circular' ? parseFloat(similarColumns.diameter || '0') : null,
+          height: parseFloat(similarColumns.height || '0'),
+          count: similarResults.count,
+          volume: similarResults.volume
+        });
+      }
+
+      // إضافة الأعمدة المختلفة
+      differentColumns.forEach(col => {
+        differentColumnsData.push({
+          type: 'different',
+          id: col.id,
+          shape: col.shape,
+          length: col.length ? parseFloat(col.length) : null,
+          width: col.width ? parseFloat(col.width) : null,
+          diameter: col.diameter ? parseFloat(col.diameter) : null,
+          height: col.height ? parseFloat(col.height) : null,
+          volume: col.volume
+        });
+      });
+
       const reportData = {
         projectId,
         projectName: project?.name || `مشروع #${projectId}`,
@@ -370,21 +440,14 @@ export default function ColumnsConcretePage() {
         ownerEmail: project?.linkedOwnerEmail || '',
         calculationType: 'columns',
         concreteData: {
-          totalConcrete: totalVolume,
-          columnsVolume: totalVolume,
-          cleaningVolume: 0,
-          foundationsVolume: 0,
-          columnsData: columns.map(col => ({
-            id: col.id,
-            shape: col.shape,
-            length: col.length ? parseFloat(col.length) : null,
-            width: col.width ? parseFloat(col.width) : null,
-            diameter: col.diameter ? parseFloat(col.diameter) : null,
-            height: col.height ? parseFloat(col.height) : null,
-            volume: col.volume
-          }))
+          totalConcrete: totalVolume, // هذه القيمة التي ستخزن في التقرير
+          totalColumns: totalCount,
+          similarColumns: similarColumnsData,
+          differentColumns: differentColumnsData,
+          similarTotal: similarResults.volume,
+          differentTotal: differentResults.totalVolume,
+          grandTotal: totalVolume
         },
-        // إزالة بيانات الحديد بالكامل
         steelData: {
           totalSteelWeight: 0,
           foundationSteel: 0,
@@ -421,49 +484,12 @@ export default function ColumnsConcretePage() {
     }
   };
 
-  // حساب الخرسانة لجميع الأعمدة
+  // حساب الخرسانة
   const calculateConcrete = async () => {
-    if (columns.length === 0) {
-      toast({
-        title: 'لا توجد أعمدة',
-        description: 'يرجى إضافة أعمدة أولاً',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    // التحقق من صحة بيانات جميع الأعمدة
-    const invalidColumns: number[] = [];
-
-    columns.forEach((column) => {
-      let isValid = false;
-
-      if (column.shape === 'square' || column.shape === 'rectangle') {
-        const length = parseFloat(column.length || '0');
-        const width = parseFloat(column.width || '0');
-        const height = parseFloat(column.height || '0');
-
-        if (!length || length <= 0 || !width || width <= 0 || !height || height <= 0) {
-          invalidColumns.push(column.id);
-        }
-      } else if (column.shape === 'circular') {
-        const diameter = parseFloat(column.diameter || '0');
-        const height = parseFloat(column.height || '0');
-
-        if (!diameter || diameter <= 0 || !height || height <= 0) {
-          invalidColumns.push(column.id);
-        }
-      }
-    });
-
-    if (invalidColumns.length > 0) {
-      toast({
-        title: 'بيانات غير مكتملة',
-        description: `يرجى إكمال بيانات الأعمدة: ${invalidColumns.join(', ')}`,
-        variant: 'destructive'
-      });
-      setError(`يرجى إكمال بيانات الأعمدة: ${invalidColumns.join(', ')}`);
-      return;
+    if (areSimilar === 'similar') {
+      calculateSimilarColumns();
+    } else {
+      calculateDifferentColumns();
     }
 
     // التحقق من وجود تقرير سابق
@@ -473,34 +499,29 @@ export default function ColumnsConcretePage() {
         open: true,
         reportId: existingReportId,
       });
-      return;
     }
-
-    // إعادة حساب جميع الأعمدة
-    setColumns(prev => prev.map(column => {
-      const volume = calculateColumnVolume(
-        column.shape,
-        parseFloat(column.length || '0'),
-        parseFloat(column.width || '0'),
-        parseFloat(column.diameter || '0'),
-        parseFloat(column.height || '0')
-      );
-      return { ...column, volume };
-    }));
-
-    setError(null);
-    toast({
-      title: 'تم الحساب بنجاح',
-      description: `تم حساب كمية الخرسانة لجميع الأعمدة (${columns.length} عمود)`,
-    });
   };
 
   // إعادة تعيين
   const reset = () => {
-    setColumns([]);
-    setNextId(1);
-    setSelectedShape('square');
-    setTotalVolume(0);
+    if (areSimilar === 'similar') {
+      setSimilarColumns({
+        shape: 'square',
+        length: '',
+        width: '',
+        diameter: '',
+        height: '',
+        count: ''
+      });
+      setSimilarResults({ volume: 0, count: 0 });
+    } else {
+      setDifferentColumns([]);
+      setDifferentResults({ totalVolume: 0, totalCount: 0 });
+      setNextId(1);
+      setSelectedShape('square');
+    }
+
+    setTotalAllColumns({ totalVolume: 0, totalCount: 0 });
     setError(null);
   };
 
@@ -524,6 +545,101 @@ export default function ColumnsConcretePage() {
     }
   };
 
+  // إخفاء قانون الحساب بالكامل
+  const renderCalculationFormula = () => {
+    // إرجاع قيمة فارغة لإخفاء قانون الحساب
+    return null;
+  };
+
+  // تحديث الإجمالي الكلي عند تغيير البيانات
+  useEffect(() => {
+    updateTotalAllColumns();
+  }, [similarResults, differentResults]);
+
+  // عرض الحقول المناسبة حسب شكل العمود في الأعمدة المتشابهة
+  const renderSimilarColumnsFields = () => {
+    const { shape } = similarColumns;
+
+    if (shape === 'square' || shape === 'rectangle') {
+      return (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <InputField
+              id="similar-length"
+              label="طول العمود (متر)"
+              value={similarColumns.length}
+              onChange={(value) => setSimilarColumns(prev => ({ ...prev, length: value }))}
+              placeholder="مثال: 0.30"
+              unit="متر"
+              icon={Ruler}
+            />
+            <InputField
+              id="similar-width"
+              label="عرض العمود (متر)"
+              value={similarColumns.width}
+              onChange={(value) => setSimilarColumns(prev => ({ ...prev, width: value }))}
+              placeholder="مثال: 0.30"
+              unit="متر"
+              icon={Ruler}
+            />
+            <InputField
+              id="similar-height"
+              label="ارتفاع العمود (متر)"
+              value={similarColumns.height}
+              onChange={(value) => setSimilarColumns(prev => ({ ...prev, height: value }))}
+              placeholder="مثال: 3.0"
+              unit="متر"
+              icon={Ruler}
+            />
+            <InputField
+              id="similar-count"
+              label="عدد الأعمدة المتشابهة"
+              value={similarColumns.count}
+              onChange={(value) => setSimilarColumns(prev => ({ ...prev, count: value }))}
+              placeholder="مثال: 4"
+              unit="عمود"
+              icon={Hash}
+            />
+          </div>
+        </>
+      );
+    } else if (shape === 'circular') {
+      return (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <InputField
+              id="similar-diameter"
+              label="قطر العمود (متر)"
+              value={similarColumns.diameter}
+              onChange={(value) => setSimilarColumns(prev => ({ ...prev, diameter: value }))}
+              placeholder="مثال: 0.30"
+              unit="متر"
+              icon={Ruler}
+            />
+            <InputField
+              id="similar-height"
+              label="ارتفاع العمود (متر)"
+              value={similarColumns.height}
+              onChange={(value) => setSimilarColumns(prev => ({ ...prev, height: value }))}
+              placeholder="مثال: 3.0"
+              unit="متر"
+              icon={Ruler}
+            />
+            <InputField
+              id="similar-count"
+              label="عدد الأعمدة المتشابهة"
+              value={similarColumns.count}
+              onChange={(value) => setSimilarColumns(prev => ({ ...prev, count: value }))}
+              placeholder="مثال: 4"
+              unit="عمود"
+              icon={Hash}
+            />
+          </div>
+        </>
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-indigo-50" dir="rtl">
       <div className="fixed inset-0 opacity-20">
@@ -541,9 +657,7 @@ export default function ColumnsConcretePage() {
                   العودة إلى حاسبة الباطون
                 </Button>
               </Link>
-
             </div>
-
           </div>
 
           <div className="relative group">
@@ -560,7 +674,6 @@ export default function ColumnsConcretePage() {
                 <h1 className="text-3xl lg:text-4xl font-black bg-gradient-to-r from-slate-900 via-gray-900 to-emerald-800 bg-clip-text text-transparent leading-tight mb-4">
                   حساب كمية الخرسانة في الأعمدة
                 </h1>
-
               </div>
             </div>
             <div className="absolute -inset-4 bg-gradient-to-r from-emerald-400/20 via-blue-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
@@ -595,210 +708,305 @@ export default function ColumnsConcretePage() {
                   <div>
                     <CardTitle className="text-xl font-bold">كرت الأعمدة</CardTitle>
                     <CardDescription className="text-emerald-100 text-base">
-                      إضافة وحساب الأعمدة بأشكال مختلفة (مربع، مستطيل، دائري)
+                      حساب كمية الخرسانة للأعمدة المتشابهة والمختلفة
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-6 lg:p-8 pt-0">
                 <div className="space-y-6">
-                  {/* اختيار شكل العمود وإضافة عمود */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <Label className="text-lg font-bold text-slate-900">اختيار شكل العمود</Label>
-                      <Select
-                        value={selectedShape}
-                        onValueChange={(value: 'square' | 'rectangle' | 'circular') => setSelectedShape(value)}
-                      >
-                        <SelectTrigger className="h-16 text-lg font-bold bg-gradient-to-r from-white/80 to-slate-50/80 border-2 border-slate-200 focus:border-emerald-500 shadow-xl">
-                          <SelectValue placeholder="اختر شكل العمود" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white/95 backdrop-blur-md border-emerald-200 shadow-2xl rounded-3xl">
-                          <SelectItem value="square" className="text-lg py-3">
-                            <div className="flex items-center gap-3">
-                              <Square className="w-5 h-5" />
-                              <span>عمود مربع</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="rectangle" className="text-lg py-3">
-                            <div className="flex items-center gap-3">
-                              <RectangleHorizontal className="w-5 h-5" />
-                              <span>عمود مستطيل</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="circular" className="text-lg py-3">
-                            <div className="flex items-center gap-3">
-                              <Circle className="w-5 h-5" />
-                              <span>عمود دائري</span>
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  {/* تحديد نوع الأعمدة */}
+                  <div className="space-y-4">
+                    <Label className="text-lg font-bold text-slate-900">هل الأعمدة متشابهة؟</Label>
+                    <Select
+                      value={areSimilar}
+                      onValueChange={(value: 'similar' | 'different') => {
+                        setAreSimilar(value);
+                        setError(null);
+                        if (value === 'similar') {
+                          setSimilarColumns({
+                            shape: 'square',
+                            length: '',
+                            width: '',
+                            diameter: '',
+                            height: '',
+                            count: ''
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-16 text-lg font-bold bg-gradient-to-r from-white/80 to-slate-50/80 border-2 border-slate-200 focus:border-emerald-500 shadow-xl">
+                        <SelectValue placeholder="اختر نوع الأعمدة" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white/95 backdrop-blur-md border-emerald-200 shadow-2xl rounded-3xl">
+                        <SelectItem value="similar" className="text-lg py-3">
+                          نعم - أعمدة متشابهة
+                        </SelectItem>
+                        <SelectItem value="different" className="text-lg py-3">
+                          لا - أعمدة مختلفة
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                    <div className="space-y-4">
-                      <Label className="text-lg font-bold text-slate-900">إجراءات سريعة</Label>
-                      <div className="flex gap-4">
-                        <Button
-                          onClick={addColumn}
-                          className="flex-1 h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold"
+                  {/* الأعمدة المتشابهة */}
+                  {areSimilar === 'similar' && (
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        <Label className="text-lg font-bold text-slate-900">شكل العمود</Label>
+                        <Select
+                          value={similarColumns.shape}
+                          onValueChange={(value: 'square' | 'rectangle' | 'circular') =>
+                            setSimilarColumns(prev => ({ ...prev, shape: value, length: '', width: '', diameter: '' }))
+                          }
                         >
-                          <Plus className="w-5 h-5 ml-2" />
-                          إضافة عمود
-                        </Button>
+                          <SelectTrigger className="h-16 text-lg font-bold bg-gradient-to-r from-white/80 to-slate-50/80 border-2 border-slate-200 focus:border-emerald-500 shadow-xl">
+                            <SelectValue placeholder="اختر شكل العمود" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white/95 backdrop-blur-md border-emerald-200 shadow-2xl rounded-3xl">
+                            <SelectItem value="square" className="text-lg py-3">
+                              <div className="flex items-center gap-3">
+                                <Square className="w-5 h-5" />
+                                <span>مربع</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="rectangle" className="text-lg py-3">
+                              <div className="flex items-center gap-3">
+                                <RectangleHorizontal className="w-5 h-5" />
+                                <span>مستطيل</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="circular" className="text-lg py-3">
+                              <div className="flex items-center gap-3">
+                                <Circle className="w-5 h-5" />
+                                <span>دائري</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {renderCalculationFormula()}
+
+                      {/* استيراد الأبعاد */}
+                      <div className="space-y-4">
+                        <Label className="text-lg font-bold text-slate-900">إجراءات سريعة</Label>
                         <Button
                           onClick={importColumnDimensions}
                           variant="outline"
-                          className="h-14 border-2 border-blue-300 hover:border-blue-900 hover:bg-blue-900 hover:text-white font-bold transition-all duration-300"
+                          className="w-full h-14 border-2 border-blue-300 hover:border-blue-900 hover:bg-blue-900 hover:text-white font-bold transition-all duration-300"
                         >
                           <Download className="w-5 h-5 ml-2" />
-                          استيراد أبعاد
+                          استيراد أبعاد من شروش الأعمدة
                         </Button>
                       </div>
+
+                      {/* حقول الإدخال حسب الشكل */}
+                      <div className="space-y-4">
+                        {renderSimilarColumnsFields()}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  <Separator className="my-6" />
+                  {/* الأعمدة المختلفة */}
+                  {areSimilar === 'different' && (
+                    <>
+                      <div className="space-y-4">
+                        {renderCalculationFormula()}
+                      </div>
 
-                  {/* عرض الأعمدة المضافة */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-lg font-bold text-slate-900">
-                        الأعمدة المضافة ({columns.length})
-                      </Label>
-                      <div className="flex items-center gap-3">
-                        {columns.length > 0 && (
-                          <>
-                            <Badge variant="outline" className="font-bold">
-                              المجموع: {totalVolume.toFixed(3)} م³
-                            </Badge>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <Label className="text-lg font-bold text-slate-900">اختيار شكل العمود للإضافة</Label>
+                          <Select
+                            value={selectedShape}
+                            onValueChange={(value: 'square' | 'rectangle' | 'circular') => setSelectedShape(value)}
+                          >
+                            <SelectTrigger className="h-16 text-lg font-bold bg-gradient-to-r from-white/80 to-slate-50/80 border-2 border-slate-200 focus:border-emerald-500 shadow-xl">
+                              <SelectValue placeholder="اختر شكل العمود" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white/95 backdrop-blur-md border-emerald-200 shadow-2xl rounded-3xl">
+                              <SelectItem value="square" className="text-lg py-3">
+                                <div className="flex items-center gap-3">
+                                  <Square className="w-5 h-5" />
+                                  <span>عمود مربع</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="rectangle" className="text-lg py-3">
+                                <div className="flex items-center gap-3">
+                                  <RectangleHorizontal className="w-5 h-5" />
+                                  <span>عمود مستطيل</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="circular" className="text-lg py-3">
+                                <div className="flex items-center gap-3">
+                                  <Circle className="w-5 h-5" />
+                                  <span>عمود دائري</span>
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-4">
+                          <Label className="text-lg font-bold text-slate-900">إجراءات سريعة</Label>
+                          <div className="flex gap-4">
                             <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={removeAllColumns}
-                              className="h-10 px-4 font-bold gap-2"
+                              onClick={addDifferentColumn}
+                              className="flex-1 h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold"
                             >
-                              <Trash2 className="w-4 h-4" />
-                              حذف الكل
+                              <Plus className="w-5 h-5 ml-2" />
+                              إضافة عمود
                             </Button>
-                          </>
+                            <Button
+                              onClick={importColumnDimensions}
+                              variant="outline"
+                              className="h-14 border-2 border-blue-300 hover:border-blue-900 hover:bg-blue-900 hover:text-white font-bold transition-all duration-300"
+                            >
+                              <Download className="w-5 h-5 ml-2" />
+                              استيراد أبعاد
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator className="my-6" />
+
+                      {/* عرض الأعمدة المضافة للمختلفة */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-lg font-bold text-slate-900">
+                            الأعمدة المضافة ({differentColumns.length})
+                          </Label>
+                          <div className="flex items-center gap-3">
+                            {differentColumns.length > 0 && (
+                              <>
+                                <Badge variant="outline" className="font-bold">
+                                  المجموع: {differentResults.totalVolume.toFixed(3)} م³
+                                </Badge>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={removeAllDifferentColumns}
+                                  className="h-10 px-4 font-bold gap-2"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  حذف الكل
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {differentColumns.length === 0 ? (
+                          <div className="text-center py-12 border-2 border-dashed border-slate-300 rounded-2xl">
+                            <Columns className="w-16 h-16 mx-auto text-slate-400 mb-4" />
+                            <p className="text-lg text-slate-600">لم تتم إضافة أي أعمدة بعد</p>
+                            <p className="text-slate-500">استخدم زر "إضافة عمود" للبدء</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                            {differentColumns.map((column) => {
+                              const ShapeIcon = getShapeIcon(column.shape);
+                              return (
+                                <Card key={column.id} className="border-2 border-slate-200 hover:border-emerald-300 transition-colors">
+                                  <CardContent className="p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                      <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-emerald-100 rounded-xl">
+                                          <ShapeIcon className="w-5 h-5 text-emerald-600" />
+                                        </div>
+                                        <div>
+                                          <h4 className="font-bold text-slate-900">
+                                            عمود #{column.id} - {getShapeName(column.shape)}
+                                          </h4>
+                                          <p className="text-sm text-slate-500">
+                                            الحجم: {column.volume.toFixed(3)} م³
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        onClick={() => removeDifferentColumn(column.id)}
+                                        className="shrink-0"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                      {column.shape === 'square' && (
+                                        <>
+                                          <InputField
+                                            id={`length-${column.id}`}
+                                            label="الطول"
+                                            value={column.length || ''}
+                                            onChange={(value) => updateDifferentColumn(column.id, 'length', value)}
+                                            unit="متر"
+                                            icon={Ruler}
+                                          />
+                                          <InputField
+                                            id={`width-${column.id}`}
+                                            label="العرض"
+                                            value={column.width || ''}
+                                            onChange={(value) => updateDifferentColumn(column.id, 'width', value)}
+                                            unit="متر"
+                                            icon={Ruler}
+                                          />
+                                        </>
+                                      )}
+
+                                      {column.shape === 'rectangle' && (
+                                        <>
+                                          <InputField
+                                            id={`length-${column.id}`}
+                                            label="الطول"
+                                            value={column.length || ''}
+                                            onChange={(value) => updateDifferentColumn(column.id, 'length', value)}
+                                            unit="متر"
+                                            icon={Ruler}
+                                          />
+                                          <InputField
+                                            id={`width-${column.id}`}
+                                            label="العرض"
+                                            value={column.width || ''}
+                                            onChange={(value) => updateDifferentColumn(column.id, 'width', value)}
+                                            unit="متر"
+                                            icon={Ruler}
+                                          />
+                                        </>
+                                      )}
+
+                                      {column.shape === 'circular' && (
+                                        <InputField
+                                          id={`diameter-${column.id}`}
+                                          label="القطر"
+                                          value={column.diameter || ''}
+                                          onChange={(value) => updateDifferentColumn(column.id, 'diameter', value)}
+                                          unit="متر"
+                                          icon={Ruler}
+                                        />
+                                      )}
+
+                                      <InputField
+                                        id={`height-${column.id}`}
+                                        label="الارتفاع"
+                                        value={column.height || ''}
+                                        onChange={(value) => updateDifferentColumn(column.id, 'height', value)}
+                                        unit="متر"
+                                        icon={Ruler}
+                                      />
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
-                    </div>
-
-                    {columns.length === 0 ? (
-                      <div className="text-center py-12 border-2 border-dashed border-slate-300 rounded-2xl">
-                        <Columns className="w-16 h-16 mx-auto text-slate-400 mb-4" />
-                        <p className="text-lg text-slate-600">لم تتم إضافة أي أعمدة بعد</p>
-                        <p className="text-slate-500">استخدم زر "إضافة عمود" للبدء</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-                        {columns.map((column) => {
-                          const ShapeIcon = getShapeIcon(column.shape);
-                          return (
-                            <Card key={column.id} className="border-2 border-slate-200 hover:border-emerald-300 transition-colors">
-                              <CardContent className="p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-emerald-100 rounded-xl">
-                                      <ShapeIcon className="w-5 h-5 text-emerald-600" />
-                                    </div>
-                                    <div>
-                                      <h4 className="font-bold text-slate-900">
-                                        عمود #{column.id} - {getShapeName(column.shape)}
-                                      </h4>
-                                      <p className="text-sm text-slate-500">
-                                        الحجم: {column.volume.toFixed(3)} م³
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <Button
-                                    variant="destructive"
-                                    size="icon"
-                                    onClick={() => removeColumn(column.id)}
-                                    className="shrink-0"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                  {column.shape === 'square' && (
-                                    <>
-                                      <InputField
-                                        id={`length-${column.id}`}
-                                        label="الطول"
-                                        value={column.length || ''}
-                                        onChange={(value) => updateColumn(column.id, 'length', value)}
-
-                                        unit="متر"
-                                        icon={Ruler}
-                                      />
-                                      <InputField
-                                        id={`width-${column.id}`}
-                                        label="العرض"
-                                        value={column.width || ''}
-                                        onChange={(value) => updateColumn(column.id, 'width', value)}
-
-                                        unit="متر"
-                                        icon={Ruler}
-                                      />
-                                    </>
-                                  )}
-
-                                  {column.shape === 'rectangle' && (
-                                    <>
-                                      <InputField
-                                        id={`length-${column.id}`}
-                                        label="الطول"
-                                        value={column.length || ''}
-                                        onChange={(value) => updateColumn(column.id, 'length', value)}
-
-                                        unit="متر"
-                                        icon={Ruler}
-                                      />
-                                      <InputField
-                                        id={`width-${column.id}`}
-                                        label="العرض"
-                                        value={column.width || ''}
-                                        onChange={(value) => updateColumn(column.id, 'width', value)}
-
-                                        unit="متر"
-                                        icon={Ruler}
-                                      />
-                                    </>
-                                  )}
-
-                                  {column.shape === 'circular' && (
-                                    <InputField
-                                      id={`diameter-${column.id}`}
-                                      label="القطر"
-                                      value={column.diameter || ''}
-                                      onChange={(value) => updateColumn(column.id, 'diameter', value)}
-
-                                      unit="متر"
-                                      icon={Ruler}
-                                    />
-                                  )}
-
-                                  <InputField
-                                    id={`height-${column.id}`}
-                                    label="الارتفاع"
-                                    value={column.height || ''}
-                                    onChange={(value) => updateColumn(column.id, 'height', value)}
-
-                                    unit="متر"
-                                    icon={Ruler}
-                                  />
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -807,8 +1015,7 @@ export default function ColumnsConcretePage() {
             <div className="flex flex-col lg:flex-row gap-4 pt-4">
               <Button
                 onClick={calculateConcrete}
-                disabled={columns.length === 0}
-                className="flex-1 h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden disabled:opacity-50"
+                className="flex-1 h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden"
               >
                 <span className="relative z-10 flex items-center gap-4">
                   <Calculator className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
@@ -819,12 +1026,12 @@ export default function ColumnsConcretePage() {
 
               <Button
                 onClick={() => saveToReports(false)}
-                disabled={columns.length === 0 || saving}
+                disabled={saving || totalAllColumns.totalCount === 0}
                 className="flex-1 h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:via-teal-700 hover:to-blue-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden disabled:opacity-50"
               >
                 <span className="relative z-10 flex items-center gap-4">
                   <CheckCircle2 className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-                  {saving ? 'جاري الحفظ...' : 'حفظ وتحميل إلى التقارير'}
+                  {saving ? 'جاري الحفظ...' : 'حفظ جميع النتائج'}
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </Button>
@@ -849,82 +1056,143 @@ export default function ColumnsConcretePage() {
                     <TrendingUp className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold">النتائج الهندسية</CardTitle>
-
+                    <CardTitle className="text-xl font-bold">النتائج الشاملة</CardTitle>
+                    <CardDescription className="text-white opacity-90">
+                      إجمالي جميع الأعمدة المتشابهة والمختلفة
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-6 pt-0">
-                {columns.length > 0 ? (
+                {/* خرسانة الأعمدة المتشابهة */}
+                {similarResults.count > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-bold text-emerald-900 text-lg flex items-center gap-2">
+                        <Layers className="w-5 h-5 text-emerald-600" />
+                        خرسانة الأعمدة المتشابهة:
+                      </h4>
+                    </div>
+                    <div className="group p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-2xl hover:shadow-lg transition-all duration-300">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center gap-2">
+                          {similarColumns.shape === 'square' && <Square className="w-5 h-5 text-emerald-600" />}
+                          {similarColumns.shape === 'rectangle' && <RectangleHorizontal className="w-5 h-5 text-blue-600" />}
+                          {similarColumns.shape === 'circular' && <Circle className="w-5 h-5 text-purple-600" />}
+                          <span className="font-semibold text-emerald-900">
+                            {getShapeName(similarColumns.shape)} ({similarResults.count} عمود)
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-black text-xl text-emerald-900">
+                            {similarResults.volume.toFixed(3)} م³
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-emerald-700 mt-1">
+                        حجم العمود الواحد: {(similarResults.volume / similarResults.count).toFixed(3)} م³
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* خرسانة الأعمدة المختلفة */}
+                {differentResults.totalCount > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-bold text-blue-900 text-lg flex items-center gap-2">
+                        <Columns className="w-5 h-5 text-blue-600" />
+                        خرسانة الأعمدة المختلفة:
+                      </h4>
+                    </div>
+                    <div className="group p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl hover:shadow-lg transition-all duration-300">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-semibold text-blue-900">
+                          {differentResults.totalCount} عمود مختلف
+                        </span>
+                        <div className="text-right">
+                          <div className="font-black text-xl text-blue-900">
+                            {differentResults.totalVolume.toFixed(3)} م³
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-blue-700 mt-1">
+                        متوسط الحجم: {(differentResults.totalVolume / differentResults.totalCount).toFixed(3)} م³ لكل عمود
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* المجموع الكلي */}
+                {totalAllColumns.totalCount > 0 ? (
                   <div className="space-y-6">
                     {/* Total Volume Result */}
                     <div className="group relative">
                       <div className="absolute inset-0 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 rounded-3xl blur-xl -z-10 opacity-75 group-hover:opacity-100 transition-all duration-500" />
                       <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white p-8 lg:p-10 rounded-2xl shadow-2xl border border-white/40 backdrop-blur-md text-center group-hover:shadow-3xl group-hover:-translate-y-1 transition-all duration-700">
                         <div className="w-20 h-20 mx-auto mb-6 bg-white/30 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-all duration-500">
-                          <Calculator className="w-10 h-10 text-white drop-shadow-2xl" />
+                          <Equal className="w-10 h-10 text-white drop-shadow-2xl" />
                         </div>
                         <div className="space-y-3">
                           <Label className="text-indigo-100 font-bold text-lg tracking-wide">
-                            إجمالي خرسانة الأعمدة
+                            المجموع الكلي النهائي
                           </Label>
                           <div className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-white via-indigo-50 to-white bg-clip-text text-transparent drop-shadow-3xl leading-none">
-                            {totalVolume.toLocaleString('en-US', {
+                            {totalAllColumns.totalVolume.toLocaleString('en-US', {
                               minimumFractionDigits: 3,
                               maximumFractionDigits: 3
                             })}
                           </div>
                           <div className="text-lg font-bold text-indigo-100 tracking-wider">متر مكعب</div>
-                          <div className="text-indigo-200 text-base font-medium">{columns.length} عمود</div>
+                          <div className="text-indigo-200 text-base font-medium">
+                            {totalAllColumns.totalCount} عمود
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Results Summary */}
+                    {/* عملية الجمع */}
                     <Card className="border-0 bg-gradient-to-r from-slate-50/80 to-indigo-50/80 backdrop-blur-sm overflow-hidden">
                       <CardContent className="p-0 pt-4 pb-4">
                         <div className="grid grid-cols-1 gap-3">
-                          {[
-                            {
-                              label: 'عدد الأعمدة',
-                              value: `${columns.length} عمود`,
-                              color: 'from-emerald-400 to-teal-400',
-                              highlight: true
-                            },
-                            {
-                              label: 'المجموع الكلي للخرسانة',
-                              value: `${totalVolume.toFixed(3)} م³`,
-                              color: 'from-indigo-500 to-purple-500',
-                              highlight: true
-                            },
-                            {
-                              label: 'متوسط الحجم للعمود',
-                              value: `${(totalVolume / columns.length).toFixed(3)} م³`,
-                              color: 'from-blue-500 to-cyan-500'
-                            },
-                          ].map(({ label, value, color, highlight }, index) => (
-                            <div
-                              key={index}
-                              className={`group p-6 bg-gradient-to-r ${highlight
-                                ? 'from-indigo-50 to-purple-50 border-2 border-indigo-200'
-                                : 'from-white/60 hover:from-white'
-                                } rounded-2xl ${highlight
-                                  ? 'border-indigo-200'
-                                  : 'border-slate-200 hover:border-indigo-300'
-                                } hover:shadow-lg transition-all duration-300 flex items-center justify-between`}
-                            >
-                              <span className={`font-bold ${highlight
-                                ? 'text-indigo-900 text-lg'
-                                : 'text-slate-800 text-base'
-                                }`}>
-                                {label}:
-                              </span>
-                              <span className={`font-black ${highlight ? 'text-xl' : 'text-lg'
-                                } bg-gradient-to-r ${color} bg-clip-text text-transparent px-4 py-1 rounded-xl shadow-lg group-hover:scale-105 transition-transform duration-300`}>
-                                {value}
-                              </span>
+                          {/* معادلة الجمع */}
+                          <div className="group p-4 bg-gradient-to-r from-white to-slate-50 border border-slate-200 rounded-xl hover:shadow-lg transition-all duration-300">
+                            <div className="text-center">
+                              <div className="text-sm text-slate-600 mb-2">عملية الجمع:</div>
+                              <div className="flex items-center justify-center gap-3">
+                                <div className="text-center">
+                                  <div className="font-bold text-emerald-700">المتشابهة</div>
+                                  <div className="font-semibold text-emerald-900">{similarResults.volume.toFixed(3)} م³</div>
+                                </div>
+                                <Plus className="w-4 h-4 text-slate-500" />
+                                <div className="text-center">
+                                  <div className="font-bold text-blue-700">المختلفة</div>
+                                  <div className="font-semibold text-blue-900">{differentResults.totalVolume.toFixed(3)} م³</div>
+                                </div>
+                                <Equal className="w-4 h-4 text-slate-500" />
+                                <div className="text-center">
+                                  <div className="font-bold text-indigo-700">المجموع</div>
+                                  <div className="font-semibold text-indigo-900">{totalAllColumns.totalVolume.toFixed(3)} م³</div>
+                                </div>
+                              </div>
                             </div>
-                          ))}
+                          </div>
+
+                          {/* القيمة التي ستخزن في التقرير */}
+                          <div className="group p-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-2xl mt-4 hover:shadow-lg transition-all duration-300">
+                            <div className="flex items-center gap-3 mb-3">
+                              <FileText className="w-5 h-5 text-indigo-600" />
+                              <h4 className="font-bold text-indigo-900 text-lg">القيمة التي ستخزن في التقرير:</h4>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-black text-2xl bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                                {totalAllColumns.totalVolume.toFixed(3)} م³
+                              </div>
+                              <p className="text-sm text-indigo-600 mt-2">
+                                هذه القيمة النهائية سيتم حفظها في تقرير الكميات
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -932,11 +1200,13 @@ export default function ColumnsConcretePage() {
                 ) : (
                   <div className="text-center py-16 px-4">
                     <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center shadow-xl backdrop-blur-sm border-2 border-slate-200">
-                      <Columns className="w-12 h-12 text-slate-400" />
+                      <Equal className="w-12 h-12 text-slate-400" />
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-800 mb-4">إضافة الأعمدة</h3>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-4">
+                      إجمالي جميع الأعمدة
+                    </h3>
                     <p className="text-lg text-slate-600 max-w-md mx-auto leading-relaxed">
-                      اختر شكل العمود وأضفه لبدء الحسابات
+                      ستظهر هنا نتيجة الأعمدة المتشابهة والمختلفة ومجموعهما الكلي
                     </p>
                   </div>
                 )}
@@ -981,21 +1251,7 @@ export default function ColumnsConcretePage() {
               إلغاء
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                // إعادة الحساب ثم الحفظ مع حذف التقرير السابق
-                setColumns(prev => prev.map(column => {
-                  const volume = calculateColumnVolume(
-                    column.shape,
-                    parseFloat(column.length || '0'),
-                    parseFloat(column.width || '0'),
-                    parseFloat(column.diameter || '0'),
-                    parseFloat(column.height || '0')
-                  );
-                  return { ...column, volume };
-                }));
-                setError(null);
-                saveToReports(true);
-              }}
+              onClick={() => saveToReports(true)}
               className="flex-1 h-12 bg-amber-600 hover:bg-amber-700 text-white text-base font-medium"
             >
               إعادة الحسابات
