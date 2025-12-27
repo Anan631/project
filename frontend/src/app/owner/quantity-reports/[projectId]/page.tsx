@@ -204,7 +204,6 @@ export default function OwnerQuantityReportsPage() {
               </div>
               <div class="info-boxes">
                 <div class="info-box"><label>نوع الحساب</label><div class="value">${results?.type === 'similar' ? 'قواعد متشابهة' : 'قواعد مختلفة'}</div></div>
-                <div class="info-box"><label>قطر القضيب</label><div class="value">${inputs?.barDiameter || 'N/A'} ملم</div></div>
               </div>
               ${results?.type === 'similar' ? `
                 <div class="section-title">معلومات القواعد</div>
@@ -212,14 +211,6 @@ export default function OwnerQuantityReportsPage() {
                   <tr><td>${results.numberOfFoundations || 0}</td><td>عدد القواعد</td></tr>
                   <tr><td>${results.foundationLength || 0} متر</td><td>طول القاعدة</td></tr>
                   <tr><td>${results.foundationWidth || 0} متر</td><td>عرض القاعدة</td></tr>
-                  <tr><td>${inputs?.uSteelSpacing || 0} متر</td><td>المسافة بين حديد U</td></tr>
-                </tbody></table>
-                <div class="section-title">نتائج حديد U</div>
-                <table><thead><tr><th>القيمة</th><th>البيان</th></tr></thead><tbody>
-                  <tr><td>${results.uSteelCount || 0} قطعة</td><td>عدد قطع حديد U</td></tr>
-                  <tr><td>${results.bendLength?.toFixed(2) || 0} متر</td><td>طول الثنية</td></tr>
-                  <tr><td>${results.seaLength?.toFixed(2) || 0} متر</td><td>طول البحر</td></tr>
-                  <tr style="background: #d1fae5; font-weight: bold;"><td>${results.totalUSteelLength?.toFixed(2) || 0} متر</td><td>الطول الكلي لحديد U</td></tr>
                 </tbody></table>
                 <div class="section-title">التسليح العلوي والسفلي</div>
                 <table><thead><tr><th>طول القضيب (م)</th><th>عدد القضبان</th><th>نوع التسليح</th></tr></thead><tbody>
@@ -233,8 +224,6 @@ export default function OwnerQuantityReportsPage() {
                     <table><thead><tr><th>القيمة</th><th>البيان</th></tr></thead><tbody>
                       <tr><td>${foundation.foundationLength || 0} متر</td><td>الطول</td></tr>
                       <tr><td>${foundation.foundationWidth || 0} متر</td><td>العرض</td></tr>
-                      <tr><td>${foundation.uSteelCount || 0} قطعة</td><td>عدد قطع حديد U</td></tr>
-                      <tr><td>${foundation.totalUSteelLength?.toFixed(2) || 0} متر</td><td>الطول الكلي لحديد U</td></tr>
                     </tbody></table>
                     
                     <div class="section-title" style="margin-top: 20px; font-size: 18px;">التسليح العلوي والسفلي</div>

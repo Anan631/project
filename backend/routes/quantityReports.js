@@ -347,13 +347,12 @@ router.get('/owner/:ownerEmail/project/:projectId', async (req, res) => {
       });
     }
 
-    // Find reports for this project sent to this owner (not deleted)
+    // Find all reports for this project (not deleted)
+    // The owner can see all reports for their projects, not just the ones sent to them
     const reports = await QuantityReport.find({
       projectId,
-      ownerEmail: ownerEmail,
-      sentToOwner: true,
       deleted: { $ne: true }
-    }).sort({ sentToOwnerAt: -1 });
+    }).sort({ updatedAt: -1 });
 
     console.log(`✅ Found ${reports.length} reports for owner ${ownerEmail} and project ${projectId}`);
     return res.json({ success: true, reports, project });
