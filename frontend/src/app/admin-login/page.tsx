@@ -516,11 +516,7 @@ export default function AdminLoginPage() {
           </div>
           
           {/* نص تحذيري في الأسفل */}
-          <div className="mt-6 text-center">
-            <p className="text-xs text-red-400/70 max-w-md mx-auto px-2">
-              تحذير: هذا نظام حساس للغاية. الدخول غير المصرح به يعتبر انتهاكًا أمنيًا وسيتم التعامل معه وفقًا للقوانين واللوائح المعمول بها.
-            </p>
-          </div>
+          
         </div>
       </div>
     </div>
