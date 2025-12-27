@@ -15,6 +15,16 @@ const Footer = () => {
   const isLoadingSettings = isLoading;
   const currentYear = new Date().getFullYear();
 
+  // Check if user is logged in
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check localStorage for user session
+    const userId = localStorage.getItem('userId');
+    const userRole = localStorage.getItem('userRole');
+    setIsLoggedIn(!!(userId && userRole));
+  }, []);
+
   const quickLinks = [
     { key: 'home', href: '/', label: 'الرئيسية' },
     { key: 'about', href: '/about', label: 'عن الموقع' },
@@ -23,6 +33,7 @@ const Footer = () => {
     {
       key: 'create-account',
       isCustom: true,
+      hideWhenLoggedIn: true,
       label: (
         <>
           إنشاء حساب كـ{' '}
@@ -39,6 +50,7 @@ const Footer = () => {
     {
       key: 'user-login',
       isCustom: true,
+      hideWhenLoggedIn: true,
       label: (
         <>
           تسجيل الدخول كـ{' '}
@@ -52,8 +64,11 @@ const Footer = () => {
         </>
       ),
     },
-    { key: 'admin-login', href: '/admin-login', label: 'تسجيل دخول المدير' },
+    { key: 'admin-login', href: '/admin-login', label: 'تسجيل دخول المدير', hideWhenLoggedIn: true },
   ];
+
+  // Filter out links that should be hidden when logged in
+  const visibleQuickLinks = quickLinks.filter(link => !(link.hideWhenLoggedIn && isLoggedIn));
 
   const socialLinks = [
     { name: 'Instagram', href: 'https://www.instagram.com/a.w.samarah3/', icon: Instagram, hoverBg: 'hover:bg-gradient-to-br hover:from-pink-500 hover:to-red-500' },
@@ -107,7 +122,7 @@ const Footer = () => {
             </h4>
             <nav>
               <ul className="space-y-3 text-sm">
-                {quickLinks.map((link) => (
+                {visibleQuickLinks.map((link) => (
                   <li key={link.key}>
                     {link.isCustom ? (
                       <div className="group flex items-center justify-center lg:justify-start gap-2 text-gray-200 py-2">
