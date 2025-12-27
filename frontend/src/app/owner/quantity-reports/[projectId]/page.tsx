@@ -1599,38 +1599,157 @@ export default function OwnerQuantityReportsPage() {
                       </tr>
                     `
                   : `
-                      <tr>
-                        <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
-                        <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
-                        <td>كمية خرسانة النظافة</td>
-                      </tr>
-                      <tr>
-                        <td>${report.concreteData.foundationsVolume?.toFixed(2) || 0} م³</td>
-                        <td>${report.concreteData.foundationsVolume?.toFixed(2) || 0} م³</td>
-                        <td>كمية خرسانة القواعد</td>
-                      </tr>
-                      ${(report.concreteData.groundSlabVolume && report.concreteData.groundSlabVolume > 0) ? `
-                      <tr>
-                        <td>${report.concreteData.groundSlabVolume.toFixed(2)} م³</td>
-                        <td>${report.concreteData.groundSlabVolume.toFixed(2)} م³</td>
-                        <td>كمية خرسانة أرضية المبنى</td>
-                      </tr>
-                      ` : ''}
-                      <tr>
-                        <td>${(() => {
+            </tbody>
+            </table>
+
+            <!-- قسم القواعد -->
+            <div class="section-header" style="background: linear-gradient(135deg, #f97316, #ea580c); color: white; padding: 15px 20px; border-radius: 10px 10px 0 0; margin-top: 30px;">
+              <h3 style="margin: 0; font-size: 22px; font-weight: 700;">📐 بيانات القواعد</h3>
+            </div>
+            <table style="margin-bottom: 0; border-radius: 0 0 10px 10px;">
+              <thead>
+                <tr>
+                  <th>الإجمالي</th>
+                  <th>الكمية</th>
+                  <th>البند</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>${report.concreteData.foundationsVolume?.toFixed(2) || 0} م³</td>
+                  <td>${report.concreteData.foundationsVolume?.toFixed(2) || 0} م³</td>
+                  <td>حجم خرسانة القواعد</td>
+                </tr>
+                ${report.concreteData.numberOfFoundations ? `
+                <tr>
+                  <td>${report.concreteData.numberOfFoundations}</td>
+                  <td>${report.concreteData.numberOfFoundations}</td>
+                  <td>عدد القواعد</td>
+                </tr>
+                ` : ''}
+                ${report.concreteData.foundationDimensions ? `
+                <tr>
+                  <td>${report.concreteData.foundationDimensions}</td>
+                  <td>${report.concreteData.foundationDimensions}</td>
+                  <td>أبعاد القاعدة</td>
+                </tr>
+                ` : ''}
+                ${report.concreteData.foundationArea ? `
+                <tr>
+                  <td>${report.concreteData.foundationArea?.toFixed(2)} م²</td>
+                  <td>${report.concreteData.foundationArea?.toFixed(2)} م²</td>
+                  <td>مساحة القاعدة</td>
+                </tr>
+                ` : ''}
+                ${report.concreteData.foundationHeight ? `
+                <tr>
+                  <td>${report.concreteData.foundationHeight} متر</td>
+                  <td>${report.concreteData.foundationHeight} متر</td>
+                  <td>ارتفاع القاعدة</td>
+                </tr>
+                ` : ''}
+                ${report.concreteData.foundationShape ? `
+                <tr>
+                  <td>${report.concreteData.foundationShape}</td>
+                  <td>${report.concreteData.foundationShape}</td>
+                  <td>شكل القاعدة</td>
+                </tr>
+                ` : ''}
+                ${report.concreteData.totalLoad ? `
+                <tr>
+                  <td>${report.concreteData.totalLoad?.toFixed(2)} كيلو نيوتن</td>
+                  <td>${report.concreteData.totalLoad?.toFixed(2)} كيلو نيوتن</td>
+                  <td>الحمل الكلي على المبنى</td>
+                </tr>
+                ` : ''}
+                ${report.concreteData.loadPerFoundation ? `
+                <tr>
+                  <td>${report.concreteData.loadPerFoundation?.toFixed(2)} كيلو نيوتن</td>
+                  <td>${report.concreteData.loadPerFoundation?.toFixed(2)} كيلو نيوتن</td>
+                  <td>الحمل على القاعدة الواحدة</td>
+                </tr>
+                ` : ''}
+              </tbody>
+            </table>
+
+            <!-- قسم صبة النظافة -->
+            <div class="section-header" style="background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 15px 20px; border-radius: 10px 10px 0 0; margin-top: 30px;">
+              <h3 style="margin: 0; font-size: 22px; font-weight: 700;">🧹 بيانات صبة النظافة</h3>
+            </div>
+            <table style="margin-bottom: 0; border-radius: 0 0 10px 10px;">
+              <thead>
+                <tr>
+                  <th>الإجمالي</th>
+                  <th>الكمية</th>
+                  <th>البند</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
+                  <td>${report.concreteData.cleaningVolume?.toFixed(2) || 0} م³</td>
+                  <td>حجم صبة النظافة</td>
+                </tr>
+                ${report.concreteData.cleaningLength ? `
+                <tr>
+                  <td>${report.concreteData.cleaningLength} متر</td>
+                  <td>${report.concreteData.cleaningLength} متر</td>
+                  <td>طول صبة النظافة</td>
+                </tr>
+                ` : ''}
+                ${report.concreteData.cleaningWidth ? `
+                <tr>
+                  <td>${report.concreteData.cleaningWidth} متر</td>
+                  <td>${report.concreteData.cleaningWidth} متر</td>
+                  <td>عرض صبة النظافة</td>
+                </tr>
+                ` : ''}
+                ${report.concreteData.cleaningHeight ? `
+                <tr>
+                  <td>${report.concreteData.cleaningHeight} متر</td>
+                  <td>${report.concreteData.cleaningHeight} متر</td>
+                  <td>ارتفاع صبة النظافة</td>
+                </tr>
+                ` : ''}
+              </tbody>
+            </table>
+
+            <!-- الإجمالي الكلي -->
+            <table style="margin-top: 30px;">
+              <thead style="background: linear-gradient(135deg, #059669, #0d9488);">
+                <tr>
+                  <th>الإجمالي</th>
+                  <th>الكمية</th>
+                  <th>البند</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${(report.concreteData.groundSlabVolume && report.concreteData.groundSlabVolume > 0) ? `
+                <tr>
+                  <td>${report.concreteData.groundSlabVolume.toFixed(2)} م³</td>
+                  <td>${report.concreteData.groundSlabVolume.toFixed(2)} م³</td>
+                  <td>كمية خرسانة أرضية المبنى</td>
+                </tr>
+                ` : ''}
+                <tr style="font-weight: 900; background: linear-gradient(to right, #d4f4dd, #bbf7d0);">
+                  <td>${(() => {
                     const cleaning = report.concreteData.cleaningVolume || 0;
                     const foundations = report.concreteData.foundationsVolume || 0;
                     const groundSlab = report.concreteData.groundSlabVolume || 0;
                     return (cleaning + foundations + groundSlab).toFixed(2);
                   })()} م³</td>
-                        <td>${(() => {
+                  <td>${(() => {
                     const cleaning = report.concreteData.cleaningVolume || 0;
                     const foundations = report.concreteData.foundationsVolume || 0;
                     const groundSlab = report.concreteData.groundSlabVolume || 0;
                     return (cleaning + foundations + groundSlab).toFixed(2);
                   })()} م³</td>
-                        <td>إجمالي الخرسانة</td>
-                      </tr>
+                  <td>إجمالي الخرسانة الكلي</td>
+                </tr>
+              </tbody>
+            </table>
+            <table style="display: none;">
+              <tbody>
                     `
         }
               </tbody>

@@ -606,7 +606,7 @@ export default function FoundationCalculationPage() {
                   />
                   <InputField
                     id="floorArea"
-                    label="مساحة كل طابق"
+                    label="مساحة البلاطة"
                     value={inputs.floorArea}
                     onChange={(value) => handleInputChange('floorArea', value)}
 
