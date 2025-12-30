@@ -21,6 +21,8 @@ import {
   TrendingUp,
   Box,
   AlertCircle,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -55,8 +57,9 @@ export default function RoofConcretePage() {
   // الطوابق - تظهر فقط عند وجود ربس
   const [floorMode, setFloorMode] = useState<'single' | 'multi'>('single');
   const [floorsCount, setFloorsCount] = useState<string>('2');
-  const [buildingType, setBuildingType] = useState<string>('residential'); // نوع المبنى
-  const [liveLoadPerM2, setLiveLoadPerM2] = useState<string>('0.15'); // طن/م2 - محسوب تلقائياً فقط
+  
+  // بيانات الأسقف المتعددة
+  const [roofs, setRoofs] = useState<Array<{id: string; area: string; thickness: string}>>([]);
 
   const [saving, setSaving] = useState(false);
   const [existingReportDialog, setExistingReportDialog] = useState<{
@@ -80,86 +83,35 @@ export default function RoofConcretePage() {
   const wr = numeric(Wr);
   const hr = numeric(Hr);
   const nFloors = Math.max(0, Math.floor(numeric(floorsCount)));
-  // جلب بيانات الحمولة الحية من قاعدة البيانات
-  const [liveLoadData, setLiveLoadData] = useState<any[]>([]);
-  const [loadingLiveLoad, setLoadingLiveLoad] = useState(false);
 
-  // جلب بيانات الحمولة الحية عند تحميل المكون
-  useEffect(() => {
-    const fetchLiveLoadData = async () => {
-      setLoadingLiveLoad(true);
-      try {
-        const response = await fetch('http://localhost:5000/api/engineering-data/live-loads');
-        const data = await response.json();
-        console.log('Live load data:', data); // للتحقق من شكل البيانات
-        // التحقق إذا كانت البيانات مصفوفة، وإذا لم تكن كذلك، حاول استخراج المصفوفة من الكائن
-        if (Array.isArray(data)) {
-          setLiveLoadData(data);
-        } else if (data && Array.isArray(data.liveLoads)) {
-          setLiveLoadData(data.liveLoads);
-        } else if (data && Array.isArray(data.data)) {
-          setLiveLoadData(data.data);
-        } else {
-          console.error('Unexpected data format:', data);
-          setLiveLoadData([]);
-        }
-      } catch (error) {
-        console.error('Error fetching live load data:', error);
-        toast({ title: 'خطأ', description: 'فشل في جلب بيانات الحمولة الحية', variant: 'destructive' });
-      } finally {
-        setLoadingLiveLoad(false);
-      }
-    };
+  // كمية الخرسانة لكل سقف
+  const roofConcreteVolumes = useMemo(() => {
+    return roofs.map(roof => {
+      const area = numeric(roof.area);
+      const thickness = numeric(roof.thickness);
+      return {
+        id: roof.id,
+        volume: area * thickness,
+        area: area,
+        thickness: thickness
+      };
+    });
+  }, [roofs]);
 
-    fetchLiveLoadData();
-  }, []);
-
-  // تحديد الحمولة الحية للمتر المربع بناءً على نوع المبنى
-  const getLiveLoadPerM2 = () => {
-    // البحث عن نوع المبنى في البيانات المحملة
-    const buildingData = Array.isArray(liveLoadData) ? liveLoadData.find(item => {
-      // استخدام القيمة الإنجليزية للمقارنة
-      return item.buildingTypeEn === buildingType;
-    }) : null;
-
-    if (buildingData) {
-      // حساب القيمة الوسطية (متوسط القيمة العليا والصغرى)
-      const averageValue = (buildingData.minValue + buildingData.maxValue) / 2;
-      // وتقريبها لمنزلتين عشريتين
-      return parseFloat(averageValue.toFixed(2));
-    }
-
-    // قيم افتراضية في حالة عدم العثور على البيانات (بوحدة كيلو نيوتن/م²)
-    switch (buildingType) {
-      case 'residential':
-        return 1.5; // كيلو نيوتن/م²
-      case 'commercial':
-        return 2.5; // كيلو نيوتن/م²
-      case 'industrial':
-        return 3.5; // كيلو نيوتن/م²
-      case 'educational':
-        return 2.0; // كيلو نيوتن/م²
-      case 'hospital':
-        return 2.0; // كيلو نيوتن/م²
-      default:
-        return 1.5; // كيلو نيوتن/م²
-    }
-  };
-
-  // تحديث قيمة الحمولة الحية عند تغيير نوع المبنى
-  useEffect(() => {
-    setLiveLoadPerM2(getLiveLoadPerM2().toString());
-  }, [buildingType]);
-
-  const ql = numeric(liveLoadPerM2);
-
-  // عدد الربس = A * 5 (فقط عند وجود ربس)
+  // عدد الربس = مساحة السقف * 5 (فقط عند وجود ربس)
   const ribsCount = useMemo(() => {
-    if (roofType === 'with-ribs' && a > 0) {
-      return a * 5;
+    if (roofType === 'with-ribs') {
+      let totalArea = a; // مساحة السقف الأساسي
+      if (floorMode === 'multi' && roofs.length > 0) {
+        // في حالة الأسقف المتعددة، استخدام مجموع مساحات الأسقف
+        totalArea = roofConcreteVolumes.reduce((sum, roof) => sum + roof.area, 0);
+      }
+      if (totalArea > 0) {
+        return totalArea * 5;
+      }
     }
     return 0;
-  }, [roofType, a]);
+  }, [roofType, a, floorMode, roofs, roofConcreteVolumes]);
 
   // حجم الربس الكلي = Lr * Wr * Hr * ribsCount (فقط عند وجود ربس)
   const ribsVolume = useMemo(() => {
@@ -178,54 +130,62 @@ export default function RoofConcretePage() {
     }
     return 0;
   }, [a, t]);
+  
+  // مجموع كمية الخرسانة في جميع الأسقف
+  const totalRoofsConcrete = useMemo(() => {
+    return roofConcreteVolumes.reduce((sum, roof) => sum + roof.volume, 0);
+  }, [roofConcreteVolumes]);
 
   // كمية الخرسانة (مع الربس) = حجم السقف - حجم الربس الكلي
   // عند طابق واحد: كمية الخرسانة = (A * T) - حجم الربسات
+  // عند أكثر من طابق: كمية الخرسانة = مجموع حجم الأسقف - حجم الربسات
   const concreteWithRibs = useMemo(() => {
     if (roofType === 'with-ribs') {
+      let slabVolume = 0;
+      
+      if (floorMode === 'single') {
+        // طابق واحد: استخدام حجم السقف الأساسي
+        slabVolume = baseSlabVolume;
+      } else {
+        // أكثر من طابق: استخدام مجموع حجم الأسقف المضافة
+        slabVolume = totalRoofsConcrete;
+      }
+      
       // حساب كمية الخرسانة: حجم السقف - حجم الربسات
-      // حتى لو كانت أبعاد الربس غير مدخلة، نعرض حجم السقف كحد أدنى
-      if (baseSlabVolume > 0) {
-        const result = baseSlabVolume - ribsVolume;
-        // إذا كانت النتيجة سالبة (حجم الربسات أكبر من حجم السقف)، نرجع 0
+      if (slabVolume > 0) {
+        const result = slabVolume - ribsVolume;
+        // إذا كانت النتيجة سالبة (حجم الربسات أكتر من حجم السقف)، نرجع 0
         // وإلا نرجع النتيجة
         return Math.max(0, result);
       }
       return 0;
     }
     return 0;
-  }, [roofType, baseSlabVolume, ribsVolume]);
+  }, [roofType, floorMode, baseSlabVolume, totalRoofsConcrete, ribsVolume]);
 
   // بدون رِبس: كمية الخرسانة = A * T (لطابق واحد)
   const concreteNoRibsSingle = useMemo(() => a * t, [a, t]);
 
-  // حسابات متعددة الطوابق (تُستخدم فقط إذا floorMode === 'multi' وفقط مع الربس)
-  // الحمل الميت = مساحة السقف × سمك السقف × كثافة الخرسانة (25 كيلو نيوتن/م³)
-  const deadLoad = useMemo(() => (roofType === 'with-ribs' && floorMode === 'multi' ? a * t * 25 : 0), [roofType, floorMode, a, t]);
-  // الحمل الحي = مساحة السقف × الحمولة الحية للمتر المربع (بوحدة كيلو نيوتن/م²)
-  const liveLoad = useMemo(() => (roofType === 'with-ribs' && floorMode === 'multi' ? a * ql : 0), [roofType, floorMode, a, ql]);
-  // الحمل الكلي = الحمل الميت + الحمل الحي
-  const totalLoad = useMemo(() => (roofType === 'with-ribs' && floorMode === 'multi' ? deadLoad + liveLoad : 0), [roofType, floorMode, deadLoad, liveLoad]);
-  // كمية الخرسانة النهائية عند أكثر من طابق = (مساحة السقف × سمك السقف) + (عدد الطوابق × الحمل الكلي)
+  // كمية الخرسانة النهائية عند أكثر من طابق
   const finalConcreteMulti = useMemo(() => {
     if (roofType === 'with-ribs' && floorMode === 'multi') {
-      // كمية الخرسانة = (مساحة السقف × سمك السقف) + (عدد الطوابق × الحمل الكلي)
-      return (a * t) + (nFloors * totalLoad);
+      return totalRoofsConcrete;
     }
     return 0;
-  }, [roofType, floorMode, a, t, nFloors, totalLoad]);
+  }, [roofType, floorMode, totalRoofsConcrete]);
 
   // الإجمالي المعروض حسب الحالة
   const computedTotalConcrete = useMemo(() => {
     if (roofType === 'with-ribs') {
       // سقف مع ربس
-      if (floorMode === 'multi') return finalConcreteMulti;
+      if (floorMode === 'multi') return finalConcreteMulti; // الأسقف المتعددة فقط
       return concreteWithRibs; // طابق واحد مع ربس
     } else {
-      // سقف بدون ربس (طابق واحد فقط)
-      return concreteNoRibsSingle; // A*T
+      // سقف بدون ربس
+      if (roofs.length > 0) return totalRoofsConcrete; // الأسقف المتعددة
+      return concreteNoRibsSingle; // سقف واحد A*T
     }
-  }, [roofType, floorMode, finalConcreteMulti, concreteWithRibs, concreteNoRibsSingle]);
+  }, [roofType, floorMode, finalConcreteMulti, concreteWithRibs, concreteNoRibsSingle, roofs, totalRoofsConcrete]);
 
   // نتيجة الزر
   const [finalTotal, setFinalTotal] = useState<number>(0);
@@ -267,12 +227,6 @@ export default function RoofConcretePage() {
   };
 
   const handleCalculate = async () => {
-    // تحقق مبسط قبل الحساب
-    if (a <= 0 || t <= 0) {
-      toast({ title: 'مدخلات غير صالحة', description: 'يرجى إدخال مساحة وسمك صالحين', variant: 'destructive' });
-      return;
-    }
-
     // التحقق من حالة السقف مع الربس
     if (roofType === 'with-ribs') {
       if (lr <= 0 || wr <= 0 || hr <= 0) {
@@ -281,8 +235,37 @@ export default function RoofConcretePage() {
       }
       // التحقق من الطوابق المتعددة (فقط مع الربس)
       if (floorMode === 'multi') {
-        if (nFloors <= 0) {
-          toast({ title: 'عدد الطوابق غير صالح', description: 'يرجى إدخال عدد طوابق صحيح', variant: 'destructive' });
+        if (roofs.length === 0) {
+          toast({ title: 'الأسقف مطلوبة', description: 'يرجى إضافة سقف واحد على الأقل', variant: 'destructive' });
+          return;
+        }
+        
+        // التحقق من أن جميع الأسقف لديها مساحة وسمك
+        const invalidRoofs = roofs.filter(roof => !roof.area || !roof.thickness || numeric(roof.area) <= 0 || numeric(roof.thickness) <= 0);
+        if (invalidRoofs.length > 0) {
+          toast({ title: 'بيانات ناقصة', description: 'يرجى إكمال جميع بيانات الأسقف (المساحة والسمك)', variant: 'destructive' });
+          return;
+        }
+      } else {
+        // طابق واحد - التحقق من مساحة وسمك السقف الأساسي
+        if (a <= 0 || t <= 0) {
+          toast({ title: 'مدخلات غير صالحة', description: 'يرجى إدخال مساحة وسمك صالحين', variant: 'destructive' });
+          return;
+        }
+      }
+    } else {
+      // سقف بدون ربس
+      if (roofs.length > 0) {
+        // التحقق من الأسقف المتعددة
+        const invalidRoofs = roofs.filter(roof => !roof.area || !roof.thickness || numeric(roof.area) <= 0 || numeric(roof.thickness) <= 0);
+        if (invalidRoofs.length > 0) {
+          toast({ title: 'بيانات ناقصة', description: 'يرجى إكمال جميع بيانات الأسقف (المساحة والسمك)', variant: 'destructive' });
+          return;
+        }
+      } else {
+        // سقف واحد - التحقق من مساحة وسمك السقف الأساسي
+        if (a <= 0 || t <= 0) {
+          toast({ title: 'مدخلات غير صالحة', description: 'يرجى إدخال مساحة وسمك صالحين', variant: 'destructive' });
           return;
         }
       }
@@ -307,20 +290,34 @@ export default function RoofConcretePage() {
   };
 
   const canSave = useMemo(() => {
-    if (a <= 0 || t <= 0) return false;
-
     if (roofType === 'with-ribs') {
       // مع الربس
       if (lr <= 0 || wr <= 0 || hr <= 0) return false;
       // إذا كان متعدد الطوابق
       if (floorMode === 'multi') {
-        if (nFloors <= 0) return false;
+        if (roofs.length === 0) return false;
+        // التحقق من أن جميع الأسقف لديها بيانات صالحة
+        const validRoofs = roofs.filter(roof => roof.area && roof.thickness && numeric(roof.area) > 0 && numeric(roof.thickness) > 0);
+        return validRoofs.length === roofs.length;
+      } else {
+        // طابق واحد - التحقق من مساحة وسمك السقف الأساسي
+        if (a <= 0 || t <= 0) return false;
+      }
+    } else {
+      // سقف بدون ربس
+      if (roofs.length > 0) {
+        // التحقق من الأسقف المتعددة
+        if (roofs.length === 0) return false;
+        const validRoofs = roofs.filter(roof => roof.area && roof.thickness && numeric(roof.area) > 0 && numeric(roof.thickness) > 0);
+        return validRoofs.length === roofs.length;
+      } else {
+        // سقف واحد - التحقق من مساحة وسمك السقف الأساسي
+        if (a <= 0 || t <= 0) return false;
       }
     }
-    // بدون ربس: كمية الخرسانة = A * T
 
     return computedTotalConcrete > 0;
-  }, [a, t, roofType, lr, wr, hr, floorMode, nFloors, computedTotalConcrete]);
+  }, [a, t, roofType, lr, wr, hr, floorMode, roofs, computedTotalConcrete]);
 
   const saveToReports = async () => {
     if (!canSave) {
@@ -353,8 +350,10 @@ export default function RoofConcretePage() {
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
 
-      // استخدام finalTotal إذا كان محسوباً، وإلا استخدام computedTotalConcrete
-      const totalConcreteToSave = finalTotal > 0 ? finalTotal : computedTotalConcrete;
+      // في حالة الأسقف المتعددة مع ربس، استخدم concreteWithRibs كالنتيجة النهائية
+      const totalConcreteToSave = (roofType === 'with-ribs' && floorMode === 'multi') 
+        ? concreteWithRibs 
+        : (finalTotal > 0 ? finalTotal : computedTotalConcrete);
 
       const payload = {
         projectId,
@@ -378,16 +377,42 @@ export default function RoofConcretePage() {
               count: ribsCount,
               totalRibsVolume: ribsVolume,
               concreteWithRibs: concreteWithRibs,
+              // تفاصيل الربسات لكل سقف في حالة الأسقف المتعددة
+              roofsRibsDetails: floorMode === 'multi' ? roofConcreteVolumes.map(r => ({
+                roofArea: r.area,
+                roofThickness: r.thickness,
+                roofVolume: r.volume,
+                ribsCount: r.area * 5, // عدد الربسات في هذا السقف
+                ribsVolume: r.area * 5 * lr * wr * hr // حجم الربسات في هذا السقف
+              })) : null,
+              // حفظ عدد الربسات في جميع الحالات
+              totalRibsInAllRoofs: floorMode === 'multi' ? roofConcreteVolumes.reduce((sum, r) => sum + (r.area * 5), 0) : ribsCount,
+              // تفاصيل إضافية لعدد الربسات
+              ribsCalculationMode: floorMode, // 'single' أو 'multi'
+              ribsPerRoof: floorMode === 'multi' ? roofConcreteVolumes.map(r => ({
+                roofArea: r.area,
+                ribsCount: r.area * 5
+              })) : [{ roofArea: a, ribsCount: ribsCount }]
             } : null,
-            concreteNoRibs: roofType === 'without-ribs' ? concreteNoRibsSingle : null,
+            concreteNoRibs: roofType === 'without-ribs' ? {
+              single: concreteNoRibsSingle,
+              roofs: roofs.length > 0 ? roofConcreteVolumes.map(r => ({
+                area: r.area,
+                thickness: r.thickness,
+                volume: r.volume
+              })) : null,
+              totalConcrete: roofs.length > 0 ? totalRoofsConcrete : null,
+            } : null,
             floors: roofType === 'with-ribs' ? {
               mode: floorMode,
-              count: floorMode === 'multi' ? nFloors : 1,
-              liveLoadPerM2: floorMode === 'multi' ? ql : null,
-              deadLoad: floorMode === 'multi' ? deadLoad : null,
-              liveLoad: floorMode === 'multi' ? liveLoad : null,
-              totalLoad: floorMode === 'multi' ? totalLoad : null,
-              finalConcrete: floorMode === 'multi' ? finalConcreteMulti : null,
+              roofs: floorMode === 'multi' ? roofConcreteVolumes.map(r => ({
+                area: r.area,
+                thickness: r.thickness,
+                volume: r.volume
+              })) : null,
+              totalConcrete: floorMode === 'multi' ? totalRoofsConcrete : null,
+              // في حالة الأسقف المتعددة مع ربس، هذه هي النتيجة النهائية التي يجب تخزين
+              finalConcreteWithRibs: floorMode === 'multi' ? concreteWithRibs : null
             } : null,
           }
         },
@@ -420,6 +445,28 @@ export default function RoofConcretePage() {
     }
   };
 
+  // إضافة سقف جديد
+  const addRoof = () => {
+    const newRoof = {
+      id: Date.now().toString(),
+      area: '',
+      thickness: ''
+    };
+    setRoofs([...roofs, newRoof]);
+  };
+  
+  // تحديث بيانات سقف
+  const updateRoof = (id: string, field: 'area' | 'thickness', value: string) => {
+    setRoofs(roofs.map(roof => 
+      roof.id === id ? { ...roof, [field]: value } : roof
+    ));
+  };
+  
+  // حذف سقف
+  const removeRoof = (id: string) => {
+    setRoofs(roofs.filter(roof => roof.id !== id));
+  };
+  
   // إعادة تعيين
   const reset = () => {
     setRoofType('without-ribs');
@@ -431,7 +478,7 @@ export default function RoofConcretePage() {
     setHr('');
     setFloorMode('single');
     setFloorsCount('2');
-    setLiveLoadPerM2('2');
+    setRoofs([]);
   };
 
   return (
@@ -512,11 +559,13 @@ export default function RoofConcretePage() {
 
                   <Separator className="my-2" />
 
-                  {/* مدخلات عامة */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <InputField id="area" label="مساحة السقف" value={A} onChange={setA} unit="م²" icon={Ruler} />
-                    <InputField id="thickness" label="سمك السقف" value={T} onChange={setT} unit="م" icon={Ruler} />
-                  </div>
+                  {/* مدخلات عامة - تظهر فقط مع الربس في حالة طابق واحد */}
+                  {roofType === 'with-ribs' && floorMode === 'single' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <InputField id="area" label="مساحة السقف" value={A} onChange={setA} unit="م²" icon={Ruler} />
+                      <InputField id="thickness" label="سمك السقف" value={T} onChange={setT} unit="م" icon={Ruler} />
+                    </div>
+                  )}
 
                   {roofType === 'with-ribs' && (
                     <>
@@ -530,8 +579,18 @@ export default function RoofConcretePage() {
 
                       {/* نتائج الربس */}
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <ResultBox label="عدد الربس" value={ribsCount.toFixed(0)} suffix="" color="from-emerald-500 to-teal-500" />
-                        <ResultBox label="حجم السقف (محسوب)" value={baseSlabVolume.toFixed(3)} suffix="م³" color="from-blue-500 to-indigo-500" />
+                        <ResultBox 
+                          label={floorMode === 'multi' ? "عدد الربسات في جميع الأسقف" : "عدد الربس"} 
+                          value={ribsCount.toFixed(0)} 
+                          suffix="" 
+                          color="from-emerald-500 to-teal-500" 
+                        />
+                        <ResultBox 
+                          label="حجم السقف (محسوب)" 
+                          value={floorMode === 'single' ? baseSlabVolume.toFixed(3) : totalRoofsConcrete.toFixed(3)} 
+                          suffix="م³" 
+                          color="from-blue-500 to-indigo-500" 
+                        />
                         <ResultBox label="حجم الربس الكلي" value={ribsVolume.toFixed(3)} suffix="م³" color="from-cyan-500 to-blue-500" />
                         <ResultBox label="كمية الخرسانة (مع الربس)" value={concreteWithRibs.toFixed(3)} suffix="م³" color="from-indigo-500 to-purple-500" />
                       </div>
@@ -539,63 +598,197 @@ export default function RoofConcretePage() {
                       <Separator className="my-2" />
 
                       {/* الطوابق - تظهر فقط مع الربس */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <Label className="text-lg font-bold text-slate-900">عدد الطوابق</Label>
-                          <Select value={floorMode} onValueChange={(v: 'single' | 'multi') => setFloorMode(v)}>
-                            <SelectTrigger className="h-16 text-lg font-bold bg-gradient-to-r from-white/80 to-slate-50/80 border-2 border-slate-200 focus:border-emerald-500 shadow-xl">
-                              <SelectValue placeholder="اختر" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white/95 backdrop-blur-md border-emerald-200 shadow-2xl rounded-3xl">
-                              <SelectItem value="single" className="text-lg py-3">طابق واحد</SelectItem>
-                              <SelectItem value="multi" className="text-lg py-3">أكثر من طابق</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {floorMode === 'multi' && (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-4">
-                            <Label className="text-lg font-bold text-slate-900">نوع المبنى</Label>
-                            <Select value={buildingType} onValueChange={setBuildingType}>
+                            <Label className="text-lg font-bold text-slate-900">عدد الطوابق</Label>
+                            <Select value={floorMode} onValueChange={(v: 'single' | 'multi') => setFloorMode(v)}>
                               <SelectTrigger className="h-16 text-lg font-bold bg-gradient-to-r from-white/80 to-slate-50/80 border-2 border-slate-200 focus:border-emerald-500 shadow-xl">
-                                <SelectValue placeholder="اختر نوع المبنى" />
+                                <SelectValue placeholder="اختر" />
                               </SelectTrigger>
                               <SelectContent className="bg-white/95 backdrop-blur-md border-emerald-200 shadow-2xl rounded-3xl">
-                                {loadingLiveLoad ? (
-                                  <div className="p-4 text-center">جاري التحميل...</div>
-                                ) : liveLoadData.length > 0 ? (
-                                  liveLoadData.map((item) => (
-                                    <SelectItem key={item._id} value={item.buildingTypeEn} className="text-lg py-3">
-                                      {item.buildingType}
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <div className="p-4 text-center">لا توجد بيانات متاحة</div>
-                                )}
+                                <SelectItem value="single" className="text-lg py-3">طابق واحد</SelectItem>
+                                <SelectItem value="multi" className="text-lg py-3">أكثر من طابق</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
-                        )}
+                        </div>
 
                         {floorMode === 'multi' && (
-                          <div className="space-y-4">
-                            <InputField id="floors" label="عدد الطوابق" value={floorsCount} onChange={setFloorsCount} unit="طابق" icon={Ruler} />
+                          <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-lg font-bold text-slate-900">الأسقف المتعددة</Label>
+                              <Button
+                                onClick={addRoof}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition-all duration-300 rounded-xl"
+                              >
+                                + إضافة سقف
+                              </Button>
+                            </div>
+                            
+                            <div className="space-y-4">
+                              {roofs.map((roof, index) => (
+                                <Card key={roof.id} className="border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-blue-50">
+                                  <CardContent className="p-4">
+                                    <div className="flex items-center justify-between mb-4">
+                                      <h4 className="text-lg font-bold text-emerald-800">السقف رقم {index + 1}</h4>
+                                      {roofs.length > 1 && (
+                                        <Button
+                                          onClick={() => removeRoof(roof.id)}
+                                          variant="destructive"
+                                          size="sm"
+                                          className="bg-red-500 hover:bg-red-600"
+                                        >
+                                          حذف
+                                        </Button>
+                                      )}
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      <InputField
+                                        id={`area-${roof.id}`}
+                                        label="مساحة السقف"
+                                        value={roof.area}
+                                        onChange={(value) => updateRoof(roof.id, 'area', value)}
+                                        unit="م²"
+                                        icon={Ruler}
+                                      />
+                                      <InputField
+                                        id={`thickness-${roof.id}`}
+                                        label="سمك السقف"
+                                        value={roof.thickness}
+                                        onChange={(value) => updateRoof(roof.id, 'thickness', value)}
+                                        unit="م"
+                                        icon={Ruler}
+                                      />
+                                    </div>
+                                    {roof.area && roof.thickness && (
+                                      <div className="mt-4 p-3 bg-white rounded-xl border border-emerald-200">
+                                        <div className="text-sm font-bold text-emerald-800">
+                                          كمية الخرسانة: {(numeric(roof.area) * numeric(roof.thickness)).toFixed(3)} م³
+                                        </div>
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              ))}
+                              
+                              {roofs.length === 0 && (
+                                <div className="text-center py-8 text-slate-500">
+                                  <div className="text-lg font-medium mb-2">لا توجد أسقف مضافة</div>
+                                  <div className="text-sm">اضغط على "إضافة سقف" للبدء</div>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {roofs.length > 0 && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <ResultBox 
+                                  label="مجموع كمية الخرسانة" 
+                                  value={totalRoofsConcrete.toFixed(3)} 
+                                  suffix="م³" 
+                                  color="from-indigo-500 to-purple-500" 
+                                />
+                                <ResultBox 
+                                  label="عدد الأسقف" 
+                                  value={roofs.length.toString()} 
+                                  suffix="سقف" 
+                                  color="from-emerald-500 to-teal-500" 
+                                />
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-
-                      {floorMode === 'multi' && (
-                        <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                          <ResultBox label="الكمية النهائية" value={finalConcreteMulti.toFixed(3)} suffix="م³" color="from-indigo-500 to-purple-500" />
-                        </div>
-                      )}
                     </>
                   )}
 
                   {roofType === 'without-ribs' && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <ResultBox label="كمية الخرسانة" value={concreteNoRibsSingle.toFixed(3)} suffix="م³" color="from-rose-500 to-pink-600" />
-                    </div>
+                    <>
+                      <Separator className="my-2" />
+                      {/* الأسقف المتعددة - تظهر فقط بدون ربس */}
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-lg font-bold text-slate-900">الأسقف المتعددة</Label>
+                          <Button
+                            onClick={addRoof}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition-all duration-300 rounded-xl"
+                          >
+                            + إضافة سقف
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          {roofs.map((roof, index) => (
+                            <Card key={roof.id} className="border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-blue-50">
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between mb-4">
+                                  <h4 className="text-lg font-bold text-emerald-800">السقف رقم {index + 1}</h4>
+                                  {roofs.length > 1 && (
+                                    <Button
+                                      onClick={() => removeRoof(roof.id)}
+                                      variant="destructive"
+                                      size="sm"
+                                      className="bg-red-500 hover:bg-red-600"
+                                    >
+                                      حذف
+                                    </Button>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <InputField
+                                    id={`area-${roof.id}`}
+                                    label="مساحة السقف"
+                                    value={roof.area}
+                                    onChange={(value) => updateRoof(roof.id, 'area', value)}
+                                    unit="م²"
+                                    icon={Ruler}
+                                  />
+                                  <InputField
+                                    id={`thickness-${roof.id}`}
+                                    label="سمك السقف"
+                                    value={roof.thickness}
+                                    onChange={(value) => updateRoof(roof.id, 'thickness', value)}
+                                    unit="م"
+                                    icon={Ruler}
+                                  />
+                                </div>
+                                {roof.area && roof.thickness && (
+                                  <div className="mt-4 p-3 bg-white rounded-xl border border-emerald-200">
+                                    <div className="text-sm font-bold text-emerald-800">
+                                      كمية الخرسانة: {(numeric(roof.area) * numeric(roof.thickness)).toFixed(3)} م³
+                                    </div>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                          
+                          {roofs.length === 0 && (
+                            <div className="text-center py-8 text-slate-500">
+                              <div className="text-lg font-medium mb-2">لا توجد أسقف مضافة</div>
+                              <div className="text-sm">اضغط على "إضافة سقف" للبدء</div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {roofs.length > 0 && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <ResultBox 
+                              label="مجموع كمية الخرسانة" 
+                              value={totalRoofsConcrete.toFixed(3)} 
+                              suffix="م³" 
+                              color="from-rose-500 to-pink-600" 
+                            />
+                            <ResultBox 
+                              label="عدد الأسقف" 
+                              value={roofs.length.toString()} 
+                              suffix="سقف" 
+                              color="from-emerald-500 to-teal-500" 
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               </CardContent>
@@ -656,10 +849,16 @@ export default function RoofConcretePage() {
                     </div>
                     <div className="space-y-3">
                       <Label className="text-indigo-100 font-bold text-lg tracking-wide">
-                        إجمالي كمية الخرسانة (النتيجة النهائية)
+                        {roofType === 'with-ribs' && floorMode === 'multi' 
+                          ? "كمية الخرسانة النهائية مع الربسات" 
+                          : "إجمالي كمية الخرسانة (النتيجة النهائية)"
+                        }
                       </Label>
                       <div className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-white via-indigo-50 to-white bg-clip-text text-transparent drop-shadow-3xl leading-none">
-                        {finalTotal.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+                        {(roofType === 'with-ribs' && floorMode === 'multi' 
+                          ? concreteWithRibs 
+                          : finalTotal
+                        ).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
                       </div>
                       <div className="text-lg font-bold text-indigo-100 tracking-wider">متر مكعب</div>
                     </div>
