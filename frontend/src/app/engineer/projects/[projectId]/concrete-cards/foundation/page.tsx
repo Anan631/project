@@ -492,12 +492,19 @@ export default function FoundationCalculationPage() {
         calculationType: 'foundation',
         concreteData: {
           totalConcrete: totalVolume,
+          cleaningVolume: similarResults.generalCleaningVolume,
+          foundationsVolume: similarResults.similarFoundationsVolume + differentResults.differentFoundationsVolume,
           generalCleaningVolume: similarResults.generalCleaningVolume,
           similarFoundationsVolume: similarResults.similarFoundationsVolume,
           differentFoundationsVolume: differentResults.differentFoundationsVolume,
           totalFoundationVolume: totalVolume,
-          foundationsSimilar: foundationsSimilar === 'نعم', // آخر اختيار
-          foundationDimensions: dimensionResults.foundationDimensions,
+          foundationsSimilar: foundationsSimilar === 'نعم',
+          // عدد القواعد المتشابهة والمختلفة
+          similarFoundationsCount: similarResults.count,
+          differentFoundationsCount: differentResults.count,
+          numberOfFoundations: similarResults.count + differentResults.count,
+          // إزالة أبعاد القاعدة من التقرير
+          // foundationDimensions: dimensionResults.foundationDimensions, // تم إزالتها
           foundationArea: dimensionResults.totalFoundationArea,
           numberOfFloors: parseFloat(dimensionInputs.numberOfFloors),
           floorArea: parseFloat(dimensionInputs.floorArea),

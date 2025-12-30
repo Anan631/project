@@ -1524,6 +1524,13 @@ export default function OwnerQuantityReportsPage() {
               </div>
             </div>
 
+            <div class="date-info" style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 16px; color: #718096; text-align: center; padding: 15px; background: #f7fafc; border-radius: 8px;">
+              <span>عدد البنود: ${report.calculationType === 'column-footings' || report.calculationType === 'columns' || report.calculationType === 'roof' || report.calculationType === 'ground-bridges' || report.calculationType === 'ground-slab' ? '1' : '3'}</span>
+              <span>تاريخ التقرير: ${report.createdAt ? new Date(report.createdAt).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              <span>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            </div>
+
+            ${report.calculationType !== 'foundation' ? `
             <table>
               <thead>
                 <tr>
@@ -1598,9 +1605,10 @@ export default function OwnerQuantityReportsPage() {
                         <td>إجمالي الخرسانة</td>
                       </tr>
                     `
-                  : `
-            </tbody>
+                  : ''}
+              </tbody>
             </table>
+            ` : ''}
 
             <!-- قسم القواعد -->
             <div class="section-header" style="background: linear-gradient(135deg, #f97316, #ea580c); color: white; padding: 15px 20px; border-radius: 10px 10px 0 0; margin-top: 30px;">
@@ -1624,15 +1632,40 @@ export default function OwnerQuantityReportsPage() {
                 <tr>
                   <td>${report.concreteData.numberOfFoundations}</td>
                   <td>${report.concreteData.numberOfFoundations}</td>
-                  <td>عدد القواعد</td>
+                  <td>عدد القواعد الكلي</td>
                 </tr>
                 ` : ''}
-                ${report.concreteData.foundationDimensions ? `
+                ${(report.concreteData.similarFoundationsCount !== undefined && report.concreteData.similarFoundationsCount > 0) || (report.concreteData.similarFoundationsVolume !== undefined && report.concreteData.similarFoundationsVolume !== null && report.concreteData.similarFoundationsVolume > 0) ? `
+                ${report.concreteData.similarFoundationsCount !== undefined && report.concreteData.similarFoundationsCount > 0 ? `
                 <tr>
-                  <td>${report.concreteData.foundationDimensions}</td>
-                  <td>${report.concreteData.foundationDimensions}</td>
-                  <td>أبعاد القاعدة</td>
+                  <td>${report.concreteData.similarFoundationsCount}</td>
+                  <td>${report.concreteData.similarFoundationsCount}</td>
+                  <td>عدد القواعد المتشابهة</td>
                 </tr>
+                ` : ''}
+                ${report.concreteData.similarFoundationsVolume !== undefined && report.concreteData.similarFoundationsVolume !== null ? `
+                <tr>
+                  <td>${report.concreteData.similarFoundationsVolume.toFixed(2)} م³</td>
+                  <td>${report.concreteData.similarFoundationsVolume.toFixed(2)} م³</td>
+                  <td>حجم خرسانة القواعد المتشابهة</td>
+                </tr>
+                ` : ''}
+                ` : ''}
+                ${(report.concreteData.differentFoundationsCount !== undefined && report.concreteData.differentFoundationsCount > 0) || (report.concreteData.differentFoundationsVolume !== undefined && report.concreteData.differentFoundationsVolume !== null && report.concreteData.differentFoundationsVolume > 0) ? `
+                ${report.concreteData.differentFoundationsCount !== undefined && report.concreteData.differentFoundationsCount > 0 ? `
+                <tr>
+                  <td>${report.concreteData.differentFoundationsCount}</td>
+                  <td>${report.concreteData.differentFoundationsCount}</td>
+                  <td>عدد القواعد المختلفة</td>
+                </tr>
+                ` : ''}
+                ${report.concreteData.differentFoundationsVolume !== undefined && report.concreteData.differentFoundationsVolume !== null ? `
+                <tr>
+                  <td>${report.concreteData.differentFoundationsVolume.toFixed(2)} م³</td>
+                  <td>${report.concreteData.differentFoundationsVolume.toFixed(2)} م³</td>
+                  <td>حجم خرسانة القواعد المختلفة</td>
+                </tr>
+                ` : ''}
                 ` : ''}
                 ${report.concreteData.foundationArea ? `
                 <tr>
@@ -1646,13 +1679,6 @@ export default function OwnerQuantityReportsPage() {
                   <td>${report.concreteData.foundationHeight} متر</td>
                   <td>${report.concreteData.foundationHeight} متر</td>
                   <td>ارتفاع القاعدة</td>
-                </tr>
-                ` : ''}
-                ${report.concreteData.foundationShape ? `
-                <tr>
-                  <td>${report.concreteData.foundationShape}</td>
-                  <td>${report.concreteData.foundationShape}</td>
-                  <td>شكل القاعدة</td>
                 </tr>
                 ` : ''}
                 ${report.concreteData.totalLoad ? `
@@ -1756,7 +1782,7 @@ export default function OwnerQuantityReportsPage() {
             </table>
 
             <div class="total-box">
-              <label>المجموع الكلي:</label>
+              <label>${report.calculationType === 'foundation' ? 'كمية الخرسانة المطلوبة لجميع القواعد المتشابهة والمختلفة:' : 'المجموع الكلي:'}</label>
               <div class="value">
                 ${report.calculationType === 'column-footings'
           ? `${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³`
