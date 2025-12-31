@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '@/lib/api';
 import {
   Building2,
@@ -117,7 +117,7 @@ export default function FoundationCalculationPage() {
 
   // State for concrete calculation type
   const [foundationsSimilar, setFoundationsSimilar] = useState<'نعم' | 'لا'>('نعم');
-  
+
   // State for similar foundations inputs
   const [similarFoundations, setSimilarFoundations] = useState({
     cleaningLength: '',
@@ -131,9 +131,9 @@ export default function FoundationCalculationPage() {
 
   // State for different foundations inputs
   const [differentFoundations, setDifferentFoundations] = useState<Array<{
-    id: number, 
-    cleaningLength: string, 
-    cleaningWidth: string, 
+    id: number,
+    cleaningLength: string,
+    cleaningWidth: string,
     height: string,
     concreteVolume?: number
   }>>([]);
@@ -147,7 +147,7 @@ export default function FoundationCalculationPage() {
   });
 
   // --- النتائج المنفصلة (نفس طريقة الأعمدة) ---
-  
+
   // نتائج القواعد المتشابهة
   const [similarResults, setSimilarResults] = useState({
     generalCleaningVolume: 0,
@@ -211,35 +211,55 @@ export default function FoundationCalculationPage() {
   };
 
   const addDifferentFoundation = () => {
-    setDifferentFoundations(prev => [...prev, { 
-      id: nextFoundationId, 
-      cleaningLength: '', 
-      cleaningWidth: '', 
+    setDifferentFoundations(prev => [...prev, {
+      id: nextFoundationId,
+      cleaningLength: '',
+      cleaningWidth: '',
       height: '',
       concreteVolume: 0
     }]);
     setNextFoundationId(prev => prev + 1);
   };
 
-  const updateIndividualFoundation = (id: number, field: 'cleaningLength' | 'cleaningWidth' | 'height', value: string) => {
-    setIndividualFoundations(prev =>
-      prev.map(f => (f.id === id ? { ...f, [field]: value } : f))
+  // تحديث القاعدة المختلفة مع حساب الحجم الفوري (مثل الأعمدة)
+  const updateDifferentFoundation = (id: number, field: 'cleaningLength' | 'cleaningWidth' | 'height', value: string) => {
+    setDifferentFoundations((prev: Array<{ id: number; cleaningLength: string; cleaningWidth: string; height: string; concreteVolume?: number }>) =>
+      prev.map(f => {
+        if (f.id === id) {
+          const updated = { ...f, [field]: value };
+
+          // حساب الحجم الفوري لهذه القاعدة
+          const length = parseFloat(updated.cleaningLength || '0');
+          const width = parseFloat(updated.cleaningWidth || '0');
+          const height = parseFloat(updated.height || '0');
+
+          let vol = 0;
+          if (length > 0 && width > 0 && height > 0) {
+            const actualLength = Math.max(0.3, length - CONCRETE_MARGIN);
+            const actualWidth = Math.max(0.3, width - CONCRETE_MARGIN);
+            vol = actualLength * actualWidth * height;
+          }
+
+          return { ...updated, concreteVolume: vol };
+        }
+        return f;
+      })
     );
+
+    // تحديث النتائج المختلفة
+    setTimeout(calculateDifferentFoundations, 100);
   };
 
-  const removeIndividualFoundation = (id: number) => {
-    setIndividualFoundations(prev => prev.filter(f => f.id !== id));
+  const removeDifferentFoundation = (id: number) => {
+    setDifferentFoundations((prev: Array<{ id: number; cleaningLength: string; cleaningWidth: string; height: string; concreteVolume?: number }>) => prev.filter(f => f.id !== id));
+    setTimeout(calculateDifferentFoundations, 100);
   };
-  // --- End of management functions ---
 
-  const calculateResults = async () => {
+  // Calculate foundation dimensions (for the first tab)
+  const calculateFoundationDimensions = () => {
     try {
-      // Get numeric values for general cleaning concrete (if needed)
-      const cleaningLength = parseFloat(inputs.cleaningLength);
-      const cleaningWidth = parseFloat(inputs.cleaningWidth);
-      const cleaningHeight = parseFloat(inputs.cleaningHeight);
-      const numberOfFloors = parseFloat(inputs.numberOfFloors);
-      const floorArea = parseFloat(inputs.floorArea);
+      const numberOfFloors = parseFloat(dimensionInputs.numberOfFloors);
+      const floorArea = parseFloat(dimensionInputs.floorArea);
 
       if (isNaN(numberOfFloors) || isNaN(floorArea) ||
         !dimensionInputs.soilType || !dimensionInputs.buildingType || !dimensionInputs.foundationShape) {
@@ -252,34 +272,8 @@ export default function FoundationCalculationPage() {
         return;
       }
 
-      // Check if report already exists for this project and calculation type
-      try {
-        const reportsResponse = await fetch(`${API_BASE_URL}/quantity-reports/project/${projectId}`);
-        const reportsData = await reportsResponse.json();
-
-        if (reportsData.success && reportsData.reports && reportsData.reports.length > 0) {
-          const existingReport = reportsData.reports.find((r: any) => r.calculationType === 'foundation');
-
-          if (existingReport) {
-            // Show warning dialog
-            setExistingReportDialog({
-              open: true,
-              reportId: existingReport._id,
-            });
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('Could not check for existing reports:', err);
-        // Continue with calculation if check fails
-      }
-
-      // أ. حجم صبة النظافة (العامة)
-      const cleaningVolume = cleaningLength * cleaningWidth * cleaningHeight;
-
-      // ب. الحمل الكلي على المبنى
-      const loads = buildingLoads[inputs.buildingType];
-      if (!loads) {
+      const buildingType = buildingTypes.find(t => t.value === dimensionInputs.buildingType);
+      if (!buildingType) {
         setError('نوع المبنى غير معروف');
         return;
       }
@@ -297,14 +291,14 @@ export default function FoundationCalculationPage() {
       const totalFoundationArea = totalLoad / soilType.capacity;
 
       let foundationLength: number, foundationWidth: number;
-      
+
       if (dimensionInputs.foundationShape === 'مربع') {
         foundationLength = foundationWidth = Math.sqrt(totalFoundationArea);
       } else {
         foundationWidth = Math.sqrt(totalFoundationArea / 1.2);
         foundationLength = foundationWidth * 1.2;
       }
-      
+
       const foundationDimensions = `${foundationLength.toFixed(2)} × ${foundationWidth.toFixed(2)} متر`;
 
       setDimensionResults({
@@ -325,7 +319,7 @@ export default function FoundationCalculationPage() {
   };
 
   // حساب القواعد المتشابهة
-  const calculateSimilarFoundations = async () => {
+  const calculateSimilarFoundations = () => {
     let generalCleaningVolume = 0;
     let similarFoundationsVolume = 0;
 
@@ -361,13 +355,98 @@ export default function FoundationCalculationPage() {
     }
 
     if (isNaN(foundationCleaningLength) || foundationCleaningLength <= 0 ||
-        isNaN(foundationCleaningWidth) || foundationCleaningWidth <= 0) {
+      isNaN(foundationCleaningWidth) || foundationCleaningWidth <= 0) {
       setError('يرجى إدخال أبعاد صبة نظافة القاعدة (الطول والعرض)');
       return;
     }
 
+    const actualLength = Math.max(0.3, foundationCleaningLength - CONCRETE_MARGIN);
+    const actualWidth = Math.max(0.3, foundationCleaningWidth - CONCRETE_MARGIN);
+    const singleFoundationVolume = actualLength * actualWidth * foundationHeight;
+    similarFoundationsVolume = singleFoundationVolume * numberOfFoundations;
+
+    setSimilarResults({
+      generalCleaningVolume,
+      similarFoundationsVolume,
+      totalSimilarVolume: generalCleaningVolume + similarFoundationsVolume,
+      count: numberOfFoundations
+    });
+
+    setError(null);
+    toast({
+      title: 'تم حساب القواعد المتشابهة',
+      description: `إجمالي: ${(generalCleaningVolume + similarFoundationsVolume).toFixed(2)} م³`,
+    });
+  };
+
+  // حساب القواعد المختلفة
+  const calculateDifferentFoundations = () => {
+    let totalVolume = 0;
+    const totalCount = differentFoundations.length;
+
+    differentFoundations.forEach(foundation => {
+      if (foundation.concreteVolume) {
+        totalVolume += foundation.concreteVolume;
+      }
+    });
+
+    setDifferentResults({
+      differentFoundationsVolume: totalVolume,
+      count: totalCount
+    });
+  };
+
+  // تحديث الإجمالي الكلي (الذي يجمع المتشابهة والمختلفة)
+  const updateTotalAllFoundations = () => {
+    const totalVolume = similarResults.totalSimilarVolume + differentResults.differentFoundationsVolume;
+    const totalCount = similarResults.count + differentResults.count;
+
+    setTotalAllFoundations({
+      totalConcrete: totalVolume,
+      totalFoundationVolume: totalVolume,
+      totalCount
+    });
+  };
+
+  // استخدام Effect لتحديث المجموع تلقائياً عند تغيير أي من النتائج
+  useEffect(() => {
+    updateTotalAllFoundations();
+  }, [similarResults, differentResults]);
+
+  // دالة الحساب الرئيسية (عند الضغط على زر الحساب)
+  const calculateConcreteQuantity = async () => {
+    // التحقق من وجود تقرير سابق
     try {
-      // Delete existing report
+      const reportsResponse = await fetch(`${API_BASE_URL}/quantity-reports/project/${projectId}`);
+      const reportsData = await reportsResponse.json();
+
+      if (reportsData.success && reportsData.reports && reportsData.reports.length > 0) {
+        const existingReport = reportsData.reports.find((r: any) => r.calculationType === 'foundation');
+
+        if (existingReport) {
+          // Show warning dialog
+          setExistingReportDialog({
+            open: true,
+            reportId: existingReport._id,
+          });
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Could not check for existing reports:', err);
+      // Continue with calculation if check fails
+    }
+
+    if (foundationsSimilar === 'نعم') {
+      calculateSimilarFoundations();
+    } else {
+      calculateDifferentFoundations();
+    }
+  };
+
+  // دالة لحذف التقرير السابق والمتابعة
+  const handleDeleteExistingReport = async () => {
+    try {
       const deleteResponse = await fetch(`${API_BASE_URL}/quantity-reports/${existingReportDialog.reportId}`, {
         method: 'DELETE'
       });
@@ -382,9 +461,12 @@ export default function FoundationCalculationPage() {
       // Close dialog and continue with calculation
       setExistingReportDialog({ open: false, reportId: null });
 
-      // Continue with calculation by calling calculateResults again
-      // This time it won't find the report, so it will proceed
-      calculateResults();
+      // Continue with calculation
+      if (foundationsSimilar === 'نعم') {
+        calculateSimilarFoundations();
+      } else {
+        calculateDifferentFoundations();
+      }
     } catch (error) {
       console.error('Error deleting existing report:', error);
       toast({
@@ -394,8 +476,17 @@ export default function FoundationCalculationPage() {
       });
       setExistingReportDialog({ open: false, reportId: null });
       // Continue with calculation anyway
-      calculateResults();
+      if (foundationsSimilar === 'نعم') {
+        calculateSimilarFoundations();
+      } else {
+        calculateDifferentFoundations();
+      }
     }
+  };
+
+  const calculateResults = () => {
+    calculateFoundationDimensions();
+    setTimeout(calculateConcreteQuantity, 100);
   };
 
   const resetCalculation = () => {
@@ -424,18 +515,18 @@ export default function FoundationCalculationPage() {
     });
     setDifferentFoundations([]);
     setNextFoundationId(1);
-    
+
     // تصفير النتائج
     setSimilarResults({ generalCleaningVolume: 0, similarFoundationsVolume: 0, totalSimilarVolume: 0, count: 0 });
     setDifferentResults({ differentFoundationsVolume: 0, count: 0 });
     setTotalAllFoundations({ totalConcrete: 0, totalFoundationVolume: 0, totalCount: 0 });
-    
+
     setError(null);
   };
 
   const saveToReports = async () => {
     const totalVolume = totalAllFoundations.totalConcrete;
-    
+
     if (totalVolume === 0 && Object.keys(dimensionResults).length === 0) {
       toast({
         title: 'لا توجد نتائج',
@@ -476,8 +567,6 @@ export default function FoundationCalculationPage() {
           similarFoundationsCount: similarResults.count,
           differentFoundationsCount: differentResults.count,
           numberOfFoundations: similarResults.count + differentResults.count,
-          // إزالة أبعاد القاعدة من التقرير
-          // foundationDimensions: dimensionResults.foundationDimensions, // تم إزالتها
           foundationArea: dimensionResults.totalFoundationArea,
           numberOfFloors: parseFloat(dimensionInputs.numberOfFloors),
           floorArea: parseFloat(dimensionInputs.floorArea),
@@ -572,6 +661,52 @@ export default function FoundationCalculationPage() {
               <div className="absolute -inset-4 bg-gradient-to-r from-emerald-400/20 via-blue-400/10 to-transparent rounded-3xl blur-3xl -z-10 opacity-0 group-hover:opacity-100 transition-all duration-700" />
             </div>
           </div>
+
+          {/* تحذير التقرير السابق */}
+          {existingReportDialog.open && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <Card className="w-full max-w-md border-0 shadow-2xl">
+                <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+                  <CardTitle className="text-right">تحذير: يوجد تقرير سابق</CardTitle>
+                  <CardDescription className="text-white/90 text-right">
+                    يوجد تقرير سابق لحساب القواعد لهذا المشروع
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="text-right mb-6">
+                    <p className="text-slate-700 mb-4">هل تريد حذف التقرير السابق والمتابعة، أم تحديث التقرير الحالي؟</p>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <Button
+                      onClick={handleDeleteExistingReport}
+                      className="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700"
+                    >
+                      حذف التقرير السابق والمتابعة
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setExistingReportDialog({ open: false, reportId: null });
+                        if (foundationsSimilar === 'نعم') {
+                          calculateSimilarFoundations();
+                        } else {
+                          calculateDifferentFoundations();
+                        }
+                      }}
+                      variant="outline"
+                    >
+                      تحديث التقرير الحالي (إضافة النتائج الجديدة)
+                    </Button>
+                    <Button
+                      onClick={() => setExistingReportDialog({ open: false, reportId: null })}
+                      variant="ghost"
+                    >
+                      إلغاء
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 items-start">
             <div className="xl:col-span-8 space-y-6 lg:space-y-8">
@@ -675,7 +810,7 @@ export default function FoundationCalculationPage() {
 
                   <div className="pt-4">
                     <Button
-                      onClick={calculateResults}
+                      onClick={calculateFoundationDimensions}
                       className="w-full h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:via-teal-700 hover:to-blue-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden"
                     >
                       <span className="relative z-10 flex items-center gap-4">
@@ -777,7 +912,7 @@ export default function FoundationCalculationPage() {
                               icon={Hash}
                             />
                           </div>
-                          
+
                           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-4 text-right">
                             <h4 className="font-bold text-blue-900 mb-3">أبعاد صبة نظافة القاعدة</h4>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -799,7 +934,7 @@ export default function FoundationCalculationPage() {
                               />
                             </div>
                           </div>
-                          
+
                           <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-4 text-right">
                             <div className="flex items-center gap-3 mb-2 flex-row-reverse">
                               <AlertCircle className="w-5 h-5 text-amber-600" />
@@ -921,9 +1056,9 @@ export default function FoundationCalculationPage() {
                                   />
                                 </div>
                                 {f.concreteVolume && f.concreteVolume > 0 && (
-                                   <div className="text-right text-sm text-orange-700 font-medium pl-4">
-                                     حجم هذه القاعدة: {f.concreteVolume.toFixed(3)} م³
-                                   </div>
+                                  <div className="text-right text-sm text-orange-700 font-medium pl-4">
+                                    حجم هذه القاعدة: {f.concreteVolume.toFixed(3)} م³
+                                  </div>
                                 )}
                               </CardContent>
                             </Card>
@@ -941,7 +1076,7 @@ export default function FoundationCalculationPage() {
                   {/* Calculate Button */}
                   <div className="pt-4">
                     <Button
-                      onClick={calculateResults}
+                      onClick={calculateConcreteQuantity}
                       className="w-full h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden"
                     >
                       <span className="relative z-10 flex items-center gap-4">
@@ -1053,7 +1188,7 @@ export default function FoundationCalculationPage() {
                                     {similarResults.totalSimilarVolume.toFixed(2)} م³
                                   </span>
                                 </div>
-                                
+
                                 {similarResults.generalCleaningVolume > 0 && (
                                   <div className={`group p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-between flex-row-reverse`}>
                                     <span className={`font-bold text-amber-800 text-base text-right`}>صبة النظافة العامة:</span>
@@ -1062,7 +1197,7 @@ export default function FoundationCalculationPage() {
                                     </span>
                                   </div>
                                 )}
-                                
+
                                 {similarResults.similarFoundationsVolume > 0 && (
                                   <div className={`group p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-between flex-row-reverse`}>
                                     <span className={`font-bold text-blue-800 text-base text-right`}>القواعد الخرسانية:</span>
@@ -1073,7 +1208,7 @@ export default function FoundationCalculationPage() {
                                 )}
                               </>
                             )}
-                            
+
                             {differentResults.differentFoundationsVolume > 0 && (
                               <div className={`group p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl hover:shadow-lg transition-all duration-300 flex items-center justify-between flex-row-reverse`}>
                                 <span className={`font-bold text-blue-900 text-lg text-right`}>إجمالي القواعد المختلفة:</span>
