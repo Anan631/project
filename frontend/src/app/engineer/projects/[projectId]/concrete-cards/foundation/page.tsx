@@ -941,7 +941,7 @@ export default function FoundationCalculationPage() {
                   {/* Calculate Button */}
                   <div className="pt-4">
                     <Button
-                      onClick={calculateConcreteQuantity}
+                      onClick={calculateResults}
                       className="w-full h-14 text-base font-black shadow-xl hover:shadow-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 transform hover:-translate-y-1 transition-all duration-500 rounded-2xl border-0 group relative overflow-hidden"
                     >
                       <span className="relative z-10 flex items-center gap-4">

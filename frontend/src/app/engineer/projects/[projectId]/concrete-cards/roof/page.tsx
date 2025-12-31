@@ -77,6 +77,16 @@ export default function RoofConcretePage() {
     return isFinite(n) ? n : 0;
   };
 
+  // حساب أحجام الأسقف المتعددة
+  const roofConcreteVolumes = useMemo(() => {
+    return roofs.map(roof => ({
+      id: roof.id,
+      area: numeric(roof.area),
+      thickness: numeric(roof.thickness),
+      volume: numeric(roof.area) * numeric(roof.thickness)
+    }));
+  }, [roofs]);
+
   const a = numeric(A);
   const t = numeric(T);
   const vslab = numeric(Vslab);
