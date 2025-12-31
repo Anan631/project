@@ -1623,7 +1623,7 @@ export default function EngineerProjectDetailPage() {
                     <CardTitle className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                       <Wallet size={28} /> تقارير التكاليف
                     </CardTitle>
-                    <Button size="sm" onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold border-0">
+                    <Button size="sm" onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold border-0 text-gray-100">
                       <Plus size={16} className="ms-1" /> إضافة تقرير
                     </Button>
                   </CardHeader>
@@ -1652,7 +1652,7 @@ export default function EngineerProjectDetailPage() {
                         <Wallet className="h-12 w-12 mx-auto text-gray-300 mb-3" />
                         <p className="text-gray-500 text-sm mb-3">لا توجد تقارير تكاليف محفوظة لهذا المشروع بعد.</p>
                         {!isOwnerView && (
-                          <Button size="sm" onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold">
+                          <Button size="sm" onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold text-gray-100">
                             <Plus size={16} className="ms-1" /> إضافة أول تقرير
                           </Button>
                         )}
@@ -1848,7 +1848,7 @@ export default function EngineerProjectDetailPage() {
                     <GanttChartSquare className="h-16 w-16 mx-auto text-gray-300 mb-4" />
                     <p className="text-gray-500 mb-6">لا يوجد جدول زمني محدد لهذا المشروع بعد.</p>
                     {!isOwnerView && (
-                      <Button onClick={() => setIsAddTaskModalOpen(true)} className="bg-green-600 hover:bg-green-700">
+                      <Button onClick={() => setIsAddTaskModalOpen(true)} className="bg-green-600 hover:bg-green-700 text-gray-100">
                         <Plus size={18} className="ms-2" /> إضافة أول مهمة
                       </Button>
                     )}
@@ -1877,7 +1877,7 @@ export default function EngineerProjectDetailPage() {
                           onClick={toggleSelectAll}
                           variant="outline"
                           size="sm"
-                          className="border-purple-300 text-black hover:bg-green-600 hover:text-white transition-colors"
+                          className="border-purple-300 text-gray-100 hover:bg-green-600 hover:text-white transition-colors"
                         >
                           {selectedMediaIds.length === project.photos.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
                         </Button>
@@ -1895,7 +1895,7 @@ export default function EngineerProjectDetailPage() {
                       </div>
                     )}
                     {!isOwnerView && (
-                      <Button onClick={() => setIsUploadModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 shadow-md">
+                      <Button onClick={() => setIsUploadModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 shadow-md text-gray-100">
                         <UploadCloud size={18} className="ms-2" /> رفع وسائط جديدة
                       </Button>
                     )}
@@ -1989,7 +1989,7 @@ export default function EngineerProjectDetailPage() {
                     </div>
                     <p className="text-gray-600 text-lg mb-6 font-medium">لا توجد وسائط مرفوعة لهذا المشروع حالياً</p>
                     {!isOwnerView && (
-                      <Button onClick={() => setIsUploadModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 shadow-lg">
+                      <Button onClick={() => setIsUploadModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 shadow-lg text-gray-100">
                         <UploadCloud size={18} className="ms-2" /> رفع أول وسائط
                       </Button>
                     )}
@@ -2017,7 +2017,7 @@ export default function EngineerProjectDetailPage() {
                         onClick={toggleSelectAllCostReports}
                         variant="outline"
                         size="sm"
-                        className="border-teal-300 text-black hover:bg-green-600 hover:text-white transition-colors"
+                        className="border-teal-300 text-gray-100 hover:bg-green-600 hover:text-white transition-colors"
                       >
                         {selectedCostReports.length === costReports.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
                       </Button>
@@ -2035,7 +2035,7 @@ export default function EngineerProjectDetailPage() {
                     </div>
                   )}
                   {!isOwnerView && (
-                    <Button onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold">
+                    <Button onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold text-gray-100">
                       <Plus size={18} className="ms-2" /> إضافة تقرير جديد
                     </Button>
                   )}
@@ -2119,7 +2119,7 @@ export default function EngineerProjectDetailPage() {
                     <Wallet className="h-16 w-16 mx-auto text-gray-300 mb-4" />
                     <p className="text-gray-500 text-sm mb-6">لا توجد تقارير تكاليف محفوظة لهذا المشروع بعد.</p>
                     {!isOwnerView && (
-                      <Button onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold">
+                      <Button onClick={() => setIsCostReportModalOpen(true)} className="bg-teal-600 hover:bg-green-200 hover:text-black transition-colors duration-300 font-semibold text-gray-100">
                         <Plus size={18} className="ms-2" /> إضافة أول تقرير
                       </Button>
                     )}

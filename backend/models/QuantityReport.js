@@ -25,9 +25,11 @@ const quantityReportSchema = new Schema(
       buildingType: { type: String },
       foundationsSimilar: { type: Boolean },
       numberOfFoundations: { type: Number },
+      similarFoundationsCount: { type: Number }, // عدد القواعد المتشابهة
+      differentFoundationsCount: { type: Number }, // عدد القواعد المختلفة
       foundationHeight: { type: Number },
       foundationShape: { type: String },
-      foundationDimensions: { type: String },
+      foundationDimensions: { type: String }, // محفوظ ولكن لا يعرض في التقرير
       foundationArea: { type: Number },
       totalLoad: { type: Number },
       loadPerFoundation: { type: Number },
