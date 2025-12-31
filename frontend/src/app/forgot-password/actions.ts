@@ -36,21 +36,28 @@ export async function forgotPasswordAction(
 
     if (tokenResult.success && tokenResult.token && tokenResult.userId) {
       // Generate role-specific reset link
-      let resetLink = `${process.env.BASE_URL || 'http://localhost:3000'}/reset-password?token=${tokenResult.token}`;
+      const baseUrl = process.env.BASE_URL;
+      if (!baseUrl) {
+        throw new Error('BASE_URL environment variable is required');
+      }
+      
+      let resetLink = `${baseUrl}/reset-password?token=${tokenResult.token}`;
       
       if (user.role === 'ENGINEER') {
-        resetLink = `${process.env.BASE_URL || 'http://localhost:3000'}/engineer/reset-password?token=${tokenResult.token}`;
+        resetLink = `${baseUrl}/engineer/reset-password?token=${tokenResult.token}`;
       } else if (user.role === 'OWNER') {
-        resetLink = `${process.env.BASE_URL || 'http://localhost:3000'}/owner/reset-password?token=${tokenResult.token}`;
+        resetLink = `${baseUrl}/owner/reset-password?token=${tokenResult.token}`;
       }
       
       // --- SIMULATE SENDING SMS ---
       // In a real application, you would integrate with an SMS gateway like Twilio here.
       // For development, we will log the reset link to the server console.
-      console.log('--- SMS SIMULATION ---');
-      console.log(`To: ${phone}`);
-      console.log(`Message: Your password reset link is: ${resetLink}`);
-      console.log('--- END SMS SIMULATION ---');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('--- SMS SIMULATION ---');
+        console.log(`To: ${phone}`);
+        console.log(`Message: Your password reset link is: ${resetLink}`);
+        console.log('--- END SMS SIMULATION ---');
+      }
 
       await logAction('PASSWORD_RESET_SMS_SENT_SIMULATED', 'INFO', `Password reset link (simulated SMS) generated for: ${email}`, tokenResult.userId);
     }

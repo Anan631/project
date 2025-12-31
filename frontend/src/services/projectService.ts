@@ -6,7 +6,7 @@ export interface Project {
   _id?: string;
   id?: string;
   name: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export async function getProjectById(id: string): Promise<Project | null> {

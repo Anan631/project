@@ -43,7 +43,6 @@ export async function getAdminData(adminId: string) {
       message = `⚠️ ${error.message}`;
     }
 
-    console.error('Error fetching admin data:', error);
     return { success: false, message };
   }
 }

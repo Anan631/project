@@ -56,7 +56,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in ground-slab API:', error);
     return NextResponse.json({
       success: false,
       message: 'حدث خطأ في الخادم'

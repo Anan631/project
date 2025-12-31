@@ -188,7 +188,7 @@ export async function logAction(
       cache: 'no-store',
     });
   } catch (error) {
-    console.error('[db.ts] logAction: Failed to log action via API:', action, error);
+    // Silent fail - logging failures should not break the app
   }
 }
 
@@ -196,14 +196,12 @@ export async function getSystemSettings(): Promise<SystemSettingsDocument> {
   try {
     const res = await fetch(`${API_BASE_URL}/settings`, { cache: 'no-store' });
     if (!res.ok) {
-      console.warn(`[db.ts] getSystemSettings: API returned status ${res.status}`);
       throw new Error(`API error: ${res.statusText}`);
     }
     const json = await res.json();
     if (json?.settings) return json.settings;
   } catch (error) {
-    console.error('[db.ts] getSystemSettings: Failed to fetch settings via API:', error);
-    console.warn('[db.ts] getSystemSettings: Using default settings as fallback');
+    // Fallback to default settings silently
   }
   
   return {
@@ -231,7 +229,6 @@ export async function updateSystemSettings(settings: SystemSettingsDocument): Pr
     });
     
     if (!res.ok) {
-      console.error(`[db.ts] updateSystemSettings: API returned status ${res.status}`);
       return { success: false, message: 'فشل حفظ الإعدادات.' };
     }
     
@@ -243,7 +240,6 @@ export async function updateSystemSettings(settings: SystemSettingsDocument): Pr
     await logAction('SYSTEM_SETTINGS_UPDATE_SUCCESS', 'INFO', 'System settings updated.');
     return { success: true, message: 'تم حفظ الإعدادات بنجاح.' };
   } catch (error: any) {
-    console.error('[db.ts] updateSystemSettings: Failed to update settings:', error);
     await logAction('SYSTEM_SETTINGS_UPDATE_FAILURE', 'ERROR', `Error updating system settings: ${error.message}`);
     return { success: false, message: 'فشل حفظ الإعدادات.' };
   }
@@ -380,7 +376,6 @@ export async function getUserById(userId: string): Promise<{ success: boolean; u
       user: json.user
     };
   } catch (error: any) {
-    console.error('Error fetching user:', error);
     return {
       success: false,
       message: `حدث خطأ أثناء جلب بيانات المستخدم: ${error.message}`
@@ -591,7 +586,6 @@ export async function searchOwners(query: string): Promise<{ success: boolean, o
     
     return { success: true, owners };
   } catch (error: any) {
-    console.error('Error searching for owners:', error);
     await logAction('OWNERS_SEARCH_FAILURE', 'ERROR', `Error searching for owners: ${error.message}`);
     return { success: false, message: 'فشل البحث عن المالكين.' };
   }
@@ -710,22 +704,18 @@ export const sendProjectMessage = async (projectId: string, message: ChatMessage
 
 export async function addCostReport(reportData: Omit<CostReport, 'id' | 'createdAt'>): Promise<CostReport | null> {
   try {
-    console.log('[db.ts] addCostReport: sending to', `${API_BASE_URL}/reports`);
     const res = await fetch(`${API_BASE_URL}/reports`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(reportData),
     });
     const json = await res.json();
-    console.log('[db.ts] addCostReport response:', res.status, json);
     if (!res.ok || !json.success) {
-      console.error('[db.ts] addCostReport failed:', json.message || json.error);
       return null;
     }
     await logAction('COST_REPORT_ADD_SUCCESS', 'INFO', `Cost report "${reportData.reportName}" added for project ID ${reportData.projectId}.`);
     return json.report as CostReport;
   } catch (error) {
-    console.error('[db.ts] addCostReport error:', error);
     return null;
   }
 }
@@ -752,7 +742,6 @@ export async function deleteCostReport(reportId: string): Promise<{ success: boo
     await logAction('COST_REPORT_DELETE_SUCCESS', 'INFO', `Cost report ${reportId} deleted.`);
     return { success: true, message: 'تم حذف التقرير بنجاح.' };
   } catch (error: any) {
-    console.error('[db.ts] deleteCostReport error:', error);
     return { success: false, message: 'فشل حذف التقرير بسبب خطأ في الخادم.' };
   }
 }
@@ -768,7 +757,6 @@ export async function deleteAllLogs(adminUserId: string): Promise<{ success: boo
     if (!res.ok || !json.success) return { success: false, message: json.message || 'فشل حذف السجلات.' };
     return { success: true, message: 'تم حذف جميع السجلات بنجاح.' };
   } catch (error: any) {
-    console.error('[db.ts] deleteAllLogs: Failed to delete logs:', error);
     return { success: false, message: 'فشل حذف السجلات بسبب خطأ في الخادم.' };
   }
 }

@@ -35,9 +35,13 @@ const nextConfig = {
   },
 
   async headers() {
+    // Get API URL from environment variable for production
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || (isDev ? 'http://localhost:5000' : '');
+    const apiOrigin = apiUrl ? new URL(apiUrl).origin : '';
+    
     const connectSrc = isDev
-      ? "'self' http://localhost:5000 wss://*.cloudworkstations.dev https://*.cloudworkstations.dev"
-      : "'self' wss://*.cloudworkstations.dev https://*.cloudworkstations.dev";
+      ? `'self' http://localhost:5000 ${apiOrigin ? apiOrigin : ''} wss://*.cloudworkstations.dev https://*.cloudworkstations.dev`.trim()
+      : `'self' ${apiOrigin ? apiOrigin : ''} wss://*.cloudworkstations.dev https://*.cloudworkstations.dev`.trim();
 
     return [
       {

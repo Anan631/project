@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: data.message });
   } catch (error: any) {
-    console.error('خطأ في إرسال الرسالة:', error);
     return NextResponse.json(
       { success: false, message: error.message || 'حدث خطأ أثناء إرسال الرسالة' },
       { status: 500 }

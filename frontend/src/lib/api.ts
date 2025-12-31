@@ -1,6 +1,21 @@
 // API client for backend communication
 // Use external backend server
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const getApiBaseUrl = (): string => {
+  const url = process.env.NEXT_PUBLIC_API_URL;
+  if (!url) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('NEXT_PUBLIC_API_URL environment variable is required in production');
+    }
+    // Development fallback with warning
+    if (typeof window !== 'undefined') {
+      console.warn('⚠️ NEXT_PUBLIC_API_URL is not set. Using development fallback: http://localhost:5000/api');
+    }
+    return 'http://localhost:5000/api';
+  }
+  return url;
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -93,7 +108,9 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     try {
       const url = `${API_BASE_URL}${endpoint}`;
-      console.log('[API Request]', url, options.method || 'GET');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[API Request]', url, options.method || 'GET');
+      }
 
       // Default headers
       const defaultHeaders = {
@@ -157,7 +174,9 @@ class ApiClient {
       }
 
     } catch (error) {
-      console.error('API request failed:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API request failed:', error);
+      }
 
       // معالجة أنواع الأخطاء المختلفة
       let errorMessage = 'حدث خطأ في الاتصال بالخادم';
@@ -208,8 +227,8 @@ class ApiClient {
   async generateCostReport(
     projectId: string,
     calculationType: 'concrete' | 'steel',
-    input: any
-  ): Promise<ApiResponse<any>> {
+    input: Record<string, unknown>
+  ): Promise<ApiResponse<unknown>> {
     return this.request('/calculations/generate-cost-report', {
       method: 'POST',
       body: JSON.stringify({
@@ -226,33 +245,41 @@ class ApiClient {
   }
 
   // ✅ Get user data
-  async getUserData(userId: string): Promise<ApiResponse<any>> {
+  async getUserData(userId: string): Promise<ApiResponse<Record<string, unknown>>> {
     return this.request(`/users/${userId}`);
   }
 
   // ✅ Test server connection - تحسين اختبار الاتصال
   async testConnection(): Promise<{ success: boolean; message: string; details?: any }> {
     try {
-      console.log(`🔍 Testing connection to: ${API_BASE_URL}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔍 Testing connection to: ${API_BASE_URL}`);
+      }
 
       const response = await this.healthCheck();
 
       if (response.success && response.data) {
-        console.log('✅ Server connection successful:', response.data);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Server connection successful:', response.data);
+        }
         return {
           success: true,
           message: 'الاتصال بالخادم ناجح',
           details: response.data
         };
       } else {
-        console.error('❌ Server responded with error:', response.message);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Server responded with error:', response.message);
+        }
         return {
           success: false,
           message: response.message || 'الخادم استجاب ولكن بحالة خطأ'
         };
       }
     } catch (error) {
-      console.error('❌ Server connection failed:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Server connection failed:', error);
+      }
 
       const errorMessage = error instanceof Error ? error.message : 'خطأ غير معروف';
 
@@ -293,7 +320,9 @@ class ApiClient {
         message: 'تم رفع الملف بنجاح'
       };
     } catch (error) {
-      console.error('File upload failed:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('File upload failed:', error);
+      }
       return {
         success: false,
         message: error instanceof Error ? error.message : 'فشل رفع الملف'

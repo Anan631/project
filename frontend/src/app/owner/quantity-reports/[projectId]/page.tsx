@@ -1542,7 +1542,7 @@ export default function OwnerQuantityReportsPage() {
               </thead>
               <tbody>
                 ${report.calculationType === 'column-footings'
-          ? `
+            ? `
                       <tr>
                         <td>${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                         <td>${(report.concreteData.totalFootingsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
@@ -1554,8 +1554,8 @@ export default function OwnerQuantityReportsPage() {
                         <td>إجمالي الخرسانة</td>
                       </tr>
                     `
-          : report.calculationType === 'columns'
-            ? `
+            : report.calculationType === 'columns'
+              ? `
                       <tr>
                         <td>${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                         <td>${(report.concreteData.columnsVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
@@ -1567,8 +1567,8 @@ export default function OwnerQuantityReportsPage() {
                         <td>إجمالي الخرسانة</td>
                       </tr>
                     `
-            : report.calculationType === 'roof'
-              ? `
+              : report.calculationType === 'roof'
+                ? `
                       <tr>
                         <td>${(report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                         <td>${(report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
@@ -1580,8 +1580,8 @@ export default function OwnerQuantityReportsPage() {
                         <td>إجمالي الخرسانة</td>
                       </tr>
                     `
-              : report.calculationType === 'ground-bridges'
-                ? `
+                : report.calculationType === 'ground-bridges'
+                  ? `
                       <tr>
                         <td>${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                         <td>${(report.concreteData.totalVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
@@ -1593,8 +1593,8 @@ export default function OwnerQuantityReportsPage() {
                         <td>إجمالي الخرسانة</td>
                       </tr>
                     `
-                : report.calculationType === 'ground-slab'
-                  ? `
+                  : report.calculationType === 'ground-slab'
+                    ? `
                       <tr>
                         <td>${(report.concreteData.groundSlabVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
                         <td>${(report.concreteData.groundSlabVolume || report.concreteData.totalConcrete || 0).toFixed(2)} م³</td>
@@ -1606,7 +1606,7 @@ export default function OwnerQuantityReportsPage() {
                         <td>إجمالي الخرسانة</td>
                       </tr>
                     `
-                  : ''}
+                    : ''}
               </tbody>
             </table>
             ` : ''}
@@ -1760,25 +1760,19 @@ export default function OwnerQuantityReportsPage() {
                 ` : ''}
                 <tr style="font-weight: 900; background: linear-gradient(to right, #d4f4dd, #bbf7d0);">
                   <td>${(() => {
-                    const cleaning = report.concreteData.cleaningVolume || 0;
-                    const foundations = report.concreteData.foundationsVolume || 0;
-                    const groundSlab = report.concreteData.groundSlabVolume || 0;
-                    return (cleaning + foundations + groundSlab).toFixed(2);
-                  })()} م³</td>
+          const cleaning = report.concreteData.cleaningVolume || 0;
+          const foundations = report.concreteData.foundationsVolume || 0;
+          const groundSlab = report.concreteData.groundSlabVolume || 0;
+          return (cleaning + foundations + groundSlab).toFixed(2);
+        })()} م³</td>
                   <td>${(() => {
-                    const cleaning = report.concreteData.cleaningVolume || 0;
-                    const foundations = report.concreteData.foundationsVolume || 0;
-                    const groundSlab = report.concreteData.groundSlabVolume || 0;
-                    return (cleaning + foundations + groundSlab).toFixed(2);
-                  })()} م³</td>
+          const cleaning = report.concreteData.cleaningVolume || 0;
+          const foundations = report.concreteData.foundationsVolume || 0;
+          const groundSlab = report.concreteData.groundSlabVolume || 0;
+          return (cleaning + foundations + groundSlab).toFixed(2);
+        })()} م³</td>
                   <td>إجمالي الخرسانة الكلي</td>
                 </tr>
-              </tbody>
-            </table>
-            <table style="display: none;">
-              <tbody>
-                    `
-        }
               </tbody>
             </table>
 
@@ -1805,31 +1799,31 @@ export default function OwnerQuantityReportsPage() {
               </div>
             </div>
 
-            <div class="signature-section">
-                <div class="signature-row">
-                  <div class="signature-box">
-                    <div class="signature-line"></div>
-                    <div class="signature-title">المهندس المسؤول</div>
-                    <div class="signature-name">${report.engineerName}</div>
-                    <div class="signature-label">التوقيع</div>
-                  </div>
-                  <div class="signature-box">
-                    <div class="signature-line"></div>
-                    <div class="signature-title">المالك / العميل</div>
-                    <div class="signature-name">${report.ownerName || 'غير محدد'}</div>
-                    <div class="signature-label">التوقيع</div>
-                  </div>
-                </div>
-              </div>
-
-            <div class="footer">
-              <p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p>
-              <p>© 2025 جميع الحقوق محفوظة</p>
-            </div>
+      <div class="signature-section">
+        <div class="signature-row">
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-title">المهندس المسؤول</div>
+            <div class="signature-name">${report.engineerName}</div>
+            <div class="signature-label">التوقيع</div>
           </div>
-        </body>
-        </html>
-      `;
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-title">المالك / العميل</div>
+            <div class="signature-name">${report.ownerName || 'غير محدد'}</div>
+            <div class="signature-label">التوقيع</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>تم إنشاء هذا التقرير بواسطة منصة المحترف لحساب الكميات</p>
+        <p>© 2025 جميع الحقوق محفوظة</p>
+      </div>
+          </div >
+        </body >
+        </html >
+    `;
 
       const printWindow = window.open('', '_blank', 'width=1000,height=800');
       if (!printWindow) {
@@ -1867,7 +1861,7 @@ export default function OwnerQuantityReportsPage() {
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
+    return `${day} -${month} -${year} `;
   };
 
   const getReportTypeLabel = (type: string) => {
@@ -1963,7 +1957,7 @@ export default function OwnerQuantityReportsPage() {
 
         {/* Back Button */}
         <div className="mb-6">
-          <Link href={`/owner/projects/${projectId}`}>
+          <Link href={`/ owner / projects / ${projectId} `}>
             <Button variant="ghost" className="gap-2 text-slate-600 hover:text-slate-900">
               <ArrowRight className="w-4 h-4" />
               العودة إلى صفحة المشروع
@@ -1981,7 +1975,7 @@ export default function OwnerQuantityReportsPage() {
                 </div>
                 <div className="flex-1">
                   <CardTitle className="text-3xl font-bold mb-3">
-                    {projectInfo?.name || `مشروع #${projectId.slice(-6)}`}
+                    {projectInfo?.name || `مشروع #${projectId.slice(-6)} `}
                   </CardTitle>
                   <div className="flex flex-wrap gap-4 text-blue-100">
                     <div className="flex items-center gap-2">

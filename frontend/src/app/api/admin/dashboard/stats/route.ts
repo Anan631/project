@@ -27,8 +27,21 @@ export async function GET() {
     const logs = logsData.logs || [];
 
     // حساب الإحصائيات
-    const activeUsers = users.filter((u: any) => u.status === 'ACTIVE').length;
-    const activeProjects = projects.filter((p: any) => p.projectStatus === 'ACTIVE').length;
+    interface User {
+      status?: string;
+      [key: string]: unknown;
+    }
+    interface Project {
+      projectStatus?: string;
+      [key: string]: unknown;
+    }
+    interface Log {
+      createdAt?: string;
+      [key: string]: unknown;
+    }
+    
+    const activeUsers = (users as User[]).filter((u) => u.status === 'ACTIVE').length;
+    const activeProjects = (projects as Project[]).filter((p) => p.projectStatus === 'ACTIVE').length;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -36,7 +49,7 @@ export async function GET() {
     tomorrow.setDate(today.getDate() + 1);
 
     // حساب عدد الـ logs اليوم مع فحص وجود createdAt
-    const todayLogs = logs.filter((log: any) => {
+    const todayLogs = (logs as Log[]).filter((log) => {
       if (!log?.createdAt) return false; // تأكد أن createdAt موجود
       const d = new Date(Date.parse(log.createdAt));
       return d >= today && d < tomorrow;
@@ -69,7 +82,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error("Dashboard Error:", error);
+    // Return empty stats on error
     return NextResponse.json({
       users: { count: 0, active: 0 },
       projects: { count: 0, active: 0 },

@@ -5,7 +5,7 @@ const API_URL = API_BASE_URL;
 export interface ConcreteCalculation {
   _id?: string;
   projectId: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export async function getConcreteCalculationsByProject(projectId: string): Promise<ConcreteCalculation[]> {
@@ -119,7 +119,7 @@ export async function deleteConcreteCalculation(id: string): Promise<boolean> {
   }
 }
 
-export async function calculateConcreteAlgorithm(data: any): Promise<any> {
+export async function calculateConcreteAlgorithm(data: Record<string, unknown>): Promise<unknown> {
   try {
     const response = await fetch(`${API_URL}/calculations/concrete-algorithm`, {
       method: 'POST',

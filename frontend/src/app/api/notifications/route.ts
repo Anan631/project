@@ -14,7 +14,7 @@ export interface Notification {
   userName: string;
   projectId?: string;
   projectTitle?: string;
-  data?: any; // بيانات إضافية متعلقة بالإشعار
+  data?: Record<string, unknown>; // بيانات إضافية متعلقة بالإشعار
 }
 
 // دالة للحصول على الإشعارات حسب دور المستخدم
@@ -23,9 +23,9 @@ async function getUserNotifications(userId: string, userRole: string): Promise<N
     // في تطبيق حقيقي، سيتم استبدال هذا بطلب API إلى قاعدة البيانات
     const response = await fetch(`${process.env.API_URL}/notifications/${userId}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
         'Content-Type': 'application/json'
-      }
+      },
+      cache: 'no-store'
     });
 
     if (!response.ok) {
@@ -34,8 +34,6 @@ async function getUserNotifications(userId: string, userRole: string): Promise<N
 
     return await response.json();
   } catch (error) {
-    console.error('خطأ في جلب الإشعارات:', error);
-
     // في حالة فشل الاتصال بالخادم، إرجاع بيانات وهمية مؤقتة
     return generateDummyNotifications(userRole);
   }
@@ -230,20 +228,20 @@ async function markNotificationAsRead(notificationId: string, userId: string): P
     const response = await fetch(`${process.env.API_URL}/notifications/read`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         notificationId,
         userId
-      })
+      }),
+      cache: 'no-store'
     });
 
     if (!response.ok) {
       throw new Error('فشل في تحديث حالة الإشعار');
     }
   } catch (error) {
-    console.error('خطأ في تحديث حالة الإشعار:', error);
+    // Silent fail - notifications are not critical
   }
 }
 
@@ -253,20 +251,20 @@ async function deleteNotification(notificationId: string, userId: string): Promi
     const response = await fetch(`${process.env.API_URL}/notifications/delete`, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         notificationId,
         userId
-      })
+      }),
+      cache: 'no-store'
     });
 
     if (!response.ok) {
       throw new Error('فشل في حذف الإشعار');
     }
   } catch (error) {
-    console.error('خطأ في حذف الإشعار:', error);
+    // Silent fail - notifications are not critical
   }
 }
 
@@ -276,19 +274,19 @@ async function markAllNotificationsAsRead(userId: string): Promise<void> {
     const response = await fetch(`${process.env.API_URL}/notifications/read-all`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         userId
-      })
+      }),
+      cache: 'no-store'
     });
 
     if (!response.ok) {
       throw new Error('فشل في تحديث حالة الإشعارات');
     }
   } catch (error) {
-    console.error('خطأ في تحديث حالة الإشعارات:', error);
+    // Silent fail - notifications are not critical
   }
 }
 
@@ -298,19 +296,19 @@ async function deleteAllNotifications(userId: string): Promise<void> {
     const response = await fetch(`${process.env.API_URL}/notifications/delete-all`, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         userId
-      })
+      }),
+      cache: 'no-store'
     });
 
     if (!response.ok) {
       throw new Error('فشل في حذف الإشعارات');
     }
   } catch (error) {
-    console.error('خطأ في حذف الإشعارات:', error);
+    // Silent fail - notifications are not critical
   }
 }
 
@@ -328,7 +326,6 @@ export async function GET(request: NextRequest) {
     const notifications = await getUserNotifications(userId, userRole);
     return NextResponse.json(notifications);
   } catch (error) {
-    console.error('خطأ في معالجة طلب الإشعارات:', error);
     return NextResponse.json({ error: 'خطأ في الخادم' }, { status: 500 });
   }
 }
@@ -370,7 +367,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'إجراء غير معروف' }, { status: 400 });
     }
   } catch (error) {
-    console.error('خطأ في معالجة طلب الإشعارات:', error);
     return NextResponse.json({ error: 'خطأ في الخادم' }, { status: 500 });
   }
 }
