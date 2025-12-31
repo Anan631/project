@@ -10,7 +10,12 @@ const app = express();
 /* ----------------------- Middlewares ----------------------- */
 
 // CORS مع إعدادات خفيفة للأداء
-app.use(cors({ origin: ['http://localhost:3000', 'http://localhost:5000'], credentials: true }));
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://project-coral-rho.vercel.app'
+];
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+
 
 // JSON Parsing أسرع (مع limit لتقليل الهجمات)
 app.use(express.json({ limit: '50mb' }));
