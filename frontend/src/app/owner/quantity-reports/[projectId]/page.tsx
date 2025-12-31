@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/lib/api';
 import {
   Building2,
   FileText,
@@ -112,7 +113,7 @@ export default function OwnerQuantityReportsPage() {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/quantity-reports/owner/${encodeURIComponent(userEmail)}/project/${projectId}`);
+      const response = await fetch(`${API_BASE_URL}/quantity-reports/owner/${encodeURIComponent(userEmail)}/project/${projectId}`);
       const data = await response.json();
 
       if (data.success) {

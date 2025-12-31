@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const BASE_URL = process.env.API_URL;
+  if (!BASE_URL) {
+    return NextResponse.json({ success: false, message: 'API_URL environment variable is not set' }, { status: 500 });
+  }
 
   try {
     // Fetch users, projects, and logs in parallel
@@ -24,8 +27,8 @@ export async function GET() {
     const logs = logsData.logs || [];
 
     // حساب الإحصائيات
-    const activeUsers = users.filter(u => u.status === 'ACTIVE').length;
-    const activeProjects = projects.filter(p => p.projectStatus === 'ACTIVE').length;
+    const activeUsers = users.filter((u: any) => u.status === 'ACTIVE').length;
+    const activeProjects = projects.filter((p: any) => p.projectStatus === 'ACTIVE').length;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -33,7 +36,7 @@ export async function GET() {
     tomorrow.setDate(today.getDate() + 1);
 
     // حساب عدد الـ logs اليوم مع فحص وجود createdAt
-    const todayLogs = logs.filter(log => {
+    const todayLogs = logs.filter((log: any) => {
       if (!log?.createdAt) return false; // تأكد أن createdAt موجود
       const d = new Date(Date.parse(log.createdAt));
       return d >= today && d < tomorrow;

@@ -5,7 +5,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // إرسال البيانات إلى الواجهة الخلفية
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/contact/send-message`, {
+    const API_URL = process.env.API_URL;
+    if (!API_URL) {
+      return NextResponse.json({ success: false, message: 'API_URL environment variable is not set' }, { status: 500 });
+    }
+    const response = await fetch(`${API_URL}/contact/send-message`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

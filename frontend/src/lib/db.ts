@@ -4,7 +4,6 @@
 // File DB removed
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { apiClient } from './api';
 
 // ---- TYPE DEFINITIONS (Matching JSON structure) ----
 
@@ -141,10 +140,10 @@ export interface SystemSettingsDocument {
 
 // ---- DATABASE I/O HELPERS ----
 
-// استخدام متغير البيئة للمرونة في تغيير المنفذ
-// Use environment variable for flexibility in changing the port
-// To use a different port, create .env.local with: NEXT_PUBLIC_API_URL=http://localhost:YOUR_PORT/api
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.API_URL;
+if (!API_BASE_URL) {
+  throw new Error('API_URL environment variable is not set');
+}
 
 // Removed readDb/writeDb helpers and file-backed cache
 
@@ -693,8 +692,16 @@ export async function changeUserPassword(userId: string, currentPassword_input: 
 
 export const sendProjectMessage = async (projectId: string, message: ChatMessage) => {
   try {
-    const res = await apiClient.post(`/projects/${projectId}/messages`, message);
-    return res;
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return { success: true, data };
   } catch (error) {
     console.error('Error sending message:', error);
     return { success: false, error };

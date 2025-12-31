@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/lib/api';
 import {
   Building2,
   FileText,
@@ -144,10 +145,16 @@ export default function QuantityReportsPage() {
 
   const fetchProjects = async (userId: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/quantity-reports/engineer/${userId}`);
+      const url = `${API_BASE_URL}/quantity-reports/engineer/${userId}`;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
 
-      if (data.success) {
+      if (data.success && data.projects) {
         // Add mock status and priority for demo
         const enhancedProjects = data.projects.map((project: ProjectReport) => ({
           ...project,
@@ -155,9 +162,17 @@ export default function QuantityReportsPage() {
           priority: project.reports.length > 2 ? 'high' : project.reports.length > 0 ? 'medium' : 'low'
         }));
         setProjects(enhancedProjects);
+      } else {
+        setProjects([]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching projects:', error);
+      setProjects([]);
+      toast({
+        title: 'خطأ في جلب التقارير',
+        description: error.message || 'حدث خطأ أثناء جلب التقارير. تأكد من أن الخادم يعمل.',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }
@@ -204,7 +219,7 @@ export default function QuantityReportsPage() {
       const reportIds = project?.reports.map(r => r._id) || [];
 
       await Promise.allSettled(
-        reportIds.map(id => fetch(`http://localhost:5000/api/quantity-reports/${id}`, { method: 'DELETE' }))
+        reportIds.map(id => fetch(`${API_BASE_URL}/quantity-reports/${id}`, { method: 'DELETE' }))
       );
 
       setProjects(prev => prev.filter(p => p.projectId !== deleteDialog.projectId));
@@ -238,7 +253,7 @@ export default function QuantityReportsPage() {
       // احذف كل التقارير لكل المشاريع عبر endpoint حذف تقرير واحد
       const allReportIds = projects.flatMap(p => p.reports.map(r => r._id));
       await Promise.allSettled(
-        allReportIds.map(id => fetch(`http://localhost:5000/api/quantity-reports/${id}`, { method: 'DELETE' }))
+        allReportIds.map(id => fetch(`${API_BASE_URL}/quantity-reports/${id}`, { method: 'DELETE' }))
       );
 
       setProjects([]);
@@ -270,7 +285,7 @@ export default function QuantityReportsPage() {
     if (!singleDelete.reportId || !singleDelete.projectId) return;
     setIsDeletingReport(singleDelete.reportId);
     try {
-      const res = await fetch(`http://localhost:5000/api/quantity-reports/${singleDelete.reportId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE_URL}/quantity-reports/${singleDelete.reportId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('failed');
 
       // حدّث الحالة محلياً

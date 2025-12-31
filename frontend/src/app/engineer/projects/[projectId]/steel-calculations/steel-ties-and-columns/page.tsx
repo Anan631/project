@@ -10,8 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowRight, Calculator, Layers, Ruler, TrendingUp, AlertCircle, Box, ArrowUpCircle, Grid3x3 } from "lucide-react";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '@/lib/api';
 
 // Iron bar data interface
 interface IronBarData {
@@ -23,7 +22,7 @@ interface IronBarData {
 // Fetch iron bars data from backend
 async function fetchIronBars(): Promise<IronBarData[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/engineering-data/iron-bars`);
+    const res = await fetch(`${API_BASE_URL}/engineering-data/iron-bars`);
     const data = await res.json();
     const items = data?.data ?? [];
     return items.map((x: any) => ({
@@ -261,7 +260,7 @@ export default function SteelTiesAndColumnsPage() {
       const engineerId = localStorage.getItem('userId') || '';
       const engineerName = localStorage.getItem('userName') || 'المهندس';
 
-      const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+      const projectRes = await fetch(`${API_BASE_URL}/projects/${projectId}`);
       if (!projectRes.ok) throw new Error(`HTTP ${projectRes.status}`);
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
@@ -299,7 +298,7 @@ export default function SteelTiesAndColumnsPage() {
         status: 'saved'
       } as any;
 
-      const resp = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
+      const resp = await fetch(`${API_BASE_URL}/quantity-reports`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

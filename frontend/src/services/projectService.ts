@@ -1,6 +1,13 @@
-import { Project } from '@/types/project';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL = API_BASE_URL;
+
+export interface Project {
+  _id?: string;
+  id?: string;
+  name: string;
+  [key: string]: any;
+}
 
 export async function getProjectById(id: string): Promise<Project | null> {
   try {

@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 import {
   Building2,
   ArrowRight,
@@ -180,7 +181,7 @@ export default function FoundationCalculationPage() {
 
       // Check if report already exists for this project and calculation type
       try {
-        const reportsResponse = await fetch(`http://localhost:5000/api/quantity-reports/project/${projectId}`);
+        const reportsResponse = await fetch(`${API_BASE_URL}/quantity-reports/project/${projectId}`);
         const reportsData = await reportsResponse.json();
 
         if (reportsData.success && reportsData.reports && reportsData.reports.length > 0) {
@@ -326,7 +327,7 @@ export default function FoundationCalculationPage() {
 
     try {
       // Delete existing report
-      const deleteResponse = await fetch(`http://localhost:5000/api/quantity-reports/${existingReportDialog.reportId}`, {
+      const deleteResponse = await fetch(`${API_BASE_URL}/quantity-reports/${existingReportDialog.reportId}`, {
         method: 'DELETE'
       });
 
@@ -392,7 +393,7 @@ export default function FoundationCalculationPage() {
       const engineerName = localStorage.getItem('userName') || 'المهندس';
 
       // Fetch project details to get owner info
-      const projectRes = await fetch(`http://localhost:5000/api/projects/${projectId}`);
+      const projectRes = await fetch(`${API_BASE_URL}/projects/${projectId}`);
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
 
@@ -445,7 +446,7 @@ export default function FoundationCalculationPage() {
         sentToOwner: false
       };
 
-      const response = await fetch('http://localhost:5000/api/quantity-reports', {
+      const response = await fetch(`${API_BASE_URL}/quantity-reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportData)

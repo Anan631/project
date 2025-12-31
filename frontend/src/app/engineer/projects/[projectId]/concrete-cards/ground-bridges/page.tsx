@@ -79,7 +79,7 @@ interface Bridge {
   height: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function GroundBridgesCalculationPage() {
   const params = useParams();
@@ -144,7 +144,7 @@ export default function GroundBridgesCalculationPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch(`${API_BASE_URL}/api/health`, {
+      const response = await fetch(`${API_BASE_URL}/health`, {
         method: 'GET',
         signal: controller.signal
       });
@@ -179,7 +179,7 @@ export default function GroundBridgesCalculationPage() {
 
       // Check if report already exists for this project and calculation type
       try {
-        const reportsResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+        const reportsResponse = await fetch(`${API_BASE_URL}/quantity-reports/project/${projectId}`);
         const reportsData = await reportsResponse.json();
 
         if (reportsData.success && reportsData.reports && reportsData.reports.length > 0) {
@@ -258,7 +258,7 @@ export default function GroundBridgesCalculationPage() {
 
     try {
       // Delete existing report (soft delete)
-      const deleteResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/${existingReportDialog.reportId}`, {
+      const deleteResponse = await fetch(`${API_BASE_URL}/quantity-reports/${existingReportDialog.reportId}`, {
         method: 'DELETE'
       });
 
@@ -309,7 +309,7 @@ export default function GroundBridgesCalculationPage() {
       const engineerName = localStorage.getItem('userName') || 'المهندس';
 
       // Fetch project details to get owner info
-      const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+      const projectRes = await fetch(`${API_BASE_URL}/projects/${projectId}`);
 
       if (!projectRes.ok) {
         throw new Error(`HTTP error! status: ${projectRes.status}`);
@@ -348,7 +348,7 @@ export default function GroundBridgesCalculationPage() {
       };
 
       // حفظ النتائج في قاعدة البيانات
-      const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
+      const response = await fetch(`${API_BASE_URL}/quantity-reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportData)

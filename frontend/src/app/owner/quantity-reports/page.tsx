@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/lib/api';
 import {
   Building2,
   FileText,
@@ -153,7 +154,13 @@ export default function OwnerQuantityReportsPage() {
               const userEmail = typeof window !== 'undefined' ? localStorage.getItem('userEmail') : null;
               if (!userEmail) return report;
               
-              const response = await fetch(`http://localhost:5000/api/quantity-reports/owner/${encodeURIComponent(userEmail)}/project/${report.projectId}`);
+              const url = `${API_BASE_URL}/quantity-reports/owner/${encodeURIComponent(userEmail)}/project/${report.projectId}`;
+              const response = await fetch(url);
+              
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              
               const data = await response.json();
               
               if (data.success && data.reports) {
@@ -163,7 +170,7 @@ export default function OwnerQuantityReportsPage() {
                 };
               }
               return report;
-            } catch (error) {
+            } catch (error: any) {
               console.error(`Error fetching reports for project ${report.projectId}:`, error);
               return report;
             }

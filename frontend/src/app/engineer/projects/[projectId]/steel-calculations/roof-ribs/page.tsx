@@ -36,8 +36,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '@/lib/api';
 
 interface IronBar {
     _id: string;
@@ -91,7 +90,7 @@ export default function RoofRibsCalculationPage() {
     useEffect(() => {
         const checkExistingReport = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+                const response = await fetch(`${API_BASE_URL}/quantity-reports/project/${projectId}`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success && data.reports) {
@@ -115,7 +114,7 @@ export default function RoofRibsCalculationPage() {
         if (!existingReportId) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/quantity-reports/${existingReportId}`, {
+            const response = await fetch(`${API_BASE_URL}/quantity-reports/${existingReportId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -148,7 +147,7 @@ export default function RoofRibsCalculationPage() {
     useEffect(() => {
         const fetchIronBars = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/engineering-data/iron-bars`);
+                const response = await fetch(`${API_BASE_URL}/engineering-data/iron-bars`);
                 const data = await response.json();
                 if (data.success) {
                     setIronBars(data.data);
@@ -171,8 +170,8 @@ export default function RoofRibsCalculationPage() {
         const fetchBuildingTypes = async () => {
             try {
                 const [liveLoadsRes, deadLoadsRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/api/engineering-data/live-loads`),
-                    fetch(`${API_BASE_URL}/api/engineering-data/dead-loads`)
+                    fetch(`${API_BASE_URL}/engineering-data/live-loads`),
+                    fetch(`${API_BASE_URL}/engineering-data/dead-loads`)
                 ]);
 
                 const liveLoadsData = await liveLoadsRes.json();
@@ -368,7 +367,7 @@ export default function RoofRibsCalculationPage() {
             const engineerId = localStorage.getItem('userId') || '';
             const engineerName = localStorage.getItem('userName') || 'المهندس';
 
-            const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+            const projectRes = await fetch(`${API_BASE_URL}/projects/${projectId}`);
 
             if (!projectRes.ok) {
                 throw new Error(`HTTP error! status: ${projectRes.status}`);
@@ -424,7 +423,7 @@ export default function RoofRibsCalculationPage() {
                 sentToOwner: false
             };
 
-            const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
+            const response = await fetch(`${API_BASE_URL}/quantity-reports`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

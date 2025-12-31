@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -89,7 +90,7 @@ export default function RoofConcretePage() {
     const fetchLiveLoadData = async () => {
       setLoadingLiveLoad(true);
       try {
-        const response = await fetch('http://localhost:5000/api/engineering-data/live-loads');
+        const response = await fetch(`${API_BASE_URL}/engineering-data/live-loads`);
         const data = await response.json();
         console.log('Live load data:', data); // للتحقق من شكل البيانات
         // التحقق إذا كانت البيانات مصفوفة، وإذا لم تكن كذلك، حاول استخراج المصفوفة من الكائن
@@ -233,7 +234,7 @@ export default function RoofConcretePage() {
   // التحقق من وجود تقرير سابق
   const checkExistingReport = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/quantity-reports/project/${projectId}`);
+      const response = await fetch(`${API_BASE_URL}/quantity-reports/project/${projectId}`);
       const data = await response.json();
 
       if (data.success && data.reports) {
@@ -255,7 +256,7 @@ export default function RoofConcretePage() {
   // حذف التقرير السابق (soft delete)
   const deleteExistingReport = async (reportId: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/quantity-reports/${reportId}`, {
+      const response = await fetch(`${API_BASE_URL}/quantity-reports/${reportId}`, {
         method: 'DELETE'
       });
       const data = await response.json();
@@ -349,7 +350,7 @@ export default function RoofConcretePage() {
       const engineerId = localStorage.getItem('userId') || '';
       const engineerName = localStorage.getItem('userName') || 'المهندس';
 
-      const projectRes = await fetch(`http://localhost:5000/api/projects/${projectId}`);
+      const projectRes = await fetch(`${API_BASE_URL}/projects/${projectId}`);
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
 
@@ -399,7 +400,7 @@ export default function RoofConcretePage() {
         },
       };
 
-      const response = await fetch('http://localhost:5000/api/quantity-reports', {
+      const response = await fetch(`${API_BASE_URL}/quantity-reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

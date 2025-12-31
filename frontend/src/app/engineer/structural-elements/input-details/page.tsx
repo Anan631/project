@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { API_BASE_URL } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -107,7 +108,7 @@ export default function InputDetailsPage() {
   const fetchProjectInfo = async () => {
     try {
       console.log(`Fetching project info for projectId: ${projectId}`);
-      const response = await fetch(`http://localhost:5000/api/projects/${projectId}`);
+      const response = await fetch(`${API_BASE_URL}/projects/${projectId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}, message: ${response.statusText}`);
@@ -143,7 +144,7 @@ export default function InputDetailsPage() {
       console.log('Fetching projects for userId:', userId, 'role:', userRole);
       
       // استخدام query parameters بدلاً من route parameters
-      const url = `http://localhost:5000/api/projects?userId=${userId}&userRole=${userRole || 'ENGINEER'}`;
+      const url = `${API_BASE_URL}/projects?userId=${userId}&userRole=${userRole || 'ENGINEER'}`;
       console.log('Fetching from URL:', url);
       
       const response = await fetch(url);
@@ -172,7 +173,7 @@ export default function InputDetailsPage() {
             // إذا لم يكن هناك اسم مالك وكان هناك بريد إلكتروني مربوط، جلب اسم المالك من قاعدة البيانات
             if (!ownerName && project.linkedOwnerEmail) {
               try {
-                const userResponse = await fetch(`http://localhost:5000/api/users/by/email?email=${encodeURIComponent(project.linkedOwnerEmail)}`);
+                const userResponse = await fetch(`${API_BASE_URL}/users/by/email?email=${encodeURIComponent(project.linkedOwnerEmail)}`);
                 if (userResponse.ok) {
                   const userData = await userResponse.json();
                   if (userData.success && userData.user) {

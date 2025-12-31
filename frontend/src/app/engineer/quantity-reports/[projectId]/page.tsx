@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/lib/api';
 import {
   Building2,
   FileText,
@@ -159,7 +160,7 @@ export default function ProjectReportsPage() {
 
   const fetchReports = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/quantity-reports/project/${projectId}`);
+      const response = await fetch(`${API_BASE_URL}/quantity-reports/project/${projectId}`);
       const data = await response.json();
 
       if (data.success) {
@@ -1838,7 +1839,7 @@ export default function ProjectReportsPage() {
 
     setDeleting(deleteDialog.reportId);
     try {
-      const response = await fetch(`http://localhost:5000/api/quantity-reports/${deleteDialog.reportId}`, {
+      const response = await fetch(`${API_BASE_URL}/quantity-reports/${deleteDialog.reportId}`, {
         method: 'DELETE'
       });
 
@@ -1869,7 +1870,7 @@ export default function ProjectReportsPage() {
   const handleSendToOwner = async (reportId: string) => {
     setSendingToOwner(reportId);
     try {
-      const response = await fetch(`http://localhost:5000/api/quantity-reports/${reportId}/send-to-owner`, {
+      const response = await fetch(`${API_BASE_URL}/quantity-reports/${reportId}/send-to-owner`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -1914,7 +1915,7 @@ export default function ProjectReportsPage() {
     setDeletingAll(true);
     try {
       const deletePromises = reports.map(report =>
-        fetch(`http://localhost:5000/api/quantity-reports/${report._id}`, {
+        fetch(`${API_BASE_URL}/quantity-reports/${report._id}`, {
           method: 'DELETE'
         })
       );

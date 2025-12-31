@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useToast } from '@/hooks/use-toast';
 import type { UserDocument, Project } from '@/lib/db';
 import { getUsers, getProjects } from '@/lib/db';
+import { API_BASE_URL } from '@/lib/api';
 
 type Owner = Omit<UserDocument, 'password_hash'>;
 
@@ -280,7 +281,7 @@ export default function CostEstimatorForm() {
     };
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const API_URL = API_BASE_URL;
       const response = await fetch(`${API_URL}/reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

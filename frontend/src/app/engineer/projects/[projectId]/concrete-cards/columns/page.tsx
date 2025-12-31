@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/lib/api';
 import {
   ArrowRight,
   Blocks,
@@ -339,7 +340,7 @@ export default function ColumnsConcretePage() {
   // التحقق من وجود تقرير سابق
   const checkExistingReport = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/quantity-reports/project/${projectId}`);
+      const response = await fetch(`${API_BASE_URL}/quantity-reports/project/${projectId}`);
       const data = await response.json();
 
       if (data.success && data.reports) {
@@ -361,7 +362,7 @@ export default function ColumnsConcretePage() {
   // حذف التقرير السابق
   const deleteExistingReport = async (reportId: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/quantity-reports/${reportId}`, {
+      const response = await fetch(`${API_BASE_URL}/quantity-reports/${reportId}`, {
         method: 'DELETE'
       });
       const data = await response.json();
@@ -395,13 +396,13 @@ export default function ColumnsConcretePage() {
       const engineerId = localStorage.getItem('userId') || '';
       const engineerName = localStorage.getItem('userName') || 'المهندس';
 
-      const projectRes = await fetch(`http://localhost:5000/api/projects/${projectId}`);
+      const projectRes = await fetch(`${API_BASE_URL}/projects/${projectId}`);
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
 
       // تحضير بيانات الأعمدة
-      const similarColumnsData = [];
-      const differentColumnsData = [];
+      const similarColumnsData: any[] = [];
+      const differentColumnsData: any[] = [];
 
       // إضافة الأعمدة المتشابهة
       if (similarResults.count > 0) {
@@ -455,7 +456,7 @@ export default function ColumnsConcretePage() {
         },
       };
 
-      const response = await fetch('http://localhost:5000/api/quantity-reports', {
+      const response = await fetch(`${API_BASE_URL}/quantity-reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportData),

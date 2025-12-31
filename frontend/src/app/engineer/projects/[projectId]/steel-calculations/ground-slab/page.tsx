@@ -31,8 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function GroundSlabCalculationPage() {
   const params = useParams();
@@ -52,7 +51,7 @@ export default function GroundSlabCalculationPage() {
 
   const checkExistingReport = async () => {
     try {
-      const reportsResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+      const reportsResponse = await fetch(`${API_BASE_URL}/quantity-reports/project/${projectId}`);
       if (reportsResponse.ok) {
         const reportsData = await reportsResponse.json();
         if (reportsData.success && reportsData.reports?.length > 0) {
@@ -219,7 +218,7 @@ export default function GroundSlabCalculationPage() {
   const handleRecalculate = async () => {
     if (existingReportId) {
       try {
-        const deleteResponse = await fetch(`${API_BASE_URL}/api/steel-reports/${existingReportId}`, {
+        const deleteResponse = await fetch(`${API_BASE_URL}/steel-reports/${existingReportId}`, {
           method: 'DELETE'
         });
 
@@ -267,7 +266,7 @@ export default function GroundSlabCalculationPage() {
       const engineerId = localStorage.getItem('userId') || '';
       const engineerName = localStorage.getItem('userName') || 'المهندس';
 
-      const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+      const projectRes = await fetch(`${API_BASE_URL}/projects/${projectId}`);
 
       if (!projectRes.ok) {
         throw new Error(`HTTP error! status: ${projectRes.status}`);
@@ -312,7 +311,7 @@ export default function GroundSlabCalculationPage() {
         sentToOwner: false
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
+      const response = await fetch(`${API_BASE_URL}/quantity-reports`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

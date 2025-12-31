@@ -120,7 +120,7 @@ interface Footing {
   height: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function ColumnFootingsCalculationPage() {
   const params = useParams();
@@ -502,7 +502,7 @@ export default function ColumnFootingsCalculationPage() {
     }
 
     try {
-      const deleteResponse = await fetch(`${API_BASE_URL}/api/quantity-reports/${existingReportDialog.reportId}`, {
+      const deleteResponse = await fetch(`${API_BASE_URL}/quantity-reports/${existingReportDialog.reportId}`, {
         method: 'DELETE'
       });
 
@@ -570,7 +570,7 @@ export default function ColumnFootingsCalculationPage() {
       const engineerId = localStorage.getItem('userId') || '';
       const engineerName = localStorage.getItem('userName') || 'المهندس';
 
-      const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+      const projectRes = await fetch(`${API_BASE_URL}/projects/${projectId}`);
 
       if (!projectRes.ok) {
         throw new Error(`HTTP error! status: ${projectRes.status}`);
@@ -604,7 +604,7 @@ export default function ColumnFootingsCalculationPage() {
         }
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
+      const response = await fetch(`${API_BASE_URL}/quantity-reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportData)
@@ -627,7 +627,7 @@ export default function ColumnFootingsCalculationPage() {
           calculationDate: new Date().toISOString()
         };
 
-        await fetch(`${API_BASE_URL}/api/column-calculations`, {
+        await fetch(`${API_BASE_URL}/column-calculations`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(columnData)

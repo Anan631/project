@@ -27,8 +27,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '@/lib/api';
 
 interface Beam {
     id: number;
@@ -98,7 +97,7 @@ export default function GroundBeamsCalculationPage() {
     useEffect(() => {
         const fetchIronBars = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/engineering-data/iron-bars`);
+                const response = await fetch(`${API_BASE_URL}/engineering-data/iron-bars`);
                 const data = await response.json();
                 if (data.success) {
                     // Filter bars to only show diameters 12-20
@@ -246,7 +245,7 @@ export default function GroundBeamsCalculationPage() {
     useEffect(() => {
         const checkExistingReport = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+                const response = await fetch(`${API_BASE_URL}/quantity-reports/project/${projectId}`);
                 const data = await response.json();
                 if (data.success) {
                     const report = data.reports.find((r: any) => r.calculationType === 'ground-beams-steel' && !r.deleted);
@@ -290,7 +289,7 @@ export default function GroundBeamsCalculationPage() {
             const engineerId = localStorage.getItem('userId') || '';
             const engineerName = localStorage.getItem('userName') || 'المهندس';
 
-            const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+            const projectRes = await fetch(`${API_BASE_URL}/projects/${projectId}`);
             if (!projectRes.ok) {
                 throw new Error(`HTTP error! status: ${projectRes.status}`);
             }
@@ -325,7 +324,7 @@ export default function GroundBeamsCalculationPage() {
                 sentToOwner: existingReport ? existingReport.sentToOwner : false
             };
 
-            const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
+            const response = await fetch(`${API_BASE_URL}/quantity-reports`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

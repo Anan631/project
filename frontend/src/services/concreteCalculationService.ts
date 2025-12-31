@@ -1,6 +1,12 @@
-import { ConcreteCalculation } from '@/types/concreteCalculation';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL = API_BASE_URL;
+
+export interface ConcreteCalculation {
+  _id?: string;
+  projectId: string;
+  [key: string]: any;
+}
 
 export async function getConcreteCalculationsByProject(projectId: string): Promise<ConcreteCalculation[]> {
   try {

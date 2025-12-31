@@ -3,6 +3,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -139,7 +140,7 @@ export default function ProjectSpecificTimelinePage() {
     if (!ownerName || ownerName === 'غير محدد') {
       if (project.linkedOwnerEmail) {
         try {
-          const userResponse = await fetch(`http://localhost:5000/api/users/by/email?email=${encodeURIComponent(project.linkedOwnerEmail)}`);
+          const userResponse = await fetch(`${API_BASE_URL}/users/by/email?email=${encodeURIComponent(project.linkedOwnerEmail)}`);
           if (userResponse.ok) {
             const userData = await userResponse.json();
             if (userData.success && userData.user && userData.user.name) {

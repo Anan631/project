@@ -21,7 +21,11 @@ export async function POST(request: NextRequest) {
     }
 
     // إرسال البيانات إلى الباك إند
-    const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/calculations/ground-slab`, {
+    const API_URL = process.env.API_URL;
+    if (!API_URL) {
+      return NextResponse.json({ success: false, message: 'API_URL environment variable is not set' }, { status: 500 });
+    }
+    const backendResponse = await fetch(`${API_URL}/calculations/ground-slab`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

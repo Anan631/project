@@ -46,7 +46,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '@/lib/api';
 
 interface IronBar {
     _id: string;
@@ -103,7 +103,7 @@ export default function FoundationCalculationPage() {
     useEffect(() => {
         const checkExistingReport = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/quantity-reports/project/${projectId}`);
+                const response = await fetch(`${API_BASE_URL}/quantity-reports/project/${projectId}`);
                 const data = await response.json();
                 if (data.success && data.reports) {
                     const foundationSteelReport = data.reports.find(
@@ -266,7 +266,7 @@ export default function FoundationCalculationPage() {
         // Soft delete the existing report first
         if (existingReportId) {
             try {
-                await fetch(`${API_BASE_URL}/api/quantity-reports/${existingReportId}`, {
+                await fetch(`${API_BASE_URL}/quantity-reports/${existingReportId}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -308,7 +308,7 @@ export default function FoundationCalculationPage() {
             const engineerId = localStorage.getItem('userId') || '';
             const engineerName = localStorage.getItem('userName') || 'المهندس';
 
-            const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`);
+            const projectRes = await fetch(`${API_BASE_URL}/projects/${projectId}`);
 
             if (!projectRes.ok) {
                 throw new Error(`HTTP error! status: ${projectRes.status}`);
@@ -354,7 +354,7 @@ export default function FoundationCalculationPage() {
                 sentToOwner: false
             };
 
-            const response = await fetch(`${API_BASE_URL}/api/quantity-reports`, {
+            const response = await fetch(`${API_BASE_URL}/quantity-reports`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

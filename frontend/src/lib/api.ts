@@ -1,6 +1,6 @@
 // API client for backend communication
 // Use external backend server
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -308,12 +308,4 @@ export const apiClient = new ApiClient();
 // دالة مساعدة للاستخدام السريع
 export const testBackendConnection = () => apiClient.testConnection();
 
-// تصدير أنواع البيانات للاستخدام في المكونات
-export type {
-  ConcreteCalculationInput,
-  SteelCalculationInput,
-  CostEstimationInput,
-  ConcreteCalculationResult,
-  SteelCalculationResult,
-  CostEstimationResult
-};
+// Types are already exported above, no need to re-export

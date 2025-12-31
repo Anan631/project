@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { API_BASE_URL } from '@/lib/api';
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowRight,
@@ -71,7 +72,7 @@ export default function ColumnsConcretePage() {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
-        const res = await fetch('http://localhost:5000/api/health', { signal: controller.signal });
+        const res = await fetch(`${API_BASE_URL}/health`, { signal: controller.signal });
         clearTimeout(timeoutId);
         setServerAvailable(res.ok);
       } catch {
@@ -145,7 +146,7 @@ export default function ColumnsConcretePage() {
       setSaving(true);
 
       // Fetch project for owner info
-      const projectRes = await fetch(`http://localhost:5000/api/projects/${projectId}`);
+      const projectRes = await fetch(`${API_BASE_URL}/projects/${projectId}`);
       if (!projectRes.ok) throw new Error('PROJECT_FETCH_FAILED');
       const projectData = await projectRes.json();
       const project = projectData.project || projectData;
@@ -169,7 +170,7 @@ export default function ColumnsConcretePage() {
         },
       } as any;
 
-      const resp = await fetch('http://localhost:5000/api/quantity-reports', {
+      const resp = await fetch(`${API_BASE_URL}/quantity-reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportData),
